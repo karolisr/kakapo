@@ -10,7 +10,7 @@ import tarfile
 import zipfile
 
 from kakapo.config import DIR_DEP, DIR_CFG, OS_ID, DIST_ID
-from kakapo.io import list_of_dirs, download_file
+from kakapo.helpers import list_of_dirs, download_file
 from kakapo.os_diffs import DEBIAN_DISTS, REDHAT_DISTS
 from kakapo.shell import call
 
