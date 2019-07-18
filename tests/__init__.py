@@ -10,3 +10,4 @@ from tests.config import test_data_dir_path
 
 from tests.kakapo_seq import kakapoSeqTests
 from tests.kakapo_bioio import kakapoBioioTests
+from tests.kakapo_entrez import kakapoEntrezTests

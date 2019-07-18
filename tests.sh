@@ -8,7 +8,5 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
 done
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
-# python $DIR/tests.py
 python3 $DIR/tests.py
 python2 $DIR/tests.py
-# pypy3 $DIR/tests.py
