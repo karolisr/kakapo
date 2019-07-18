@@ -4,14 +4,18 @@
 Accounts for differences between operating systems.
 """
 
-import distro
-import sys
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import generators
+from __future__ import nested_scopes
+from __future__ import print_function
+from __future__ import with_statement
 
+import sys
+import distro
 
 DEBIAN_DISTS = ['debian', 'ubuntu']
 REDHAT_DISTS = ['centos', 'fedora', 'rhel', 'scientific']
-
-SUPPORTED_DISTS = DEBIAN_DISTS + REDHAT_DISTS
 
 
 def check_os():
@@ -37,7 +41,9 @@ def check_os():
         dist_name = distro.distro_release_attr('name')
         os_str = 'Linux ({dist_name})'.format(dist_name=dist_name)
 
-        if dist_id not in SUPPORTED_DISTS:
+        supported_dists = DEBIAN_DISTS + REDHAT_DISTS
+
+        if dist_id not in supported_dists:
             print('{dist_name} is not supported yet.'.format(
                 dist_name=dist_name))
             sys.exit(1)

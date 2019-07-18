@@ -4,14 +4,29 @@
 Basic input/output operations.
 """
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import generators
+from __future__ import nested_scopes
+from __future__ import print_function
+from __future__ import with_statement
+
 import fileinput
+import hashlib
 import os
 import sys
-import hashlib
 
-from kakapo.debug import debug_print
 from kakapo.py_v_diffs import urlretrieve
 from kakapo.shell import call
+
+def debug_print(msg=''): # noqa
+    from kakapo.config import DEBUG_MODE
+    if DEBUG_MODE:
+        import pprint
+        PP = pprint.PrettyPrinter(indent=1, width=110, compact=True)
+        PP.pprint(msg)
+    else:
+        pass
 
 
 def replace_line_in_file(file_path, line_str, replace_str):  # noqa

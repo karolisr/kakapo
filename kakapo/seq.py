@@ -6,15 +6,20 @@ Classes that deal with amino acid and nucleotide sequences.
 
 """
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import generators
+from __future__ import nested_scopes
 from __future__ import print_function
+from __future__ import with_statement
 
 from datetime import date
-from re import match
 from datetime import datetime
 from random import randint
+from re import match
 
-from kakapo.py_v_diffs import basestring
 from kakapo.iupac import *
+from kakapo.py_v_diffs import basestring
 
 SEQ_TYPE_NT = 'NT'
 SEQ_TYPE_DNA = 'DNA'

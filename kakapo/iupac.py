@@ -6,6 +6,13 @@ Defines various character sets used in biological sequence representations.
 Reference: http://www.chem.qmul.ac.uk/iubmb/misc/naseq.html
 """
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import generators
+from __future__ import nested_scopes
+from __future__ import print_function
+from __future__ import with_statement
+
 from kakapo.py_v_diffs import maketrans
 
 

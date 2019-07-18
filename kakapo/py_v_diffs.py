@@ -2,6 +2,13 @@
 
 """Manages Python 2 and Python 3 differences."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import generators
+from __future__ import nested_scopes
+from __future__ import print_function
+from __future__ import with_statement
+
 import io
 import re
 import sys
@@ -27,7 +34,7 @@ _py_v_hex, py_v_str = python_version()
 if _py_v_hex >= 0x03000000:
     from urllib.request import urlretrieve # noqa
     from urllib.parse import quote # noqa
-    from configparser import ConfigParser as _DCP # noqa
+    from configparser import ConfigParser as _CP # noqa
 
     maketrans = str.maketrans
 
@@ -42,7 +49,7 @@ elif _py_v_hex < 0x03000000:
     from string import maketrans # noqa
     from urllib import urlretrieve # noqa
     from urllib import quote # noqa
-    from ConfigParser import SafeConfigParser as _DCP # noqa
+    from ConfigParser import SafeConfigParser as _CP # noqa
 
     unicode = unicode
     bytes = str
@@ -52,7 +59,7 @@ elif _py_v_hex < 0x03000000:
     handle_types = [file, io.IOBase] # noqa
 
 
-class ConfigParser(_DCP):
+class ConfigParser(_CP):
     """
     ConfigParser that does not allow ':'. as a separator.
 

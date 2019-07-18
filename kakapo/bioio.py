@@ -2,12 +2,16 @@
 """This module reads and writes of biological sequence and alignment files."""
 
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import generators
+from __future__ import nested_scopes
 from __future__ import print_function
+from __future__ import with_statement
 
-from io import StringIO
-
-from xml.etree import ElementTree
 from datetime import datetime
+from io import StringIO
+from xml.etree import ElementTree
 
 from kakapo.py_v_diffs import handle_types
 from kakapo.py_v_diffs import unicode
