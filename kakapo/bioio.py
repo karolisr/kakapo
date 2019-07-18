@@ -292,6 +292,12 @@ def write_fasta_file(records, file_path_or_handle):
             raise Exception('No "name" or description attribute or key in'
                             'record.')
 
+        if hasattr(rec, 'accession'):
+            description = rec.accession + '|' + description
+        elif isinstance(rec, dict):
+            if 'accession' in rec:
+                description = rec['accession'] + '|' + description
+
         if hasattr(rec, 'seq'):
             seq = rec.seq.seq
         elif isinstance(rec, dict):
@@ -347,3 +353,9 @@ def read_fasta_file(file_path_or_handle):
         return_list.append(rec)
 
     return return_list
+
+
+def read_fasta_file_dict(file_path_or_handle):  # noqa
+    records = read_fasta_file(file_path_or_handle)
+    records = {r['description']: r['seq'] for r in records}
+    return records
