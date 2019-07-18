@@ -4,25 +4,30 @@
 
 from __future__ import print_function
 
+from io import StringIO
+
 from xml.etree import ElementTree
 from datetime import datetime
 
 from kakapo.py_v_diffs import handle_types
+from kakapo.py_v_diffs import unicode
 from kakapo.seq import SeqRecord
 
 
-def _parse_gbseq_xml_handle(gbseq_xml_handle):
-    """Parse GBSeq XML handle.
+def _parse_gbseq_xml_text(gbseq_xml_text):
+    """
 
-    :param gbseq_xml_handle: A handle to parse.
-    :type gbseq_xml_handle: handle
+    Parse GBSeq XML text.
+
+    :param gbseq_xml_text: XML text to parse.
+    :type gbseq_xml_text: str
 
     :returns: A dictionary with these keys: accession, date_create,
         date_update, definition, division, features, length, mol_type,
         organism, seq, strandedness, taxid, topology, version
     :rtype: dict
     """
-    tree = ElementTree.parse(gbseq_xml_handle)
+    tree = ElementTree.parse(StringIO(unicode(gbseq_xml_text)))
     root = tree.getroot()
 
     return_value = list()
@@ -68,9 +73,6 @@ def _parse_gbseq_xml_handle(gbseq_xml_handle):
 
         organism = rec.find('GBSeq_organism')
         organism = organism.text
-
-        # taxonomy = rec.find('GBSeq_taxonomy')
-        # taxonomy = taxonomy.text.split('; ')
 
         seq = rec.find('GBSeq_sequence')
         length = rec.find('GBSeq_length')
@@ -170,7 +172,6 @@ def _parse_gbseq_xml_handle(gbseq_xml_handle):
 
         record_dict['accession'] = accession
         record_dict['version'] = version
-        # record_dict['gi'] = gi
         record_dict['definition'] = definition
 
         record_dict['strandedness'] = strandedness
@@ -182,7 +183,6 @@ def _parse_gbseq_xml_handle(gbseq_xml_handle):
 
         record_dict['taxid'] = int(taxid)
         record_dict['organism'] = organism
-        # record_dict['taxonomy'] = taxonomy
 
         record_dict['features'] = features
 
@@ -240,8 +240,8 @@ def seq_records_from_dict_list(seq_record_dict_list):
     return return_value
 
 
-def _parse_esummary_xml_handle(esummary_xml_handle):
-    tree = ElementTree.parse(esummary_xml_handle)
+def _parse_esummary_xml_text(esummary_xml_text):
+    tree = ElementTree.parse(StringIO(unicode(esummary_xml_text)))
     root = tree.getroot()
 
     return_value = list()
@@ -256,11 +256,6 @@ def _parse_esummary_xml_handle(esummary_xml_handle):
         record_dict['id'] = temp_id
 
         for itm in rec.findall('Item'):
-
-            # print(itm.tag, itm.attrib, itm.text)
-            # itm.attrib['Name']
-            # itm.attrib['Type']
-
             record_dict[itm.attrib['Name']] = itm.text
 
         return_value.append(record_dict)
@@ -294,7 +289,8 @@ def write_fasta_file(records, file_path_or_handle):
             elif 'name' in rec:
                 description = rec['name']
         else:
-            raise Exception('No "name" or description attribute or key in record.')
+            raise Exception('No "name" or description attribute or key in'
+                            'record.')
 
         if hasattr(rec, 'seq'):
             seq = rec.seq.seq

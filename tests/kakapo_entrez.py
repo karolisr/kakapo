@@ -5,6 +5,8 @@ from __future__ import print_function
 import unittest
 
 from kakapo import entrez
+from kakapo.bioio import _parse_gbseq_xml_text
+from kakapo.bioio import _parse_esummary_xml_text
 from time import sleep
 from xmltodict import parse as parse_xml
 
@@ -280,14 +282,11 @@ class kakapoEntrezTests(unittest.TestCase):
             db=db_to_search,
             id_list=['156629009', '156629011', '156629013', '226774382'])
 
-        def parser(z):
-            return parse_xml(z)['GBSet']['GBSeq']
-
         ret_type = 'gb'
 
         efetch_results = entrez.efetch(
             data=epost_results,
-            parser=parser,
+            parser=_parse_gbseq_xml_text,
             ret_type=ret_type)
 
         records = efetch_results
@@ -303,14 +302,11 @@ class kakapoEntrezTests(unittest.TestCase):
             db=db_to_search,
             id_list=['2578426', '357495397'])
 
-        def parser(z):
-            return parse_xml(z)['GBSet']['GBSeq']
-
         ret_type = 'gp'
 
         efetch_results = entrez.efetch(
             data=epost_results,
-            parser=parser,
+            parser=_parse_gbseq_xml_text,
             ret_type=ret_type)
 
         records = efetch_results
@@ -338,5 +334,26 @@ class kakapoEntrezTests(unittest.TestCase):
 
         # there should be 2 records returned
         self.assertEqual(len(records), 2)
+
+        sleep(1)
+
+    def test_esummary(self):
+
+        print('\ntest_esummary')
+
+        # Download nucleotide sequence records ================================
+        db_to_search = 'nuccore'
+        epost_results = entrez.epost(
+            db=db_to_search,
+            id_list=['156629009', '156629011', '156629013', '226774382'])
+
+        esummary_results = entrez.esummary(
+            data=epost_results,
+            parser=_parse_esummary_xml_text)
+
+        records = esummary_results
+
+        # there should be 4 records returned
+        self.assertEqual(len(records), 4)
 
         sleep(1)

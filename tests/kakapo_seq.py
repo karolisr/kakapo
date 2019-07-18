@@ -24,7 +24,7 @@ from kakapo.seq import SEQ_TYPE_AA
 from kakapo.seq import SEQ_TYPES
 from kakapo.seq import MOL_TO_SEQ_TYPE_MAP
 
-from kakapo.bioio import _parse_gbseq_xml_handle
+from kakapo.bioio import _parse_gbseq_xml_text
 
 from tests import test_data_dir_path
 
@@ -131,7 +131,9 @@ class kakapoSeqTests(unittest.TestCase):
         self.assertEqual(seq_record.seq.length, 24)
 
         with open(opj(test_data_dir_path, 'gbseq_xml_sample.xml'), 'r') as f:
-            results = _parse_gbseq_xml_handle(f)
+            results = f.read()
+
+        results = _parse_gbseq_xml_text(results)
 
         self.assertEqual(len(results), 6)
 

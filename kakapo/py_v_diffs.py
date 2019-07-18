@@ -32,7 +32,6 @@ if _py_v_hex >= 0x03000000:
     maketrans = str.maketrans
 
     unicode = str
-    builtin_str = str
     str = str
     bytes = bytes
     basestring = (str, bytes)
@@ -40,13 +39,12 @@ if _py_v_hex >= 0x03000000:
     handle_types = [io.IOBase]
 
 elif _py_v_hex < 0x03000000:
-    # import string # noqa
     from string import maketrans # noqa
     from urllib import urlretrieve # noqa
     from urllib import quote # noqa
     from ConfigParser import SafeConfigParser as _DCP # noqa
 
-    builtin_str = str
+    unicode = unicode
     bytes = str
     str = unicode
     basestring = basestring

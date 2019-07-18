@@ -6,7 +6,7 @@ from os.path import join as opj
 
 import unittest
 
-from kakapo.bioio import _parse_gbseq_xml_handle
+from kakapo.bioio import _parse_gbseq_xml_text
 
 from tests import test_data_dir_path
 
@@ -28,7 +28,9 @@ class kakapoBioioTests(unittest.TestCase):
         print('\ntest_parse_gbseq_xml_handle')
 
         with open(opj(test_data_dir_path, 'gbseq_xml_sample.xml'), 'r') as f:
-            results = _parse_gbseq_xml_handle(f)
+            results = f.read()
+
+        results = _parse_gbseq_xml_text(results)
 
         self.assertEqual(len(results), 6)
 
