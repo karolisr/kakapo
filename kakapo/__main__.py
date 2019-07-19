@@ -20,17 +20,11 @@ from kakapo import dependencies as deps
 from kakapo.config import DIR_CFG, DIR_DEP, DIR_TAX
 from kakapo.config import OS_STR, PY_V_STR
 from kakapo.helpers import make_dir
-
-
-##############################################################################
-
+from kakapo.config_file_parse import config_file_parse
 
 # Command line arguments -----------------------------------------------------
 CLEAN_CONFIG_DIR = False
-CONFIG_FILE_PATH = None
-
-
-##############################################################################
+CONFIG_FILE_PATH = 'tests/data/kakapo.ini'
 
 
 def main():
@@ -64,12 +58,38 @@ def main():
     # Initialize NCBI taxonomy database --------------------------------------
     tax = taxonomy(DIR_TAX)  # noqa
 
+    # Parse configuration file -----------------------------------------------
+    __ = config_file_parse(CONFIG_FILE_PATH, tax)
+
+    project_name = __['project_name']  # noqa
+    email = __['email']  # noqa
+    output_directory = __['output_directory']  # noqa
+    sras = __['sras']  # noqa
+    fq_pe = __['fq_pe']  # noqa
+    fq_se = __['fq_se']  # noqa
+    assmbl = __['assmbl']  # noqa
+    min_query_length = __['min_query_length']  # noqa
+    max_query_length = __['max_query_length']  # noqa
+    user_queries = __['user_queries']  # noqa
+    blast_1_culling_limit = __['blast_1_culling_limit']  # noqa
+    blast_1_evalue = __['blast_1_evalue']  # noqa
+    blast_1_max_target_seqs = __['blast_1_max_target_seqs']  # noqa
+    blast_1_qcov_hsp_perc = __['blast_1_qcov_hsp_perc']  # noqa
+    blast_2_culling_limit = __['blast_2_culling_limit']  # noqa
+    blast_2_evalue = __['blast_2_evalue']  # noqa
+    blast_2_max_target_seqs = __['blast_2_max_target_seqs']  # noqa
+    blast_2_qcov_hsp_perc = __['blast_2_qcov_hsp_perc']  # noqa
+    tax_group = __['tax_group']  # noqa
+    tax_group_name = __['tax_group_name']  # noqa
+    tax_ids = __['tax_ids']  # noqa
+    pfam_acc = __['pfam_acc']  # noqa
+    prot_acc = __['prot_acc']  # noqa
+
+    # Housekeeping done. Start the analyses. ---------------------------------
+
 
 ##############################################################################
 
 
 if __name__ == '__main__':
     main()
-
-
-##############################################################################

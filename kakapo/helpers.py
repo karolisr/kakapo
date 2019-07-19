@@ -49,6 +49,11 @@ def list_of_dirs(path):  # noqa
     return ld
 
 
+def list_of_files(path):  # noqa
+    lf = [x for x in os.listdir(path) if os.path.isfile(os.path.join(path, x))]
+    return lf
+
+
 def download_file(url, local_path):  # noqa
 
     try:
