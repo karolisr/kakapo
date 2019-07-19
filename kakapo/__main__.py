@@ -11,6 +11,7 @@ from __future__ import print_function
 from __future__ import with_statement
 
 from os.path import exists as ope
+from os.path import join as opj
 from shutil import rmtree
 from sys import exit
 
@@ -21,6 +22,15 @@ from kakapo.config import DIR_CFG, DIR_DEP, DIR_TAX
 from kakapo.config import OS_STR, PY_V_STR
 from kakapo.helpers import make_dir
 from kakapo.config_file_parse import config_file_parse
+from kakapo.workflow import descending_tax_ids
+from kakapo.workflow import prepare_output_directories
+from kakapo.workflow import pfam_uniprot_accessions
+from kakapo.workflow import user_protein_accessions
+from kakapo.workflow import dnld_pfam_uniprot_seqs
+from kakapo.workflow import dnld_prot_seqs
+from kakapo.workflow import user_aa_fasta
+from kakapo.workflow import combine_aa_fasta
+from kakapo.workflow import filter_queries
 
 # Command line arguments -----------------------------------------------------
 CLEAN_CONFIG_DIR = False
@@ -61,9 +71,9 @@ def main():
     # Parse configuration file -----------------------------------------------
     __ = config_file_parse(CONFIG_FILE_PATH, tax)
 
-    project_name = __['project_name']  # noqa
+    prj_name = __['project_name']  # noqa
     email = __['email']  # noqa
-    output_directory = __['output_directory']  # noqa
+    dir_out = __['output_directory']  # noqa
     sras = __['sras']  # noqa
     fq_pe = __['fq_pe']  # noqa
     fq_se = __['fq_se']  # noqa
@@ -81,12 +91,58 @@ def main():
     blast_2_qcov_hsp_perc = __['blast_2_qcov_hsp_perc']  # noqa
     tax_group = __['tax_group']  # noqa
     tax_group_name = __['tax_group_name']  # noqa
-    tax_ids = __['tax_ids']  # noqa
+    tax_ids_user = __['tax_ids']  # noqa
     pfam_acc = __['pfam_acc']  # noqa
-    prot_acc = __['prot_acc']  # noqa
+    prot_acc_user = __['prot_acc']  # noqa
+
+    # Create output directory with all the subdirectories --------------------
+    if dir_out is not None:
+        if ope(dir_out):
+            print('Found output directory:\n\t\t' + dir_out + '\n')
+        else:
+            print('Creating output directory:\n\t\t' + dir_out + '\n')
+            make_dir(dir_out)
+
+    __ = prepare_output_directories(dir_out, prj_name)
+
+    dir_cache = __['dir_cache']  # noqa
+    dir_cache_pfam_acc = __['dir_cache_pfam_acc']  # noqa
+    dir_cache_prj = __['dir_cache_prj']  # noqa
+    dir_prj = __['dir_prj']  # noqa
+    dir_prj_queries = __['dir_prj_queries']  # noqa
 
     # Housekeeping done. Start the analyses. ---------------------------------
 
+    # Resolve descending taxonomy nodes --------------------------------------
+    tax_ids = descending_tax_ids(tax_ids_user, tax)
+
+    # Pfam uniprot accessions ------------------------------------------------
+    pfam_uniprot_acc = pfam_uniprot_accessions(pfam_acc, tax_ids,
+                                               dir_cache_pfam_acc)
+
+    # Download Pfam uniprot sequences if needed ------------------------------
+    aa_uniprot_file = opj(dir_prj_queries, 'aa_uniprot.fasta')
+    dnld_pfam_uniprot_seqs(pfam_uniprot_acc, aa_uniprot_file, dir_cache_prj)
+
+    # User provided protein accessions ---------------------------------------
+    prot_acc_user = user_protein_accessions(prot_acc_user)
+
+    # Download from NCBI if needed -------------------------------------------
+    aa_prot_ncbi_file = opj(dir_prj_queries, 'aa_prot_ncbi.fasta')
+    dnld_prot_seqs(prot_acc_user, aa_prot_ncbi_file, dir_cache_prj)
+
+    # User provided protein sequences ----------------------------------------
+    aa_prot_user_file = opj(dir_prj_queries, 'aa_prot_user.fasta')
+    user_aa_fasta(user_queries, aa_prot_user_file)
+
+    # Combine all AA queries -------------------------------------------------
+    aa_queries_file = opj(dir_prj_queries, 'aa_all.fasta')
+    combine_aa_fasta([aa_uniprot_file,
+                      aa_prot_ncbi_file,
+                      aa_prot_user_file], aa_queries_file)
+
+    # Filter AA queries ------------------------------------------------------
+    filter_queries(aa_queries_file, min_query_length, max_query_length)
 
 ##############################################################################
 

@@ -62,7 +62,7 @@ def _parse_pfam(pfam_entries, config_file_path):
                 replace_line_in_file(
                     file_path=config_file_path,
                     line_str=pf_orig,
-                    replace_str='; NCBI taxid not found: ' + pf)
+                    replace_str='; Pfam accession not found: ' + pf)
             else:
                 acc = pf_entry[0]['acc']
                 pfam_acc.append(acc)

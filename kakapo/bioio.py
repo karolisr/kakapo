@@ -9,6 +9,8 @@ from __future__ import nested_scopes
 from __future__ import print_function
 from __future__ import with_statement
 
+import re
+from collections import OrderedDict
 from datetime import datetime
 from io import StringIO
 from xml.etree import ElementTree
@@ -16,6 +18,7 @@ from xml.etree import ElementTree
 from kakapo.py_v_diffs import handle_types
 from kakapo.py_v_diffs import unicode
 from kakapo.seq import SeqRecord
+from kakapo.entrez import esearch, epost, efetch, esummary
 
 
 def _parse_gbseq_xml_text(gbseq_xml_text):
@@ -245,6 +248,27 @@ def _parse_esummary_xml_text(esummary_xml_text):
     return return_value
 
 
+def dnld_ncbi_seqs(term, db):  # noqa
+    if type(term) in [list, tuple]:
+        term = ' OR '.join(term)
+    esearch_results = esearch(db, term)
+    id_list = esearch_results['IdList']
+    epost_results = epost(db, id_list)
+    efetch_results = efetch(epost_results, _parse_gbseq_xml_text, 'gb')
+    seq_records = seq_records_from_efetch_results(efetch_results)
+    return seq_records
+
+
+def entrez_summary(term, db):  # noqa
+    if type(term) in [list, tuple]:
+        term = ' OR '.join(term)
+    esearch_results = esearch(db, term)
+    id_list = esearch_results['IdList']
+    epost_results = epost(db, id_list)
+    esummary_results = esummary(epost_results, _parse_esummary_xml_text)
+    return esummary_results
+
+
 def write_fasta_file(records, file_path_or_handle):
     handle = False
 
@@ -343,3 +367,46 @@ def read_fasta_file_dict(file_path_or_handle):  # noqa
     records = read_fasta_file(file_path_or_handle)
     records = {r['description']: r['seq'] for r in records}
     return records
+
+
+def parse_fasta_text(text): # noqa
+    desc_lines = re.findall('\>.*', text)
+    lines = text.split('\n')
+    data = OrderedDict()
+    for l in lines:
+        if l in desc_lines:
+            desc = l.strip('>')
+            data[desc] = ''
+        else:
+            data[desc] = data[desc] + l.upper()
+
+    return data
+
+
+def standardize_fasta_text(text): # noqa
+    parsed_fasta = parse_fasta_text(text)
+    t = ''
+    for k in parsed_fasta:
+        desc = k.replace(' ', '_')
+        desc = '>' + desc
+        seq = parsed_fasta[k]
+        t = t + desc + '\n' + seq + '\n'
+    return t
+
+
+def filter_fasta_text_by_length(fasta_text, min_len, max_len): # noqa
+    parsed_fasta = parse_fasta_text(fasta_text)
+
+    filtered_text = ''
+
+    for k in parsed_fasta:
+        desc = '>' + k
+        seq = parsed_fasta[k]
+        if len(seq) < min_len:
+            continue
+        if len(seq) > max_len:
+            continue
+
+        filtered_text = filtered_text + desc + '\n' + seq + '\n'
+
+    return filtered_text

@@ -50,7 +50,7 @@ def get(url, params, response_format):
     if response.ok:
         pass
     else:
-        pass
+        return None
 
     return response
 

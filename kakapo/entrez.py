@@ -17,8 +17,6 @@ from __future__ import nested_scopes
 from __future__ import print_function
 from __future__ import with_statement
 
-import locale
-
 from time import sleep
 from xmltodict import parse as parse_xml
 
@@ -26,7 +24,6 @@ from kakapo.http import get
 from kakapo.http import post
 
 ENTREZ_BASE_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/'
-ENCODING = locale.getdefaultlocale()[1]
 DELAY = 1
 
 
@@ -224,7 +221,8 @@ def esummary(data, parser):  # noqa
         url = ENTREZ_BASE_URL + eutil
 
         params = {'db': db, 'query_key': query_key, 'WebEnv': web_env,
-                  'retstart': str(retstart), 'retmax': str(retmax)}
+                  'retstart': str(retstart), 'retmax': str(retmax),
+                  'rettype': 'docsum'}
 
         response = get(url, params, 'xml')
 

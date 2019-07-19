@@ -317,9 +317,11 @@ class kakapoEntrezTests(unittest.TestCase):
             id_list=['24663', '3702'])
 
         def parser(z):
-            return parse_xml(z)['TaxaSet']['Taxon']
+            # return parse_xml(z)['TaxaSet']['Taxon']
+            return parse_xml(z)['IdList']['Id']
 
-        ret_type = 'null'
+        # ret_type = ''
+        ret_type = 'uilist'
 
         efetch_results = entrez.efetch(
             data=epost_results,
