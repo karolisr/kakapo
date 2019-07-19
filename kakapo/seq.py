@@ -14,7 +14,6 @@ from __future__ import print_function
 from __future__ import with_statement
 
 from datetime import date
-from datetime import datetime
 from random import randint
 from re import match
 
@@ -310,10 +309,10 @@ class SeqRecord(object):
         return self._seq
 
     def _set_seq(self, value):
-
         if issubclass(type(value), _Seq):
             self._seq = value
         elif issubclass(type(value), basestring):
+            value = value.upper()
             self._seq = Seq(seq=value, seq_type=self._seq_type)
 
     # accession
