@@ -40,18 +40,14 @@ def _parse_gbseq_xml_text(gbseq_xml_text):
 
         accession = None
         version = None
-        # gi = None
-
-        # n_seqids = rec.find('GBSeq_other-seqids')
-        # for n_seqid in n_seqids.findall('GBSeqid'):
-        #     if n_seqid.text.startswith('gi|'):
-        #         gi = n_seqid.text.strip('gi|')
 
         temp_acc_ver = rec.find('GBSeq_accession-version')
-        temp_acc_ver = temp_acc_ver.text
-        accession = temp_acc_ver.split('.')[0]
-        # version = int(temp_acc_ver.split('.')[1])
-        version = temp_acc_ver.split('.')[1]
+        temp_acc_ver = temp_acc_ver.text.split('.')
+
+        accession = temp_acc_ver[0]
+
+        if len(temp_acc_ver) == 2:
+            version = temp_acc_ver[1]
 
         strandedness = rec.find('GBSeq_strandedness')
         if strandedness is not None:
@@ -197,10 +193,12 @@ def _parse_gbseq_xml_text(gbseq_xml_text):
     return return_value
 
 
-def seq_records_from_gbseq_xml_handle(gbseq_xml_handle):
-    parsed = _parse_gbseq_xml_handle(gbseq_xml_handle)
-    return_value = list()
-    for r in parsed:
+def seq_records_from_efetch_results(efetch_results):  # noqa
+
+    return_value = []
+
+    for r in efetch_results:
+
         seq_record = SeqRecord(
             seq=r['seq'],
             mol_type=r['mol_type'],
@@ -210,37 +208,17 @@ def seq_records_from_gbseq_xml_handle(gbseq_xml_handle):
             strandedness=r['strandedness'],
             topology=r['topology'],
             division=r['division'],
-            date_create=(datetime.strptime(r['date_create'],
-                                           '%d-%b-%Y')).strftime('%Y-%m-%d'),
-            date_update=(datetime.strptime(r['date_update'],
-                                           '%d-%b-%Y')).strftime('%Y-%m-%d'),
+            date_create=(datetime.strptime(
+                r['date_create'], '%d-%b-%Y')).strftime('%Y-%m-%d'),
+            date_update=(datetime.strptime(
+                r['date_update'], '%d-%b-%Y')).strftime('%Y-%m-%d'),
             taxid=r['taxid'],
             organism=r['organism'],
-            features=r['features'])
-        return_value.append(seq_record)
-    return return_value
+            features=r['features']
+        )
 
-
-def seq_records_from_dict_list(seq_record_dict_list):
-    return_value = list()
-    for r in seq_record_dict_list:
-        seq_record = SeqRecord(
-            seq=r['seq'],
-            mol_type=r['mol_type'],
-            accession=r['accession'],
-            version=r['version'],
-            description=r['definition'],
-            strandedness=r['strandedness'],
-            topology=r['topology'],
-            division=r['division'],
-            date_create=(datetime.strptime(r['date_create'],
-                                           '%d-%b-%Y')).strftime('%Y-%m-%d'),
-            date_update=(datetime.strptime(r['date_update'],
-                                           '%d-%b-%Y')).strftime('%Y-%m-%d'),
-            taxid=r['taxid'],
-            organism=r['organism'],
-            features=r['features'])
         return_value.append(seq_record)
+
     return return_value
 
 
@@ -290,6 +268,8 @@ def write_fasta_file(records, file_path_or_handle):
         elif isinstance(rec, dict):
             if 'description' in rec:
                 description = rec['description']
+            elif 'definition' in rec:
+                description = rec['definition']
             elif 'name' in rec:
                 description = rec['name']
         else:

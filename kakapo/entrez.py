@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-"""This module wraps with NCBI's Entrez Programming Utilities (E-utilities).
+"""
+Wraps with NCBI's Entrez Programming Utilities (E-utilities).
 
 More information on E-utilities at:
     http://www.ncbi.nlm.nih.gov/books/NBK25497
@@ -18,6 +19,7 @@ from __future__ import with_statement
 
 import locale
 
+from time import sleep
 from xmltodict import parse as parse_xml
 
 from kakapo.http import get
@@ -25,6 +27,7 @@ from kakapo.http import post
 
 ENTREZ_BASE_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/'
 ENCODING = locale.getdefaultlocale()[1]
+DELAY = 1
 
 
 def esearch(db, term):
@@ -68,8 +71,11 @@ def esearch(db, term):
 
         data = parse_xml(response.text)['eSearchResult']
 
-        for uid in data['IdList']['Id']:
-            id_set.add(uid)
+        if total_count == 1:
+            id_set.add(data['IdList']['Id'])
+        else:
+            for uid in data['IdList']['Id']:
+                id_set.add(uid)
 
         query_key = data['QueryKey']
         web_env = data['WebEnv']
@@ -89,6 +95,8 @@ def esearch(db, term):
         'IdList': id_list,
         'QueryKey': query_key,
         'WebEnv': web_env}
+
+    sleep(DELAY)
 
     return return_value
 
@@ -130,6 +138,8 @@ def epost(db, id_list):
         'Count': count,
         'QueryKey': query_key,
         'WebEnv': web_env}
+
+    sleep(DELAY)
 
     return return_value
 
@@ -190,6 +200,8 @@ def efetch(data, parser, ret_type):
     # See the link below for the possible values of ret_type and ret_mode:
     #     http://www.ncbi.nlm.nih.gov/books/NBK25499/table/chapter4.T._valid_values_of__retmode_and/?report=objectonly  # noqa
 
+    sleep(DELAY)
+
     return return_value
 
 
@@ -220,5 +232,7 @@ def esummary(data, parser):  # noqa
 
         for item in parsed:
             return_value.append(item)
+
+    sleep(DELAY)
 
     return return_value

@@ -12,18 +12,16 @@ from __future__ import print_function
 from __future__ import with_statement
 
 import os
-
 from multiprocessing import cpu_count
 
 from kakapo.os_diffs import check_os
-from kakapo.py_v_diffs import py_v_str
+from kakapo.py_v_diffs import python_version
 
 DEBUG_MODE = True
-DEBUG_PROCESSES = False
 
 SCRIPT_NAME = 'kakapo'
 OS_ID, OS_STR, DIST_ID = check_os()
-PY_V_STR = py_v_str
+__, PY_V_STR = python_version()
 
 # System information ---------------------------------------------------------
 THREADS = cpu_count()

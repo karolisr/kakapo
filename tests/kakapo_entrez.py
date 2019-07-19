@@ -12,7 +12,6 @@ import unittest
 from kakapo import entrez
 from kakapo.bioio import _parse_gbseq_xml_text
 from kakapo.bioio import _parse_esummary_xml_text
-from time import sleep
 from xmltodict import parse as parse_xml
 
 
@@ -211,8 +210,6 @@ class kakapoEntrezTests(unittest.TestCase):
         web_env = return_value['WebEnv']
         self.assertTrue(web_env.startswith('NCID_'))
 
-        sleep(1)
-
         # Search 'taxonomy' database ==========================================
         db_to_search = 'taxonomy'
         return_value = entrez.esearch(
@@ -245,8 +242,6 @@ class kakapoEntrezTests(unittest.TestCase):
         web_env = return_value['WebEnv']
         self.assertTrue(web_env.startswith('NCID_'))
 
-        sleep(1)
-
     def test_epost(self):
 
         print('\ntest_epost')
@@ -275,8 +270,6 @@ class kakapoEntrezTests(unittest.TestCase):
         web_env = return_value['WebEnv']
         self.assertTrue(web_env.startswith('NCID_'))
 
-        sleep(1)
-
     def test_efetch(self):
 
         print('\ntest_efetch')
@@ -299,8 +292,6 @@ class kakapoEntrezTests(unittest.TestCase):
         # there should be 4 records returned
         self.assertEqual(len(records), 4)
 
-        sleep(1)
-
         # Download protein sequence records ===================================
         db_to_search = 'protein'
         epost_results = entrez.epost(
@@ -318,8 +309,6 @@ class kakapoEntrezTests(unittest.TestCase):
 
         # there should be 2 records returned
         self.assertEqual(len(records), 2)
-
-        sleep(1)
 
         # Download taxonomy records ===========================================
         db_to_search = 'taxonomy'
@@ -340,8 +329,6 @@ class kakapoEntrezTests(unittest.TestCase):
         # there should be 2 records returned
         self.assertEqual(len(records), 2)
 
-        sleep(1)
-
     def test_esummary(self):
 
         print('\ntest_esummary')
@@ -360,5 +347,3 @@ class kakapoEntrezTests(unittest.TestCase):
 
         # there should be 4 records returned
         self.assertEqual(len(records), 4)
-
-        sleep(1)

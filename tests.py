@@ -12,7 +12,10 @@ import unittest
 import datetime
 from tests import *
 
-from kakapo.py_v_diffs import py_v_str
+from kakapo.py_v_diffs import python_version
+
+__, py_v_str = python_version()
+
 py_ver_msg = '\nPython version: {pv}\n'.format(pv=py_v_str)
 print(py_ver_msg)
 

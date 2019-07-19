@@ -29,7 +29,7 @@ def python_version():
     return py_v_hex, py_v_str
 
 
-_py_v_hex, py_v_str = python_version()
+_py_v_hex, _ = python_version()
 
 if _py_v_hex >= 0x03000000:
     from urllib.request import urlretrieve # noqa
