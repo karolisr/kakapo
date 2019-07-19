@@ -108,3 +108,4 @@ venv.bak/
 *.sublime-workspace
 
 /tests/data/kakapo_user_input
+/untracked
