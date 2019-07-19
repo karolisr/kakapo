@@ -27,7 +27,11 @@ __, PY_V_STR = python_version()
 # System information ---------------------------------------------------------
 THREADS = cpu_count()
 
+# Other ----------------------------------------------------------------------
+PICKLE_PROTOCOL = 2
+
 # Filesystem paths for configuration directory -------------------------------
 DIR_USR = os.path.expanduser('~')
 DIR_CFG = os.path.join(DIR_USR, '.config', SCRIPT_NAME)
 DIR_DEP = os.path.join(DIR_CFG, 'dependencies')
+DIR_TAX = os.path.join(DIR_CFG, 'ncbi-taxonomy')

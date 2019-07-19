@@ -88,6 +88,57 @@ def dep_check_seqtk(): # noqa
     return seqtk
 
 
+def _write_trimmomatic_adapters_file():
+
+    path_adapters = os.path.join(DIR_CFG, 'trimmomatic_adapters.fasta')
+
+    adapters = ('>TruSeq2_SE'
+                'AGATCGGAAGAGCTCGTATGCCGTCTTCTGCTTG'
+                '>TruSeq2_PE_f'
+                'AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT'
+                '>TruSeq2_PE_r'
+                'AGATCGGAAGAGCGGTTCAGCAGGAATGCCGAG'
+                '>TruSeq3_IndexedAdapter'
+                'AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC'
+                '>TruSeq3_UniversalAdapter'
+                'AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTA'
+                '>PrefixPE/1'
+                'AATGATACGGCGACCACCGAGATCTACACTCTTTCCCTACACGACGCTCTTCCGATCT'
+                '>PrefixPE/2'
+                'CAAGCAGAAGACGGCATACGAGATCGGTCTCGGCATTCCTGCTGAACCGCTCTTCCGATCT'
+                '>PCR_Primer1'
+                'AATGATACGGCGACCACCGAGATCTACACTCTTTCCCTACACGACGCTCTTCCGATCT'
+                '>PCR_Primer1_rc'
+                'AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT'
+                '>PCR_Primer2'
+                'CAAGCAGAAGACGGCATACGAGATCGGTCTCGGCATTCCTGCTGAACCGCTCTTCCGATCT'
+                '>PCR_Primer2_rc'
+                'AGATCGGAAGAGCGGTTCAGCAGGAATGCCGAGACCGATCTCGTATGCCGTCTTCTGCTTG'
+                '>FlowCell1'
+                'TTTTTTTTTTAATGATACGGCGACCACCGAGATCTACAC'
+                '>FlowCell2'
+                'TTTTTTTTTTCAAGCAGAAGACGGCATACGA'
+                '>PrefixPE/1'
+                'TACACTCTTTCCCTACACGACGCTCTTCCGATCT'
+                '>PrefixPE/2'
+                'GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCT'
+                '>PE1'
+                'TACACTCTTTCCCTACACGACGCTCTTCCGATCT'
+                '>PE1_rc'
+                'AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTA'
+                '>PE2'
+                'GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCT'
+                '>PE2_rc'
+                'AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC')
+
+    if not os.path.exists(path_adapters):
+        print('\tWriting Trimmomatic adapter files:\n\t\t' +
+              path_adapters + '\n')
+        with open(path_adapters, mode='w') as f:
+            f.write(adapters)
+
+    return path_adapters
+
 # Trimmomatic
 def dep_check_trimmomatic(): # noqa
     url = 'http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.39.zip' # noqa
@@ -107,51 +158,9 @@ def dep_check_trimmomatic(): # noqa
 
     print('\tTrimmomatic is available:')
     print('\t\t' + trimmomatic + '\n')
+    path_adapters = _write_trimmomatic_adapters_file()
 
-    return trimmomatic
-
-
-PATH_ADAPTERS = os.path.join(DIR_CFG, 'adapters.fasta')
-
-ADAPTERS = \
-    """>TruSeq2_SE
-AGATCGGAAGAGCTCGTATGCCGTCTTCTGCTTG
->TruSeq2_PE_f
-AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT
->TruSeq2_PE_r
-AGATCGGAAGAGCGGTTCAGCAGGAATGCCGAG
->TruSeq3_IndexedAdapter
-AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC
->TruSeq3_UniversalAdapter
-AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTA
->PrefixPE/1
-AATGATACGGCGACCACCGAGATCTACACTCTTTCCCTACACGACGCTCTTCCGATCT
->PrefixPE/2
-CAAGCAGAAGACGGCATACGAGATCGGTCTCGGCATTCCTGCTGAACCGCTCTTCCGATCT
->PCR_Primer1
-AATGATACGGCGACCACCGAGATCTACACTCTTTCCCTACACGACGCTCTTCCGATCT
->PCR_Primer1_rc
-AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT
->PCR_Primer2
-CAAGCAGAAGACGGCATACGAGATCGGTCTCGGCATTCCTGCTGAACCGCTCTTCCGATCT
->PCR_Primer2_rc
-AGATCGGAAGAGCGGTTCAGCAGGAATGCCGAGACCGATCTCGTATGCCGTCTTCTGCTTG
->FlowCell1
-TTTTTTTTTTAATGATACGGCGACCACCGAGATCTACAC
->FlowCell2
-TTTTTTTTTTCAAGCAGAAGACGGCATACGA
->PrefixPE/1
-TACACTCTTTCCCTACACGACGCTCTTCCGATCT
->PrefixPE/2
-GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCT
->PE1
-TACACTCTTTCCCTACACGACGCTCTTCCGATCT
->PE1_rc
-AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTA
->PE2
-GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCT
->PE2_rc
-AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC"""
+    return trimmomatic, path_adapters
 
 
 # SRA Toolkit
