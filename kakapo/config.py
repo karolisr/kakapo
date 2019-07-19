@@ -18,6 +18,7 @@ from kakapo.os_diffs import check_os
 from kakapo.py_v_diffs import python_version
 
 DEBUG_MODE = True
+DEBUG_PROCESSES = False
 
 SCRIPT_NAME = 'kakapo'
 OS_ID, OS_STR, DIST_ID = check_os()
