@@ -20,6 +20,7 @@ from kakapo.bioio import filter_fasta_text_by_length
 from kakapo.bioio import sra_info
 from kakapo.bioio import standardize_fasta_text
 from kakapo.bioio import write_fasta_file
+from kakapo.blast import make_blast_db
 from kakapo.config import PICKLE_PROTOCOL
 from kakapo.ebi_domain_search import pfam_entry
 from kakapo.ebi_domain_search import pfam_seqs
@@ -61,6 +62,9 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
     dir_fa_trim_data = opj(dir_out, '13-trimmed-fa-data')
     make_dir(dir_fa_trim_data)
 
+    dir_blast_fa_trim = opj(dir_out, '14-trimmed-fa-blast-db-data')
+    make_dir(dir_blast_fa_trim)
+
     ret_dict = {'dir_temp': dir_temp,
                 'dir_cache': dir_cache,
                 'dir_cache_pfam_acc': dir_cache_pfam_acc,
@@ -69,7 +73,8 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
                 'dir_prj_queries': dir_prj_queries,
                 'dir_fq_data': dir_fq_data,
                 'dir_fq_trim_data': dir_fq_trim_data,
-                'dir_fa_trim_data': dir_fa_trim_data}
+                'dir_fa_trim_data': dir_fa_trim_data,
+                'dir_blast_fa_trim': dir_blast_fa_trim}
 
     return ret_dict
 
@@ -493,3 +498,48 @@ def trimmed_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
                 out, err = call(cmd)
                 with open(x[1], mode='wb') as f:
                     f.write(out)
+
+
+def makeblastdb_fq(se_fastq_files, pe_fastq_files, dir_blast_fa_trim,
+                   makeblastdb, fpatt): # noqa
+
+    print()
+
+    for se in se_fastq_files:
+        dir_blast_fa_trim_sample = opj(dir_blast_fa_trim, se)
+        fa_path = se_fastq_files[se]['trim_path_fa']
+        out_f = opj(dir_blast_fa_trim_sample, se)
+        se_fastq_files[se]['blast_db_path'] = out_f
+
+        if ope(dir_blast_fa_trim_sample):
+            print('BLAST database for sample ' + se + ' already exists.')
+        else:
+            make_dir(dir_blast_fa_trim_sample)
+            print('Building BLAST database for: ' + fa_path)
+            make_blast_db(
+                exec_file=makeblastdb,
+                in_file=fa_path,
+                out_file=out_f,
+                title=se,
+                dbtype='nucl')
+
+    for pe in pe_fastq_files:
+        dir_blast_fa_trim_sample = opj(dir_blast_fa_trim, pe)
+        fa_paths = pe_fastq_files[pe]['trim_path_fa']
+        out_fs = [x.replace('xDIRx', dir_blast_fa_trim_sample) for x in fpatt]
+        out_fs = [x.replace('xBASENAMEx', pe) for x in out_fs]
+        pe_fastq_files[pe]['blast_db_path'] = out_fs
+
+        if ope(dir_blast_fa_trim_sample):
+            print('BLAST database for sample ' + pe + ' already exists.')
+        else:
+            make_dir(dir_blast_fa_trim_sample)
+            pe_trim_files = zip(fa_paths, out_fs)
+            for x in pe_trim_files:
+                print('Building BLAST database for: ' + x[0])
+                make_blast_db(
+                    exec_file=makeblastdb,
+                    in_file=x[0],
+                    out_file=x[1],
+                    title=basename(x[1]),
+                    dbtype='nucl')

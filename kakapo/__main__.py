@@ -30,6 +30,7 @@ from kakapo.workflow import dnld_prot_seqs
 from kakapo.workflow import dnld_sra_fastq_files
 from kakapo.workflow import dnld_sra_info
 from kakapo.workflow import filter_queries
+from kakapo.workflow import makeblastdb_fq
 from kakapo.workflow import min_accept_read_len
 from kakapo.workflow import pfam_uniprot_accessions
 from kakapo.workflow import prepare_output_directories
@@ -113,15 +114,16 @@ def main():
 
     __ = prepare_output_directories(dir_out, prj_name)
 
-    dir_temp = __['dir_temp']  # noqa
-    dir_cache = __['dir_cache']  # noqa
-    dir_cache_pfam_acc = __['dir_cache_pfam_acc']  # noqa
-    dir_cache_prj = __['dir_cache_prj']  # noqa
-    dir_prj = __['dir_prj']  # noqa
-    dir_prj_queries = __['dir_prj_queries']  # noqa
-    dir_fq_data = __['dir_fq_data']  # noqa
-    dir_fq_trim_data = __['dir_fq_trim_data']  # noqa
-    dir_fa_trim_data = __['dir_fa_trim_data']  # noqa
+    dir_temp = __['dir_temp']
+    # dir_cache = __['dir_cache']
+    dir_cache_pfam_acc = __['dir_cache_pfam_acc']
+    dir_cache_prj = __['dir_cache_prj']
+    # dir_prj = __['dir_prj']
+    dir_prj_queries = __['dir_prj_queries']
+    dir_fq_data = __['dir_fq_data']
+    dir_fq_trim_data = __['dir_fq_trim_data']
+    dir_fa_trim_data = __['dir_fa_trim_data']
+    dir_blast_fa_trim = __['dir_blast_fa_trim']
 
     # Housekeeping done. Start the analyses. ---------------------------------
 
@@ -191,9 +193,12 @@ def main():
         zip([pe_file_pattern] * 4, pe_trim_suffixes, ['.fastq'] * 4))
     pe_trim_fq_file_patterns = [''.join(x) for x in pe_trim_fq_file_patterns]
 
-    pe_trim_fa_file_patterns = list(
-        zip([pe_file_pattern] * 4, pe_trim_suffixes, ['.fasta'] * 4))
-    pe_trim_fa_file_patterns = [''.join(x) for x in pe_trim_fa_file_patterns]
+    pe_trim_fa_file_patterns = [x.replace('.fastq', '.fasta') for x in
+                                pe_trim_fq_file_patterns]
+
+    pe_blast_db_file_patterns = list(
+        zip([pe_file_pattern] * 4, pe_trim_suffixes))
+    pe_blast_db_file_patterns = [''.join(x) for x in pe_blast_db_file_patterns]
 
     # Run Trimmomatic --------------------------------------------------------
     run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
@@ -202,6 +207,10 @@ def main():
     # Convert trimmed FASTQ files to FASTA -----------------------------------
     trimmed_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
                      pe_trim_fa_file_patterns)
+
+    # Run makeblastdb --------------------------------------------------------
+    makeblastdb_fq(se_fastq_files, pe_fastq_files, dir_blast_fa_trim,
+                   makeblastdb, pe_blast_db_file_patterns)
 
     # print('SE:')
     # for k in se_fastq_files:
