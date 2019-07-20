@@ -6,6 +6,8 @@
 import pickle
 import re
 
+from shutil import copyfile
+
 from os import remove as osremove
 from os.path import basename
 from os.path import commonprefix
@@ -30,6 +32,7 @@ from kakapo.helpers import keep_unique_lines_in_file
 from kakapo.helpers import make_dir
 from kakapo.shell import call
 from kakapo.trimmomatic import trimmomatic_se, trimmomatic_pe
+from kakapo.vsearch import cluster_fast, vsearch
 
 def prepare_output_directories(dir_out, prj_name):  # noqa
 
@@ -68,6 +71,9 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
     dir_blast_results_fa_trim = opj(dir_out, '15-trimmed-fa-blast-results')
     make_dir(dir_blast_results_fa_trim)
 
+    dir_vsearch_results_fa_trim = opj(dir_out, '16-trimmed-fa-vsearch-results')
+    make_dir(dir_vsearch_results_fa_trim)
+
     ret_dict = {'dir_temp': dir_temp,
                 'dir_cache': dir_cache,
                 'dir_cache_pfam_acc': dir_cache_pfam_acc,
@@ -78,7 +84,8 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
                 'dir_fq_trim_data': dir_fq_trim_data,
                 'dir_fa_trim_data': dir_fa_trim_data,
                 'dir_blast_fa_trim': dir_blast_fa_trim,
-                'dir_blast_results_fa_trim': dir_blast_results_fa_trim}
+                'dir_blast_results_fa_trim': dir_blast_results_fa_trim,
+                'dir_vsearch_results_fa_trim': dir_vsearch_results_fa_trim}
 
     return ret_dict
 
@@ -553,7 +560,7 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                          tblastn, blast_1_evalue, blast_1_max_target_seqs,
                          blast_1_culling_limit, blast_1_qcov_hsp_perc,
                          dir_blast_results_fa_trim, fpatt, threads,
-                         genetic_code, seqtk): # noqa
+                         genetic_code, seqtk, vsearch): # noqa
 
     print()
 
@@ -600,6 +607,11 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
 
             osremove(out_f)
             osremove(out_f_fastq)
+
+            out_f_fasta_temp = out_f_fasta + '_temp'
+            copyfile(out_f_fasta, out_f_fasta_temp)
+            cluster_fast(vsearch, out_f_fasta_temp, out_f_fasta)
+            osremove(out_f_fasta_temp)
 
     for pe in pe_fastq_files:
         dir_blast_results_fa_trim_sample = opj(dir_blast_results_fa_trim, pe)
@@ -653,5 +665,42 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
 
             combine_text_files(out_fs_fasta, out_f_fasta)
 
+            out_f_fasta_temp = out_f_fasta + '_temp'
+            copyfile(out_f_fasta, out_f_fasta_temp)
+            cluster_fast(vsearch, out_f_fasta_temp, out_f_fasta)
+            osremove(out_f_fasta_temp)
+
             for x in out_fs_fasta:
                 osremove(x)
+
+
+# def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
+#                          dir_vsearch_results_fa_trim, fpatt, seqtk): # noqa
+#     print()
+
+#     for se in se_fastq_files:
+#         dir_results = opj(dir_vsearch_results_fa_trim, se)
+#         blast_results_fa_path = se_fastq_files[se]['blast_results_path']
+#         fq_path = se_fastq_files[se]['trim_path_fq']
+#         out_f = opj(dir_results, se + '.txt')
+
+#         if ope(dir_results):
+#             print('Vsearch results for sample ' + se + ' already exists.')
+#         else:
+#             make_dir(dir_results)
+#             print('Running vsearch on: ' + fq_path)
+
+#     for pe in pe_fastq_files:
+#         dir_results = opj(dir_vsearch_results_fa_trim, pe)
+#         blast_results_fa_path = pe_fastq_files[pe]['blast_results_path']
+#         fq_paths = pe_fastq_files[pe]['trim_path_fq']
+#         out_fs = [x.replace('xDIRx', dir_results) for x in fpatt]
+#         out_fs = [x.replace('xBASENAMEx', pe) for x in out_fs]
+
+#         if ope(dir_results):
+#             print('Vsearch results for sample ' + pe + ' already exist.')
+#         else:
+#             make_dir(dir_results)
+#             pe_trim_files = zip(fq_paths, out_fs)
+#             for x in pe_trim_files:
+#                 print('Running vsearch on: ' + x[0])

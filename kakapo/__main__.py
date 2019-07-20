@@ -36,6 +36,7 @@ from kakapo.workflow import pfam_uniprot_accessions
 from kakapo.workflow import prepare_output_directories
 from kakapo.workflow import run_tblastn_on_reads
 from kakapo.workflow import run_trimmomatic
+# from kakapo.workflow import run_vsearch_on_reads
 from kakapo.workflow import trimmed_fq_to_fa
 from kakapo.workflow import user_aa_fasta
 from kakapo.workflow import user_fastq_files
@@ -133,6 +134,7 @@ def main():
     dir_fa_trim_data = __['dir_fa_trim_data']
     dir_blast_fa_trim = __['dir_blast_fa_trim']
     dir_blast_results_fa_trim = __['dir_blast_results_fa_trim']
+    dir_vsearch_results_fa_trim = __['dir_vsearch_results_fa_trim']
 
     # Housekeeping done. Start the analyses. ---------------------------------
 
@@ -212,6 +214,8 @@ def main():
     pe_blast_results_file_patterns = [x.replace('.fastq', '.txt') for x in
                                       pe_trim_fq_file_patterns]
 
+    pe_vsearch_results_file_patterns = pe_blast_results_file_patterns
+
     # Run Trimmomatic --------------------------------------------------------
     run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
                     trimmomatic, adapters, pe_trim_fq_file_patterns, THREADS)
@@ -229,7 +233,13 @@ def main():
                          tblastn, blast_1_evalue, blast_1_max_target_seqs,
                          blast_1_culling_limit, blast_1_qcov_hsp_perc,
                          dir_blast_results_fa_trim,
-                         pe_blast_results_file_patterns, THREADS, gc, seqtk)
+                         pe_blast_results_file_patterns, THREADS, gc, seqtk,
+                         vsearch)
+
+    # Run vsearch ------------------------------------------------------------
+    # run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
+    #                      dir_vsearch_results_fa_trim,
+    #                      pe_vsearch_results_file_patterns, seqtk)
 
     # print('SE:')
     # for k in se_fastq_files:
