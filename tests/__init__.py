@@ -14,6 +14,7 @@ from tests.kakapo_seq import kakapoSeqTests
 from tests.kakapo_bioio import kakapoBioioTests
 from tests.kakapo_entrez import kakapoEntrezTests
 from tests.kakapo_workflow import kakapoWorkflowTests
+from tests.kakapo_os_diffs import kakapoOSDiffsTests
 
 __all__ = ['test_data_dir_path', 'kakapoSeqTests', 'kakapoBioioTests',
-           'kakapoEntrezTests', 'kakapoWorkflowTests']
+           'kakapoEntrezTests', 'kakapoWorkflowTests', 'kakapoOSDiffsTests']
