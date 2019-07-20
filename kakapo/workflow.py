@@ -409,7 +409,7 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
         min_acc_len = se_fastq_files[se]['min_acc_len']
         stats_f = opj(dir_fq_trim_data_sample, se + '.txt')
         out_f = opj(dir_fq_trim_data_sample, se + '.fastq')
-        se_fastq_files[se]['trim_path'] = out_f
+        se_fastq_files[se]['trim_path_fq'] = out_f
 
         if ope(dir_fq_trim_data_sample):
             print('Trimmed FASTQ files for sample ' + se + ' already exist.')
@@ -433,7 +433,7 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
         stats_f = opj(dir_fq_trim_data_sample, pe + '.txt')
         out_fs = [x.replace('xDIRx', dir_fq_trim_data_sample) for x in fpatt]
         out_fs = [x.replace('xBASENAMEx', pe) for x in out_fs]
-        pe_fastq_files[pe]['trim_path'] = out_fs
+        pe_fastq_files[pe]['trim_path_fq'] = out_fs
 
         if ope(dir_fq_trim_data_sample):
             print('Trimmed FASTQ files for sample ' + pe + ' already exist.')
@@ -452,3 +452,44 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
                 stats_file=stats_f,
                 threads=threads,
                 minlen=min_acc_len)
+
+    print()
+
+
+def trimmed_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
+                     fpatt): # noqa
+
+    for se in se_fastq_files:
+        dir_fa_trim_data_sample = opj(dir_fa_trim_data, se)
+        fq_path = se_fastq_files[se]['trim_path_fq']
+        out_f = opj(dir_fa_trim_data_sample, se + '.fasta')
+        se_fastq_files[se]['trim_path_fa'] = out_f
+
+        if ope(dir_fa_trim_data_sample):
+            print('Trimmed FASTA files for sample ' + se + ' already exist.')
+        else:
+            make_dir(dir_fa_trim_data_sample)
+            print('Converting FASTQ to FASTA using Seqtk: ' + fq_path)
+            cmd = [seqtk, 'seq', '-A', fq_path]
+            out, err = call(cmd)
+            with open(out_f, mode='wb') as f:
+                f.write(out)
+
+    for pe in pe_fastq_files:
+        dir_fa_trim_data_sample = opj(dir_fa_trim_data, pe)
+        fq_paths = pe_fastq_files[pe]['trim_path_fq']
+        out_fs = [x.replace('xDIRx', dir_fa_trim_data_sample) for x in fpatt]
+        out_fs = [x.replace('xBASENAMEx', pe) for x in out_fs]
+        pe_fastq_files[pe]['trim_path_fa'] = out_fs
+
+        if ope(dir_fa_trim_data_sample):
+            print('Trimmed FASTA files for sample ' + pe + ' already exist.')
+        else:
+            make_dir(dir_fa_trim_data_sample)
+            pe_trim_files = zip(fq_paths, out_fs)
+            for x in pe_trim_files:
+                print('Converting FASTQ to FASTA using Seqtk: ' + x[0])
+                cmd = [seqtk, 'seq', '-A', x[0]]
+                out, err = call(cmd)
+                with open(x[1], mode='wb') as f:
+                    f.write(out)

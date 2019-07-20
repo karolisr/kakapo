@@ -34,6 +34,7 @@ from kakapo.workflow import min_accept_read_len
 from kakapo.workflow import pfam_uniprot_accessions
 from kakapo.workflow import prepare_output_directories
 from kakapo.workflow import run_trimmomatic
+from kakapo.workflow import trimmed_fq_to_fa
 from kakapo.workflow import user_aa_fasta
 from kakapo.workflow import user_fastq_files
 from kakapo.workflow import user_protein_accessions
@@ -197,6 +198,10 @@ def main():
     # Run Trimmomatic --------------------------------------------------------
     run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
                     trimmomatic, adapters, pe_trim_fq_file_patterns, THREADS)
+
+    # Convert trimmed FASTQ files to FASTA -----------------------------------
+    trimmed_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
+                     pe_trim_fa_file_patterns)
 
     # print('SE:')
     # for k in se_fastq_files:
