@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""Configuration for unit tests for kakapo."""
 
 from __future__ import absolute_import
 from __future__ import division

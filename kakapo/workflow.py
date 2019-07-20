@@ -4,15 +4,14 @@
 """kakapo workflow"""
 
 import pickle
+import re
 
+from os import remove as osremove
+from os.path import basename
+from os.path import commonprefix
 from os.path import exists as ope
 from os.path import join as opj
 from os.path import splitext
-from os.path import basename
-from os.path import commonprefix
-from os import remove as osremove
-
-import re
 
 from kakapo.bioio import dnld_ncbi_seqs
 from kakapo.bioio import entrez_summary

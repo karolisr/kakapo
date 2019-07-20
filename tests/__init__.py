@@ -1,10 +1,5 @@
 # -*- coding: utf-8 -*-
-
-"""
-
-This package contains unit tests for packages krpy and krpm.
-
-"""
+"""Unit tests for kakapo."""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -18,3 +13,7 @@ from tests.config import test_data_dir_path
 from tests.kakapo_seq import kakapoSeqTests
 from tests.kakapo_bioio import kakapoBioioTests
 from tests.kakapo_entrez import kakapoEntrezTests
+from tests.kakapo_workflow import kakapoWorkflowTests
+
+__all__ = ['test_data_dir_path', 'kakapoSeqTests', 'kakapoBioioTests',
+           'kakapoEntrezTests', 'kakapoWorkflowTests']

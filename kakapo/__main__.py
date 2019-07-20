@@ -80,16 +80,16 @@ def main():
     # Parse configuration file -----------------------------------------------
     __ = config_file_parse(CONFIG_FILE_PATH, tax)
 
-    prj_name = __['project_name']  # noqa
+    prj_name = __['project_name']
     email = __['email']  # noqa
-    dir_out = __['output_directory']  # noqa
-    sras = __['sras']  # noqa
-    fq_pe = __['fq_pe']  # noqa
-    fq_se = __['fq_se']  # noqa
+    dir_out = __['output_directory']
+    sras = __['sras']
+    fq_pe = __['fq_pe']
+    fq_se = __['fq_se']
     assmbl = __['assmbl']  # noqa
-    min_query_length = __['min_query_length']  # noqa
-    max_query_length = __['max_query_length']  # noqa
-    user_queries = __['user_queries']  # noqa
+    min_query_length = __['min_query_length']
+    max_query_length = __['max_query_length']
+    user_queries = __['user_queries']
     blast_1_culling_limit = __['blast_1_culling_limit']  # noqa
     blast_1_evalue = __['blast_1_evalue']  # noqa
     blast_1_max_target_seqs = __['blast_1_max_target_seqs']  # noqa
@@ -100,9 +100,9 @@ def main():
     blast_2_qcov_hsp_perc = __['blast_2_qcov_hsp_perc']  # noqa
     tax_group = __['tax_group']  # noqa
     tax_group_name = __['tax_group_name']  # noqa
-    tax_ids_user = __['tax_ids']  # noqa
-    pfam_acc = __['pfam_acc']  # noqa
-    prot_acc_user = __['prot_acc']  # noqa
+    tax_ids_user = __['tax_ids']
+    pfam_acc = __['pfam_acc']
+    prot_acc_user = __['prot_acc']
 
     # Create output directory with all the subdirectories --------------------
     if dir_out is not None:
