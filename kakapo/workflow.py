@@ -12,20 +12,23 @@ from os.path import basename
 from os.path import commonprefix
 from os import remove as osremove
 
+import re
+
 from kakapo.bioio import dnld_ncbi_seqs
 from kakapo.bioio import entrez_summary
 from kakapo.bioio import filter_fasta_text_by_length
 from kakapo.bioio import sra_info
 from kakapo.bioio import standardize_fasta_text
 from kakapo.bioio import write_fasta_file
+from kakapo.config import PICKLE_PROTOCOL
 from kakapo.ebi_domain_search import pfam_entry
 from kakapo.ebi_domain_search import pfam_seqs
 from kakapo.ebi_domain_search import prot_ids_for_tax_ids
 from kakapo.ebi_proteins import fasta_by_accession_list
 from kakapo.helpers import make_dir
 from kakapo.shell import call
+from kakapo.trimmomatic import trimmomatic_se, trimmomatic_pe
 
-from kakapo.config import PICKLE_PROTOCOL
 
 def prepare_output_directories(dir_out, prj_name):  # noqa
 
@@ -52,13 +55,21 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
     dir_fq_data = opj(dir_out, '11-sra-fq-data')
     make_dir(dir_fq_data)
 
+    dir_fq_trim_data = opj(dir_out, '12-trimmed-fq-data')
+    make_dir(dir_fq_trim_data)
+
+    dir_fa_trim_data = opj(dir_out, '13-trimmed-fa-data')
+    make_dir(dir_fa_trim_data)
+
     ret_dict = {'dir_temp': dir_temp,
                 'dir_cache': dir_cache,
                 'dir_cache_pfam_acc': dir_cache_pfam_acc,
                 'dir_cache_prj': dir_cache_prj,
                 'dir_prj': dir_prj,
                 'dir_prj_queries': dir_prj_queries,
-                'dir_fq_data': dir_fq_data}
+                'dir_fq_data': dir_fq_data,
+                'dir_fq_trim_data': dir_fq_trim_data,
+                'dir_fa_trim_data': dir_fa_trim_data}
 
     return ret_dict
 
@@ -280,8 +291,8 @@ def dnld_sra_info(sras, dir_cache_prj):  # noqa
     return sra_runs_info
 
 
-def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump, # noqa
-                         threads, dir_temp):
+def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
+                         threads, dir_temp): # noqa
 
     se_fastq_files = {}
     pe_fastq_files = {}
@@ -295,14 +306,14 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump, # noqa
 
         if sra_lib_layout == 'single':
             se_file = opj(dir_fq_data, sra + '.fastq')
-            se_fastq_files[sample_base_name] = se_file
+            se_fastq_files[sample_base_name] = {'path': se_file}
             if not ope(se_file):
                 sra_dnld_needed = True
 
         elif sra_lib_layout == 'paired':
             pe_file_1 = opj(dir_fq_data, sra + '_1.fastq')
             pe_file_2 = opj(dir_fq_data, sra + '_2.fastq')
-            pe_fastq_files[sample_base_name] = [pe_file_1, pe_file_2]
+            pe_fastq_files[sample_base_name] = {'path': [pe_file_1, pe_file_2]}
             if not ope(pe_file_1) or not ope(pe_file_2):
                 sra_dnld_needed = True
 
@@ -332,15 +343,112 @@ def user_fastq_files(fq_se, fq_pe): # noqa
 
     for se in fq_se:
         sample_base_name = splitext(basename(se))[0]
-        se_fastq_files[sample_base_name] = se
+        se_fastq_files[sample_base_name] = {'path': se}
         print('\t' + sample_base_name + ':\n\t\t' + se)
         print()
 
     for pe in fq_pe:
         sample_base_name = basename(commonprefix(pe))
         sample_base_name = sample_base_name.rstrip('_- R')
-        pe_fastq_files[sample_base_name] = pe
+        pe_fastq_files[sample_base_name] = {'path': pe}
         print('\t' + sample_base_name + ':\n\t\t' + pe[0] + '\n\t\t' + pe[1])
         print()
 
     return se_fastq_files, pe_fastq_files
+
+
+def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp, vsearch): # noqa
+
+    print('Calculating minimum acceptable read length:\n')
+
+    queue = []
+
+    for se in se_fastq_files:
+        fq_path = se_fastq_files[se]['path']
+        stats_file = opj(dir_temp, se + '_stats.txt')
+        queue.append([se, fq_path, stats_file, 'se'])
+
+    for pe in pe_fastq_files:
+        fq_path = pe_fastq_files[pe]['path'][0]
+        stats_file = opj(dir_temp, pe + '_stats.txt')
+        queue.append([pe, fq_path, stats_file, 'pe'])
+
+    for x in queue:
+        cmd = [vsearch, '--fastq_stats', x[1], '--log', x[2]]
+        call(cmd)
+
+        with open(x[2]) as f:
+            stats = f.read()
+
+        osremove(x[2])
+
+        ml = re.findall(r'>=\s+(\d+)', stats)
+
+        if len(ml) != 0:
+            ml = int(ml[0]) // 2
+            print('\t' + x[0] + ': ' + str(ml))
+        else:
+            ml = None
+            print('\t' + x[0] +
+                  ': could not be determined')
+
+        if x[3] == 'se':
+            se_fastq_files[x[0]]['min_acc_len'] = ml
+        elif x[3] == 'pe':
+            pe_fastq_files[x[0]]['min_acc_len'] = ml
+
+    print()
+
+
+def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
+                    trimmomatic, adapters, fpatt, threads): # noqa
+
+    for se in se_fastq_files:
+        dir_fq_trim_data_sample = opj(dir_fq_trim_data, se)
+        fq_path = se_fastq_files[se]['path']
+        min_acc_len = se_fastq_files[se]['min_acc_len']
+        stats_f = opj(dir_fq_trim_data_sample, se + '.txt')
+        out_f = opj(dir_fq_trim_data_sample, se + '.fastq')
+        se_fastq_files[se]['trim_path'] = out_f
+
+        if ope(dir_fq_trim_data_sample):
+            print('Trimmed FASTQ files for sample ' + se + ' already exist.')
+        else:
+            make_dir(dir_fq_trim_data_sample)
+            print('Running Trimmomatic in SE mode: ' + se)
+            trimmomatic_se(
+                trimmomatic=trimmomatic,
+                adapters=adapters,
+                in_file=fq_path,
+                out_file=out_f,
+                stats_file=stats_f,
+                threads=threads,
+                minlen=min_acc_len)
+
+    for pe in pe_fastq_files:
+        dir_fq_trim_data_sample = opj(dir_fq_trim_data, pe)
+        fq_path_1 = pe_fastq_files[pe]['path'][0]
+        fq_path_2 = pe_fastq_files[pe]['path'][1]
+        min_acc_len = pe_fastq_files[pe]['min_acc_len']
+        stats_f = opj(dir_fq_trim_data_sample, pe + '.txt')
+        out_fs = [x.replace('xDIRx', dir_fq_trim_data_sample) for x in fpatt]
+        out_fs = [x.replace('xBASENAMEx', pe) for x in out_fs]
+        pe_fastq_files[pe]['trim_path'] = out_fs
+
+        if ope(dir_fq_trim_data_sample):
+            print('Trimmed FASTQ files for sample ' + pe + ' already exist.')
+        else:
+            make_dir(dir_fq_trim_data_sample)
+            print('Running Trimmomatic in PE mode: ' + pe)
+            trimmomatic_pe(
+                trimmomatic=trimmomatic,
+                adapters=adapters,
+                in_file_1=fq_path_1,
+                in_file_2=fq_path_2,
+                out_file_paired_1=out_fs[0],
+                out_file_paired_2=out_fs[1],
+                out_file_unpaired_1=out_fs[2],
+                out_file_unpaired_2=out_fs[3],
+                stats_file=stats_f,
+                threads=threads,
+                minlen=min_acc_len)

@@ -30,8 +30,10 @@ from kakapo.workflow import dnld_prot_seqs
 from kakapo.workflow import dnld_sra_fastq_files
 from kakapo.workflow import dnld_sra_info
 from kakapo.workflow import filter_queries
+from kakapo.workflow import min_accept_read_len
 from kakapo.workflow import pfam_uniprot_accessions
 from kakapo.workflow import prepare_output_directories
+from kakapo.workflow import run_trimmomatic
 from kakapo.workflow import user_aa_fasta
 from kakapo.workflow import user_fastq_files
 from kakapo.workflow import user_protein_accessions
@@ -117,6 +119,8 @@ def main():
     dir_prj = __['dir_prj']  # noqa
     dir_prj_queries = __['dir_prj_queries']  # noqa
     dir_fq_data = __['dir_fq_data']  # noqa
+    dir_fq_trim_data = __['dir_fq_trim_data']  # noqa
+    dir_fa_trim_data = __['dir_fa_trim_data']  # noqa
 
     # Housekeeping done. Start the analyses. ---------------------------------
 
@@ -166,6 +170,33 @@ def main():
     se_fastq_files.update(se_fastq_files_usr)
     pe_fastq_files = pe_fastq_files_sra.copy()
     pe_fastq_files.update(pe_fastq_files_usr)
+
+    # Minimum acceptable read length -----------------------------------------
+    min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp, vsearch)
+
+    # File name patterns -----------------------------------------------------
+
+    pe_trim_pair_1_sfx = '_paired_1'
+    pe_trim_pair_2_sfx = '_paired_2'
+    pe_trim_unpr_1_sfx = '_unpaired_1'
+    pe_trim_unpr_2_sfx = '_unpaired_2'
+
+    pe_trim_suffixes = [pe_trim_pair_1_sfx, pe_trim_pair_2_sfx,
+                        pe_trim_unpr_1_sfx, pe_trim_unpr_2_sfx]
+
+    pe_file_pattern = opj('xDIRx', 'xBASENAMEx')
+
+    pe_trim_fq_file_patterns = list(
+        zip([pe_file_pattern] * 4, pe_trim_suffixes, ['.fastq'] * 4))
+    pe_trim_fq_file_patterns = [''.join(x) for x in pe_trim_fq_file_patterns]
+
+    pe_trim_fa_file_patterns = list(
+        zip([pe_file_pattern] * 4, pe_trim_suffixes, ['.fasta'] * 4))
+    pe_trim_fa_file_patterns = [''.join(x) for x in pe_trim_fa_file_patterns]
+
+    # Run Trimmomatic --------------------------------------------------------
+    run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
+                    trimmomatic, adapters, pe_trim_fq_file_patterns, THREADS)
 
     # print('SE:')
     # for k in se_fastq_files:
