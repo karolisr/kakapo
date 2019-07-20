@@ -9,20 +9,24 @@ from __future__ import with_statement
 
 import unittest
 
-from tempfile import TemporaryDirectory
-
 # from tests import test_data_dir_path
 
 from kakapo.workflow import dnld_sra_info
 from kakapo.workflow import pfam_uniprot_accessions
+from kakapo.helpers import make_dir
+from shutil import rmtree
 
+
+TEMP_DIR = 'temp'
 
 def setUpModule():
     print('\nsetUpModule kakapoWorkflowTests')
+    make_dir(TEMP_DIR)
 
 
 def tearDownModule():
     print('\n\ntearDownModule kakapoWorkflowTests')
+    rmtree(TEMP_DIR)
 
 
 class kakapoWorkflowTests(unittest.TestCase):
@@ -33,8 +37,7 @@ class kakapoWorkflowTests(unittest.TestCase):
         print('\ntest_dnld_sra_info')
 
         sras = ['SRR4099901', 'SRR1985008', 'SRR3087077', 'SRR4434436']
-        with TemporaryDirectory() as temp_dir:
-            sra_runs_info = dnld_sra_info(sras=sras, dir_cache_prj=temp_dir)
+        sra_runs_info = dnld_sra_info(sras=sras, dir_cache_prj=TEMP_DIR)
         self.assertEqual(len(sra_runs_info), 4)
 
     def test_pfam_uniprot_accessions(self):
@@ -46,10 +49,9 @@ class kakapoWorkflowTests(unittest.TestCase):
                             'A0A0D9RN56', 'A0A0D9RNF3', 'A0A0D9S0D5',
                             'A0A0D9S5X7', 'A0A0D9S5X8', 'A0A0D9S5X9']
 
-        with TemporaryDirectory() as temp_dir:
-            pfam_uniprot_acc = pfam_uniprot_accessions(
-                pfam_acc=pfam_acc,
-                tax_ids=tax_ids,
-                dir_cache_pfam_acc=temp_dir)
+        pfam_uniprot_acc = pfam_uniprot_accessions(
+            pfam_acc=pfam_acc,
+            tax_ids=tax_ids,
+            dir_cache_pfam_acc=TEMP_DIR)
 
-            self.assertEqual(pfam_uniprot_acc, expected_results)
+        self.assertEqual(pfam_uniprot_acc, expected_results)
