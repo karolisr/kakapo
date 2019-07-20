@@ -7,26 +7,34 @@ import pickle
 
 from os.path import exists as ope
 from os.path import join as opj
+from os.path import splitext
+from os.path import basename
+from os.path import commonprefix
 from os import remove as osremove
 
-from kakapo.helpers import make_dir
-from kakapo.ebi_domain_search import pfam_seqs
-from kakapo.ebi_domain_search import pfam_entry
-from kakapo.ebi_domain_search import prot_ids_for_tax_ids
-from kakapo.bioio import entrez_summary
 from kakapo.bioio import dnld_ncbi_seqs
-from kakapo.bioio import write_fasta_file
-from kakapo.ebi_proteins import fasta_by_accession_list
-from kakapo.bioio import standardize_fasta_text
+from kakapo.bioio import entrez_summary
 from kakapo.bioio import filter_fasta_text_by_length
 from kakapo.bioio import sra_info
+from kakapo.bioio import standardize_fasta_text
+from kakapo.bioio import write_fasta_file
+from kakapo.ebi_domain_search import pfam_entry
+from kakapo.ebi_domain_search import pfam_seqs
+from kakapo.ebi_domain_search import prot_ids_for_tax_ids
+from kakapo.ebi_proteins import fasta_by_accession_list
+from kakapo.helpers import make_dir
+from kakapo.shell import call
 
 from kakapo.config import PICKLE_PROTOCOL
 
 def prepare_output_directories(dir_out, prj_name):  # noqa
 
     # -- ToDo: Lock cache files in case of parallel execution ------------
-    dir_cache = opj(dir_out, '00-cache')
+
+    dir_temp = opj(dir_out, '00-b-temp')
+    make_dir(dir_temp)
+
+    dir_cache = opj(dir_out, '00-a-cache')
     make_dir(dir_cache)
 
     dir_cache_pfam_acc = opj(dir_cache, 'pfam-uniprot-accessions')
@@ -41,11 +49,16 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
     dir_prj_queries = opj(dir_prj, '01-queries')
     make_dir(dir_prj_queries)
 
-    ret_dict = {'dir_cache': dir_cache,
+    dir_fq_data = opj(dir_out, '11-sra-fq-data')
+    make_dir(dir_fq_data)
+
+    ret_dict = {'dir_temp': dir_temp,
+                'dir_cache': dir_cache,
                 'dir_cache_pfam_acc': dir_cache_pfam_acc,
                 'dir_cache_prj': dir_cache_prj,
                 'dir_prj': dir_prj,
-                'dir_prj_queries': dir_prj_queries}
+                'dir_prj_queries': dir_prj_queries,
+                'dir_fq_data': dir_fq_data}
 
     return ret_dict
 
@@ -193,12 +206,10 @@ def filter_queries(aa_queries_file, min_query_length, max_query_length): # noqa
     with open(aa_queries_file, 'w') as f:
         f.write(__)
 
-    print()
-
 
 def dnld_sra_info(sras, dir_cache_prj):  # noqa
     if len(sras) > 0:
-        print('Downloading SRA run information:\n')
+        print('\nDownloading SRA run information:\n')
 
     sra_runs_info = {}
 
@@ -228,6 +239,11 @@ def dnld_sra_info(sras, dir_cache_prj):  # noqa
             sra_run_info['sra_seq_platform_model'] = sra_seq_platform_model
             sra_run_info['sra_species'] = sra_species
             sra_run_info['sra_taxid'] = sra_taxid
+
+            sample_base_name = (sra_species.replace(' ', '_') + '_' +
+                                sra_taxid + '_' + sra)
+
+            sra_run_info['sample_base_name'] = sample_base_name
 
         else:
             sra_run_info = sra_runs_info[sra]
@@ -262,3 +278,69 @@ def dnld_sra_info(sras, dir_cache_prj):  # noqa
         pickle.dump(sra_runs_info, f, protocol=PICKLE_PROTOCOL)
 
     return sra_runs_info
+
+
+def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump, # noqa
+                         threads, dir_temp):
+
+    se_fastq_files = {}
+    pe_fastq_files = {}
+
+    for sra in sras:
+        sra_run_info = sra_runs_info[sra]
+        sra_lib_layout = sra_run_info['sra_lib_layout']
+        sample_base_name = sra_run_info['sample_base_name']
+
+        sra_dnld_needed = False
+
+        if sra_lib_layout == 'single':
+            se_file = opj(dir_fq_data, sra + '.fastq')
+            se_fastq_files[sample_base_name] = se_file
+            if not ope(se_file):
+                sra_dnld_needed = True
+
+        elif sra_lib_layout == 'paired':
+            pe_file_1 = opj(dir_fq_data, sra + '_1.fastq')
+            pe_file_2 = opj(dir_fq_data, sra + '_2.fastq')
+            pe_fastq_files[sample_base_name] = [pe_file_1, pe_file_2]
+            if not ope(pe_file_1) or not ope(pe_file_2):
+                sra_dnld_needed = True
+
+        if sra_dnld_needed:
+            print('Downloading FASTQ reads for the SRA accession ' + sra)
+            cmd = [fasterq_dump,
+                   '--threads', str(threads),
+                   '--split-files',
+                   '--outdir', dir_fq_data,
+                   '--temp', dir_temp, sra]
+            call(cmd)
+
+        else:
+            print('\tFASTQ reads for the SRA run ' + sra +
+                  ' are available locally.')
+
+    return se_fastq_files, pe_fastq_files
+
+
+def user_fastq_files(fq_se, fq_pe): # noqa
+
+    if len(fq_se) > 0 or len(fq_pe) > 0:
+        print('\nPreparing user provided FASTQ files:\n')
+
+    se_fastq_files = {}
+    pe_fastq_files = {}
+
+    for se in fq_se:
+        sample_base_name = splitext(basename(se))[0]
+        se_fastq_files[sample_base_name] = se
+        print('\t' + sample_base_name + ':\n\t\t' + se)
+        print()
+
+    for pe in fq_pe:
+        sample_base_name = basename(commonprefix(pe))
+        sample_base_name = sample_base_name.rstrip('_- R')
+        pe_fastq_files[sample_base_name] = pe
+        print('\t' + sample_base_name + ':\n\t\t' + pe[0] + '\n\t\t' + pe[1])
+        print()
+
+    return se_fastq_files, pe_fastq_files

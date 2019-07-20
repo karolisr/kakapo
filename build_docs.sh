@@ -16,6 +16,6 @@ sed -i "" "s|# sys.path.insert|sys.path.insert|g" docs/conf.py
 
 cd docs
 make html
-make latex
-cd _build/latex
-make
+# make latex
+# cd _build/latex
+# make

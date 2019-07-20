@@ -20,18 +20,22 @@ from ncbi_taxonomy_local import taxonomy
 from kakapo import dependencies as deps
 from kakapo.config import DIR_CFG, DIR_DEP, DIR_TAX
 from kakapo.config import OS_STR, PY_V_STR
-from kakapo.helpers import make_dir
+from kakapo.config import THREADS
 from kakapo.config_file_parse import config_file_parse
+from kakapo.helpers import make_dir
+from kakapo.workflow import combine_aa_fasta
 from kakapo.workflow import descending_tax_ids
-from kakapo.workflow import prepare_output_directories
-from kakapo.workflow import pfam_uniprot_accessions
-from kakapo.workflow import user_protein_accessions
 from kakapo.workflow import dnld_pfam_uniprot_seqs
 from kakapo.workflow import dnld_prot_seqs
-from kakapo.workflow import user_aa_fasta
-from kakapo.workflow import combine_aa_fasta
-from kakapo.workflow import filter_queries
+from kakapo.workflow import dnld_sra_fastq_files
 from kakapo.workflow import dnld_sra_info
+from kakapo.workflow import filter_queries
+from kakapo.workflow import pfam_uniprot_accessions
+from kakapo.workflow import prepare_output_directories
+from kakapo.workflow import user_aa_fasta
+from kakapo.workflow import user_fastq_files
+from kakapo.workflow import user_protein_accessions
+
 
 # Command line arguments -----------------------------------------------------
 CLEAN_CONFIG_DIR = False
@@ -106,11 +110,13 @@ def main():
 
     __ = prepare_output_directories(dir_out, prj_name)
 
+    dir_temp = __['dir_temp']  # noqa
     dir_cache = __['dir_cache']  # noqa
     dir_cache_pfam_acc = __['dir_cache_pfam_acc']  # noqa
     dir_cache_prj = __['dir_cache_prj']  # noqa
     dir_prj = __['dir_prj']  # noqa
     dir_prj_queries = __['dir_prj_queries']  # noqa
+    dir_fq_data = __['dir_fq_data']  # noqa
 
     # Housekeeping done. Start the analyses. ---------------------------------
 
@@ -148,7 +154,26 @@ def main():
     # Download SRA run metadata if needed ------------------------------------
     sra_runs_info = dnld_sra_info(sras, dir_cache_prj)
 
-    print(sra_runs_info)
+    # Download SRA run FASTQ files if needed ---------------------------------
+    se_fastq_files_sra, pe_fastq_files_sra = dnld_sra_fastq_files(
+        sras, sra_runs_info, dir_fq_data, fasterq_dump, THREADS, dir_temp)
+
+    # User provided FASTQ files ----------------------------------------------
+    se_fastq_files_usr, pe_fastq_files_usr = user_fastq_files(fq_se, fq_pe)
+
+    # Collate FASTQ file info ------------------------------------------------
+    se_fastq_files = se_fastq_files_sra.copy()
+    se_fastq_files.update(se_fastq_files_usr)
+    pe_fastq_files = pe_fastq_files_sra.copy()
+    pe_fastq_files.update(pe_fastq_files_usr)
+
+    # print('SE:')
+    # for k in se_fastq_files:
+    #     print(se_fastq_files[k])
+
+    # print('PE:')
+    # for k in pe_fastq_files:
+    #     print(pe_fastq_files[k])
 
 
 ##############################################################################
