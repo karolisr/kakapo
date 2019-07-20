@@ -34,6 +34,7 @@ from kakapo.workflow import makeblastdb_fq
 from kakapo.workflow import min_accept_read_len
 from kakapo.workflow import pfam_uniprot_accessions
 from kakapo.workflow import prepare_output_directories
+from kakapo.workflow import run_tblastn_on_reads
 from kakapo.workflow import run_trimmomatic
 from kakapo.workflow import trimmed_fq_to_fa
 from kakapo.workflow import user_aa_fasta
@@ -104,6 +105,13 @@ def main():
     pfam_acc = __['pfam_acc']
     prot_acc_user = __['prot_acc']
 
+    gc = tax.genetic_code_for_taxid(tax_group)
+    # gc_mito = tax.mito_genetic_code_for_taxid(tax_group)
+    # gc_plastid = tax.plastid_genetic_code()
+    # gc_tt = tax.trans_table_for_genetic_code_id(gc)
+    # gc_mito_tt = tax.trans_table_for_genetic_code_id(gc_mito)
+    # gc_plastid_tt = tax.trans_table_for_genetic_code_id(gc_plastid)
+
     # Create output directory with all the subdirectories --------------------
     if dir_out is not None:
         if ope(dir_out):
@@ -124,6 +132,7 @@ def main():
     dir_fq_trim_data = __['dir_fq_trim_data']
     dir_fa_trim_data = __['dir_fa_trim_data']
     dir_blast_fa_trim = __['dir_blast_fa_trim']
+    dir_blast_results_fa_trim = __['dir_blast_results_fa_trim']
 
     # Housekeeping done. Start the analyses. ---------------------------------
 
@@ -200,6 +209,9 @@ def main():
         zip([pe_file_pattern] * 4, pe_trim_suffixes))
     pe_blast_db_file_patterns = [''.join(x) for x in pe_blast_db_file_patterns]
 
+    pe_blast_results_file_patterns = [x.replace('.fastq', '.txt') for x in
+                                      pe_trim_fq_file_patterns]
+
     # Run Trimmomatic --------------------------------------------------------
     run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
                     trimmomatic, adapters, pe_trim_fq_file_patterns, THREADS)
@@ -211,6 +223,13 @@ def main():
     # Run makeblastdb --------------------------------------------------------
     makeblastdb_fq(se_fastq_files, pe_fastq_files, dir_blast_fa_trim,
                    makeblastdb, pe_blast_db_file_patterns)
+
+    # Run tblastn ------------------------------------------------------------
+    run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
+                         tblastn, blast_1_evalue, blast_1_max_target_seqs,
+                         blast_1_culling_limit, blast_1_qcov_hsp_perc,
+                         dir_blast_results_fa_trim,
+                         pe_blast_results_file_patterns, THREADS, gc, seqtk)
 
     # print('SE:')
     # for k in se_fastq_files:

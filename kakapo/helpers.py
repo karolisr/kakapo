@@ -85,3 +85,28 @@ def extract_md5_hash(file_path):  # noqa
         line = f_md5.readline()
         md5_reported = line.split(' ')[0]
     return md5_reported
+
+
+def unique_lines_in_file(path):  # noqa
+    with open(path, 'r') as f:
+        x = f.readlines()
+    x = list(set(x))
+    x.sort()
+    return x
+
+
+def keep_unique_lines_in_file(path):  # noqa
+    x = unique_lines_in_file(path)
+    with open(path, 'w') as f:
+        f.write(''.join(x))
+
+
+def combine_text_files(paths, out_path):  # noqa
+    ret = ''
+    for p in paths:
+        with open(p, 'r') as f:
+            x = f.read()
+            ret = ret + x
+
+    with open(out_path, 'w') as f:
+        f.write(ret)

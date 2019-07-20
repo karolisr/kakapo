@@ -13,7 +13,7 @@ from collections import Counter
 from kakapo.shell import call
 from kakapo.py_v_diffs import unicode
 
-BLST_RES_COLS_MINIMAL = ['sseqid']
+BLST_RES_COLS_1 = ['sseqid']
 BLST_RES_COLS_2 = ['sseqid', 'evalue', 'sframe', 'sstart', 'send', 'qseqid']
 
 
@@ -30,7 +30,7 @@ def make_blast_db(exec_file, in_file, out_file, title, dbtype='nucl'):
 
 def run_blast(exec_file, task, threads, db_path, queries_file, out_file,
               evalue, qcov_hsp_perc, culling_limit, max_target_seqs,
-              db_genetic_code, out_cols=BLST_RES_COLS_MINIMAL):
+              db_genetic_code, out_cols=BLST_RES_COLS_1):
     """Wrap blastn and tblastn"""
     exec_name = os.path.basename(exec_file)
     if exec_name in ['tblastn', ]:
@@ -51,6 +51,7 @@ def run_blast(exec_file, task, threads, db_path, queries_file, out_file,
            '-max_target_seqs', max_target_seqs]
 
     cmd = cmd + db_genetic_code
+    # print(' '.join(cmd))
     call(cmd)
 
 
