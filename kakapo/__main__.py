@@ -31,6 +31,7 @@ from kakapo.workflow import dnld_prot_seqs
 from kakapo.workflow import user_aa_fasta
 from kakapo.workflow import combine_aa_fasta
 from kakapo.workflow import filter_queries
+from kakapo.workflow import dnld_sra_info
 
 # Command line arguments -----------------------------------------------------
 CLEAN_CONFIG_DIR = False
@@ -143,6 +144,12 @@ def main():
 
     # Filter AA queries ------------------------------------------------------
     filter_queries(aa_queries_file, min_query_length, max_query_length)
+
+    # Download SRA run metadata if needed ------------------------------------
+    sra_runs_info = dnld_sra_info(sras, dir_cache_prj)
+
+    print(sra_runs_info)
+
 
 ##############################################################################
 

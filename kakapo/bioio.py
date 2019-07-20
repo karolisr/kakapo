@@ -19,6 +19,7 @@ from kakapo.py_v_diffs import handle_types
 from kakapo.py_v_diffs import unicode
 from kakapo.seq import SeqRecord
 from kakapo.entrez import esearch, epost, efetch, esummary
+from xmltodict import parse as parse_xml
 
 
 def _parse_gbseq_xml_text(gbseq_xml_text):
@@ -248,25 +249,37 @@ def _parse_esummary_xml_text(esummary_xml_text):
     return return_value
 
 
-def dnld_ncbi_seqs(term, db):  # noqa
+def esearch_epost(term, db):  # noqa
     if type(term) in [list, tuple]:
         term = ' OR '.join(term)
     esearch_results = esearch(db, term)
     id_list = esearch_results['IdList']
     epost_results = epost(db, id_list)
+    return epost_results
+
+
+def dnld_ncbi_seqs(term, db):  # noqa
+    epost_results = esearch_epost(term, db)
     efetch_results = efetch(epost_results, _parse_gbseq_xml_text, 'gb')
     seq_records = seq_records_from_efetch_results(efetch_results)
     return seq_records
 
 
 def entrez_summary(term, db):  # noqa
-    if type(term) in [list, tuple]:
-        term = ' OR '.join(term)
-    esearch_results = esearch(db, term)
-    id_list = esearch_results['IdList']
-    epost_results = epost(db, id_list)
+    epost_results = esearch_epost(term, db)
     esummary_results = esummary(epost_results, _parse_esummary_xml_text)
     return esummary_results
+
+
+def _parse_efetch_sra_xml_text(efetch_sra_xml_text):
+    return [parse_xml(efetch_sra_xml_text)['SraRunInfo']['Row']]
+
+
+def sra_info(term):  # noqa
+    epost_results = esearch_epost(term, 'sra')
+    efetch_results = efetch(epost_results, _parse_efetch_sra_xml_text,
+                            'runinfo')
+    return efetch_results
 
 
 def write_fasta_file(records, file_path_or_handle):

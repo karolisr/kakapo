@@ -141,7 +141,7 @@ def epost(db, id_list):
     return return_value
 
 
-def efetch(data, parser, ret_type):
+def efetch(data, parser, ret_type, retmode='xml'):
     """
 
     Wrap EFetch E-utility.
@@ -182,9 +182,9 @@ def efetch(data, parser, ret_type):
 
         params = {'db': db, 'query_key': query_key, 'WebEnv': web_env,
                   'retstart': str(retstart), 'retmax': str(retmax),
-                  'rettype': ret_type, 'retmode': 'xml'}
+                  'rettype': ret_type, 'retmode': retmode}
 
-        response = get(url, params, 'xml')
+        response = get(url, params, retmode)
 
         parsed = parser(response.text)
 
