@@ -376,12 +376,6 @@ def read_fasta_file(file_path_or_handle):
     return return_list
 
 
-def read_fasta_file_dict(file_path_or_handle):  # noqa
-    records = read_fasta_file(file_path_or_handle)
-    records = {r['description']: r['seq'] for r in records}
-    return records
-
-
 def parse_fasta_text(text): # noqa
     desc_lines = re.findall('\>.*', text)
     lines = text.split('\n')
@@ -394,6 +388,13 @@ def parse_fasta_text(text): # noqa
             data[desc] = data[desc] + l.upper()
 
     return data
+
+
+def read_fasta_file_dict(in_file): # noqa
+    with open(in_file, 'r') as f:
+        fasta_text = f.read()
+    parsed_fasta = parse_fasta_text(fasta_text)
+    return parsed_fasta
 
 
 def standardize_fasta_text(text): # noqa

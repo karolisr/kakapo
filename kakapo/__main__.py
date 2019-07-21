@@ -38,6 +38,7 @@ from kakapo.workflow import makeblastdb_fq
 from kakapo.workflow import min_accept_read_len
 from kakapo.workflow import pfam_uniprot_accessions
 from kakapo.workflow import prepare_output_directories
+from kakapo.workflow import run_inter_pro_scan
 from kakapo.workflow import run_spades
 from kakapo.workflow import run_tblastn_on_assemblies
 from kakapo.workflow import run_tblastn_on_reads
@@ -91,8 +92,9 @@ def main():
     __ = config_file_parse(CONFIG_FILE_PATH, tax)
 
     prj_name = __['project_name']
-    email = __['email']  # noqa
+    email = __['email']
     dir_out = __['output_directory']
+    inter_pro_scan = __['inter_pro_scan']
     sras = __['sras']
     fq_pe = __['fq_pe']
     fq_se = __['fq_se']
@@ -153,6 +155,7 @@ def main():
     dir_blast_assmbl = __['dir_blast_assmbl']
     dir_prj_assmbl_blast_results = __['dir_prj_assmbl_blast_results']
     dir_prj_transcripts = __['dir_prj_transcripts']
+    dir_prj_ips = __['dir_prj_ips']
 
     # Housekeeping done. Start the analyses. ---------------------------------
 
@@ -303,6 +306,10 @@ def main():
 
     # Prepare BLAST hits for analysis: find ORFs, translate ------------------
     find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt)
+
+    # Run InterProScan 5 -----------------------------------------------------
+    if inter_pro_scan is True:
+        run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj)
 
 ##############################################################################
 

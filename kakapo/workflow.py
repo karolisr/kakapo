@@ -3,11 +3,9 @@
 
 """kakapo workflow"""
 
+import json
 import pickle
 import re
-
-from collections import OrderedDict
-from shutil import copyfile
 
 from os import remove as osremove
 from os.path import basename
@@ -15,12 +13,14 @@ from os.path import commonprefix
 from os.path import exists as ope
 from os.path import join as opj
 from os.path import splitext
+from shutil import copyfile
+from time import sleep
 
 from kakapo.bioio import dnld_ncbi_seqs
 from kakapo.bioio import entrez_summary
 from kakapo.bioio import filter_fasta_text_by_length
 from kakapo.bioio import parse_fasta_text
-from kakapo.bioio import read_fasta_file
+from kakapo.bioio import read_fasta_file, read_fasta_file_dict
 from kakapo.bioio import sra_info
 from kakapo.bioio import standardize_fasta_text
 from kakapo.bioio import write_fasta_file
@@ -32,6 +32,8 @@ from kakapo.config import PICKLE_PROTOCOL
 from kakapo.ebi_domain_search import pfam_entry
 from kakapo.ebi_domain_search import pfam_seqs
 from kakapo.ebi_domain_search import prot_ids_for_tax_ids
+from kakapo.ebi_iprscan5 import job_runner
+from kakapo.ebi_iprscan5 import result_json
 from kakapo.ebi_proteins import fasta_by_accession_list
 from kakapo.helpers import combine_text_files
 from kakapo.helpers import keep_unique_lines_in_file
@@ -85,6 +87,9 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
     dir_prj_transcripts = opj(dir_prj, '06-transcripts')
     make_dir(dir_prj_transcripts)
 
+    dir_prj_ips = opj(dir_prj, '07-InterProScan')
+    make_dir(dir_prj_ips)
+
     dir_fq_data = opj(dir_out, '11-sra-fq-data')
     make_dir(dir_fq_data)
 
@@ -117,7 +122,8 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
                 'dir_prj_spades_assemblies': dir_prj_spades_assemblies,
                 'dir_blast_assmbl': dir_blast_assmbl,
                 'dir_prj_assmbl_blast_results': dir_prj_assmbl_blast_results,
-                'dir_prj_transcripts': dir_prj_transcripts}
+                'dir_prj_transcripts': dir_prj_transcripts,
+                'dir_prj_ips': dir_prj_ips}
 
     return ret_dict
 
@@ -916,7 +922,7 @@ def run_tblastn_on_assemblies(assemblies, aa_queries_file, tblastn,
         __ = opj(dir_prj_assmbl_blast_results, assmbl_name + '.tsv')
 
         if ope(__):
-            print('BLAST results for sample ' + assmbl_name +
+            print('BLAST results for assembly ' + assmbl_name +
                   ' already exist.')
         else:
 
@@ -1041,3 +1047,84 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt):  # noqa
         print('\t' + '-' * 80 + '\n\n')
 
         # --------------------------------------------------------------------
+
+
+def run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj):  # noqa
+
+    delay = 1
+
+    if len(assemblies) > 0:
+        print('Running InterProScan 5 for assemblies:')
+
+    for a in assemblies:
+        aa_file = a['transcripts_aa_orf_fasta_file']
+        if aa_file is None:
+            continue
+
+        assmbl_name = a['name']
+
+        json_dump_file_path = opj(dir_prj_ips, assmbl_name + '.json')
+
+        if ope(json_dump_file_path):
+            print('InterProScan 5 results for assembly ' + assmbl_name +
+                  ' have already been downloaded.')
+            continue
+
+        print(assmbl_name)
+
+        seqs = read_fasta_file_dict(aa_file)
+
+        __ = opj(dir_cache_prj, assmbl_name + '_ips_jobs')
+
+        if ope(__):
+            with open(__, 'rb') as f:
+                jobs = pickle.load(f)
+
+        else:
+            jobs = job_runner(email=email, dir_cache=dir_cache_prj, seqs=seqs)
+
+            with open(__, 'wb') as f:
+                pickle.dump(jobs, f, protocol=PICKLE_PROTOCOL)
+
+        print('Downloading InterProScan 5 Results.')
+
+        all_ips_results = {}
+
+        for i, job in enumerate(jobs['finished']):
+            sleep(delay)
+            # counter = i + 1
+            job_id = jobs['finished'][job]
+            ips_json = result_json(job_id)
+            # ips_version = ips_json['interproscan-version']
+            ips_json = ips_json['results']
+
+            # These fields have a value: EMBOSS_001 by default
+            # Replace with our sequence name
+            ips_json[0]['xref'][0]['id'] = job
+            ips_json[0]['xref'][0]['name'] = job
+
+            all_ips_results[job] = ips_json
+
+            # Edit / Rename GFF files ########################################
+            # sleep(1)
+            # ips_gff = result_gff(job_id)
+            # ips_gff = re.sub(r'>match.*', '', ips_gff, flags=re.DOTALL)
+            # ips_gff = re.sub(r'EMBOSS_001', job, ips_gff, flags=re.DOTALL)
+            # ips_gff = re.sub(r'ID=match\$\d+_\d+_\d+;', '', ips_gff,
+            #                  flags=re.DOTALL)
+
+            # ips_gff_file_name = (assmbl_name + '_{:05d}'.format(counter) +
+            #                      '.gff')
+
+            # ips_gff_file_path = opj(dir_prj_ips, ips_gff_file_name)
+
+            # with open(ips_gff_file_path, 'w') as f:
+            #     f.write(ips_gff)
+            ##################################################################
+
+        with open(json_dump_file_path, 'w') as f:
+            json.dump(all_ips_results, f, sort_keys=True, indent=4)
+
+        # Removes cached jobs file.
+        # ToDo: Check if there are no failed jobs, before deleting
+        osremove(__)
