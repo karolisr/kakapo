@@ -306,7 +306,8 @@ def main():
                               blast_2_qcov_hsp_perc, THREADS, gc)
 
     # Prepare BLAST hits for analysis: find ORFs, translate ------------------
-    find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt)
+    find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt,
+                        only_atg_as_start_codon=True)
 
     # Run InterProScan 5 -----------------------------------------------------
     if inter_pro_scan is True:

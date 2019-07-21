@@ -10,37 +10,46 @@ from __future__ import print_function
 from __future__ import with_statement
 
 import json
-import re
 
 def gff_from_kakapo_ips5_json(json_dict):  # noqa
-
-    orf_regex = r'.*__ORF:(\d+):(\d+):(\d)'
 
     gff_text = '##gff-version 3\n'
 
     for rec_key in json_dict:
-        orf_info_raw = re.match(orf_regex, rec_key).groups()
-        orf_info = [int(x) for x in orf_info_raw]
 
-        beg = orf_info[0]
-        end = orf_info[1]
-        # frm = orf_info[2]
+        rec = json_dict[rec_key][0]
+        ann = rec['kakapo_annotations']
+
+        orf_begin = ann['orf_begin']
+        orf_end = ann['orf_end']
+        # orf_frame = ann['orf_frame']
+        blast_hit_begin = ann['blast_hit_begin']
+        blast_hit_end = ann['blast_hit_end']
 
         gff_seqid = rec_key
         gff_source = '.'
         gff_type = 'SO:0000236'
-        gff_start = str(beg + 1)
-        gff_end = str(end)
+        gff_start = str(orf_begin + 1)
+        gff_end = str(orf_end)
         gff_score = '.'
         gff_strand = '+'
         gff_phase = str(0)
-        gff_attributes = 'ID=kakapo predicted'
+        gff_attributes = ''
 
         gff_cols = [gff_seqid, gff_source, gff_type, gff_start, gff_end,
                     gff_score, gff_strand, gff_phase, gff_attributes]
 
         gff_row = '\t'.join(gff_cols)
+        gff_text = gff_text + gff_row + '\n'
 
+        gff_type = 'BLAST Hit'
+        gff_start = str(blast_hit_begin + 1)
+        gff_end = str(blast_hit_end)
+
+        gff_cols = [gff_seqid, gff_source, gff_type, gff_start, gff_end,
+                    gff_score, gff_strand, gff_phase, gff_attributes]
+
+        gff_row = '\t'.join(gff_cols)
         gff_text = gff_text + gff_row + '\n'
 
     return gff_text
@@ -58,3 +67,16 @@ def gff_from_kakapo_ips5_json_file(json_path, gff_path=None):  # noqa
             f.write(gff_text)
 
     return gff_text
+
+
+if __name__ == '__main__':
+
+    from os.path import join as opj
+    from os.path import basename
+    from os.path import splitext
+
+    base_path = opj('tests', 'data', 'inter_pro_scan_result_samples')
+    json_path = opj(base_path, 'sample_02.json')
+    raw_fa_path = opj(base_path, 'sample_02_transcripts_nt.fasta')
+    gff_path = opj(base_path, splitext(basename(raw_fa_path))[0] + '.gff')
+    gff_from_kakapo_ips5_json_file(json_path, gff_path)

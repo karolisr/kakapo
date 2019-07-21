@@ -154,8 +154,8 @@ def config_file_parse(file_path, taxonomy):  # noqa
     pfam_temp = [x[0] for x in pfam_temp]
     pfam_acc = _parse_pfam(pfam_entries=pfam_temp, config_file_path=file_path)
 
-    # Query NCBI protein and/or UniProt accessions
-    prot_acc = cfg.items('Query NCBI protein and/or UniProt accessions')
+    # Query NCBI protein accessions
+    prot_acc = cfg.items('Query NCBI protein accessions')
     prot_acc = [x[0] for x in prot_acc]
 
     # Query FASTA files (Amino Acid)

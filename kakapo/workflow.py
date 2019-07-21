@@ -949,7 +949,8 @@ def run_tblastn_on_assemblies(assemblies, aa_queries_file, tblastn,
     print()
 
 
-def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt):  # noqa
+def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt,
+                        only_atg_as_start_codon):  # noqa
 
     if len(assemblies) > 0:
         print('Analyzing BLAST hits for assemblies:\n')
@@ -978,6 +979,8 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt):  # noqa
         transcripts_nt_orf = []
         transcripts_aa_orf = []
 
+        a['annotations'] = {}
+
         with open(a_path, 'r') as f:
             __ = f.read()
 
@@ -993,7 +996,11 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt):  # noqa
             hit_end = hit['end']
             hit_frame = hit['frame']
 
-            start_codons = gc_tt['start_codons']
+            if only_atg_as_start_codon is True:
+                start_codons = ['ATG']
+            else:
+                start_codons = gc_tt['start_codons']
+
             stop_codons = gc_tt['stop_codons']
 
             orf = find_orf_for_blast_hit(
@@ -1008,24 +1015,29 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt):  # noqa
 
             if orf is not None:
 
-                ann_orf_f = str(abs(hit_frame))
-
                 if hit_frame > 0:
                     orf_seq = target_seq[orf[0]:orf[1]]
-                    ann_orf_b = str(orf[0])
-                    ann_orf_e = str(orf[1])
+                    ann_orf_b = orf[0]
+                    ann_orf_e = orf[1]
+                    ann_hit_b = hit_start
+                    ann_hit_e = hit_end
                 else:
                     orf_seq = reverse_complement(target_seq[orf[0]:orf[1]])
                     target_seq = reverse_complement(target_seq)
-                    ann_orf_b = str(len(target_seq) - orf[1])
-                    ann_orf_e = str(len(target_seq) - orf[0])
+                    ann_orf_b = len(target_seq) - orf[1]
+                    ann_orf_e = len(target_seq) - orf[0]
+                    ann_hit_b = hit_end
+                    ann_hit_e = hit_start
                     target_name = target_name + '__revcomp'
 
-                target_name = (assmbl_name + '__' + target_name +
-                               '__ORF:' +
-                               ann_orf_b + ':' +
-                               ann_orf_e + ':' +
-                               ann_orf_f)
+                target_name = assmbl_name + '__' + target_name
+
+                a['annotations'][target_name] = {}
+                a['annotations'][target_name]['orf_begin'] = ann_orf_b
+                a['annotations'][target_name]['orf_end'] = ann_orf_e
+                a['annotations'][target_name]['orf_frame'] = abs(hit_frame)
+                a['annotations'][target_name]['blast_hit_begin'] = ann_hit_b
+                a['annotations'][target_name]['blast_hit_end'] = ann_hit_e
 
                 transcripts_nt_orf.append({'name': target_name,
                                            'seq': orf_seq})
@@ -1119,6 +1131,9 @@ def run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj):  # noqa
             ips_json[0]['xref'][0]['id'] = job
             ips_json[0]['xref'][0]['name'] = job
 
+            # kakapo annotations
+            ips_json[0]['kakapo_annotations'] = a['annotations'][job]
+
             all_ips_results[job] = ips_json
 
             # Edit / Rename GFF files ########################################
@@ -1157,9 +1172,10 @@ def gff_from_json(assemblies, dir_prj_ips):  # noqa
             continue
 
         assmbl_name = a['name']
+        transcripts_nt_path = a['transcripts_nt_fasta_file']
 
         json_path = opj(dir_prj_ips, assmbl_name + '.json')
-        gff_path = a['transcripts_nt_fasta_file'].replace('.fasta', '.gff')
+        gff_path = transcripts_nt_path.replace('.fasta', '.gff')
 
         if ope(json_path):
             print('\t\t' + assmbl_name)
