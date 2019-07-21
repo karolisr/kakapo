@@ -50,10 +50,10 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
 
     # -- ToDo: Lock cache files in case of parallel execution ------------
 
-    dir_temp = opj(dir_out, '00-b-temp')
+    dir_temp = opj(dir_out, '00-temp')
     make_dir(dir_temp)
 
-    dir_cache = opj(dir_out, '00-a-cache')
+    dir_cache = opj(dir_out, '00-cache')
     make_dir(dir_cache)
 
     dir_cache_pfam_acc = opj(dir_cache, 'pfam-uniprot-accessions')
@@ -1004,12 +1004,25 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt):  # noqa
                 include_terminal_codon=True)
 
             if orf is not None:
+
+                ann_orf_f = str(abs(hit_frame))
+
                 if hit_frame > 0:
                     orf_seq = target_seq[orf[0]:orf[1]]
+                    ann_orf_b = str(orf[0])
+                    ann_orf_e = str(orf[1])
                 else:
                     orf_seq = reverse_complement(target_seq[orf[0]:orf[1]])
                     target_seq = reverse_complement(target_seq)
-                    target_name = target_name + '_revcomp'
+                    ann_orf_b = str(len(target_seq) - orf[1])
+                    ann_orf_e = str(len(target_seq) - orf[0])
+                    target_name = target_name + '__revcomp'
+
+                target_name = (assmbl_name + '__' + target_name +
+                               '__ORF:' +
+                               ann_orf_b + ':' +
+                               ann_orf_e + ':' +
+                               ann_orf_f)
 
                 transcripts_nt_orf.append({'name': target_name,
                                            'seq': orf_seq})
@@ -1070,7 +1083,7 @@ def run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj):  # noqa
                   ' have already been downloaded.')
             continue
 
-        print(assmbl_name)
+        # print(assmbl_name)
 
         seqs = read_fasta_file_dict(aa_file)
 

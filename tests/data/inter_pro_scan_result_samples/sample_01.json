@@ -1,70 +1,7 @@
 {
-    "NODE_1_length_983_cov_12.827815_g0_i0_revcomp": [
+    "Camellia_nitidissima_147926_SRR5829581__NODE_1_length_983_cov_12.827815_g0_i0__revcomp__ORF:60:891:1": [
         {
             "matches": [
-                {
-                    "evalue": 5.1e-48,
-                    "locations": [
-                        {
-                            "end": 229,
-                            "envelopeEnd": 229,
-                            "envelopeStart": 42,
-                            "evalue": 6.1e-48,
-                            "hmmBounds": "COMPLETE",
-                            "hmmEnd": 182,
-                            "hmmLength": 182,
-                            "hmmStart": 1,
-                            "location-fragments": [
-                                {
-                                    "dc-status": "CONTINUOUS",
-                                    "end": 229,
-                                    "start": 42
-                                }
-                            ],
-                            "postProcessed": true,
-                            "score": 163.5,
-                            "start": 42
-                        }
-                    ],
-                    "model-ac": "PF00445",
-                    "score": 163.7,
-                    "signature": {
-                        "accession": "PF00445",
-                        "description": "Ribonuclease T2 family",
-                        "entry": {
-                            "accession": "IPR001568",
-                            "description": "Ribonuclease T2-like",
-                            "goXRefs": [
-                                {
-                                    "category": "MOLECULAR_FUNCTION",
-                                    "databaseName": "GO",
-                                    "id": "GO:0003723",
-                                    "name": "RNA binding"
-                                },
-                                {
-                                    "category": "MOLECULAR_FUNCTION",
-                                    "databaseName": "GO",
-                                    "id": "GO:0033897",
-                                    "name": "ribonuclease T2 activity"
-                                }
-                            ],
-                            "name": "RNase_T2-like",
-                            "pathwayXRefs": [
-                                {
-                                    "databaseName": "Reactome",
-                                    "id": "R-HSA-6798695",
-                                    "name": "Neutrophil degranulation"
-                                }
-                            ],
-                            "type": "FAMILY"
-                        },
-                        "name": "Ribonuclease_T2",
-                        "signatureLibraryRelease": {
-                            "library": "PFAM",
-                            "version": "32.0"
-                        }
-                    }
-                },
                 {
                     "evalue": 1.1e-86,
                     "locations": [
@@ -129,6 +66,69 @@
                     }
                 },
                 {
+                    "evalue": 5.1e-48,
+                    "locations": [
+                        {
+                            "end": 229,
+                            "envelopeEnd": 229,
+                            "envelopeStart": 42,
+                            "evalue": 6.1e-48,
+                            "hmmBounds": "COMPLETE",
+                            "hmmEnd": 182,
+                            "hmmLength": 182,
+                            "hmmStart": 1,
+                            "location-fragments": [
+                                {
+                                    "dc-status": "CONTINUOUS",
+                                    "end": 229,
+                                    "start": 42
+                                }
+                            ],
+                            "postProcessed": true,
+                            "score": 163.5,
+                            "start": 42
+                        }
+                    ],
+                    "model-ac": "PF00445",
+                    "score": 163.7,
+                    "signature": {
+                        "accession": "PF00445",
+                        "description": "Ribonuclease T2 family",
+                        "entry": {
+                            "accession": "IPR001568",
+                            "description": "Ribonuclease T2-like",
+                            "goXRefs": [
+                                {
+                                    "category": "MOLECULAR_FUNCTION",
+                                    "databaseName": "GO",
+                                    "id": "GO:0033897",
+                                    "name": "ribonuclease T2 activity"
+                                },
+                                {
+                                    "category": "MOLECULAR_FUNCTION",
+                                    "databaseName": "GO",
+                                    "id": "GO:0003723",
+                                    "name": "RNA binding"
+                                }
+                            ],
+                            "name": "RNase_T2-like",
+                            "pathwayXRefs": [
+                                {
+                                    "databaseName": "Reactome",
+                                    "id": "R-HSA-6798695",
+                                    "name": "Neutrophil degranulation"
+                                }
+                            ],
+                            "type": "FAMILY"
+                        },
+                        "name": "Ribonuclease_T2",
+                        "signatureLibraryRelease": {
+                            "library": "PFAM",
+                            "version": "32.0"
+                        }
+                    }
+                },
+                {
                     "evalue": 9.4e-124,
                     "familyName": "RIBONUCLEASE 2",
                     "locations": [
@@ -162,14 +162,14 @@
                                 {
                                     "category": "MOLECULAR_FUNCTION",
                                     "databaseName": "GO",
-                                    "id": "GO:0003723",
-                                    "name": "RNA binding"
+                                    "id": "GO:0033897",
+                                    "name": "ribonuclease T2 activity"
                                 },
                                 {
                                     "category": "MOLECULAR_FUNCTION",
                                     "databaseName": "GO",
-                                    "id": "GO:0033897",
-                                    "name": "ribonuclease T2 activity"
+                                    "id": "GO:0003723",
+                                    "name": "RNA binding"
                                 }
                             ],
                             "name": "RNase_T2-like",
@@ -556,6 +556,32 @@
                     }
                 },
                 {
+                    "locations": [
+                        {
+                            "end": 11,
+                            "location-fragments": [
+                                {
+                                    "dc-status": "CONTINUOUS",
+                                    "end": 11,
+                                    "start": 1
+                                }
+                            ],
+                            "start": 1
+                        }
+                    ],
+                    "model-ac": "NON_CYTOPLASMIC_DOMAIN",
+                    "signature": {
+                        "accession": "NON_CYTOPLASMIC_DOMAIN",
+                        "description": "Region of a membrane-bound protein predicted to be outside the membrane, in the extracellular region.",
+                        "entry": null,
+                        "name": "Non cytoplasmic domain",
+                        "signatureLibraryRelease": {
+                            "library": "PHOBIUS",
+                            "version": "1.01"
+                        }
+                    }
+                },
+                {
                     "evalue": 6.15e-64,
                     "locations": [
                         {
@@ -612,32 +638,6 @@
                 {
                     "locations": [
                         {
-                            "end": 11,
-                            "location-fragments": [
-                                {
-                                    "dc-status": "CONTINUOUS",
-                                    "end": 11,
-                                    "start": 1
-                                }
-                            ],
-                            "start": 1
-                        }
-                    ],
-                    "model-ac": "NON_CYTOPLASMIC_DOMAIN",
-                    "signature": {
-                        "accession": "NON_CYTOPLASMIC_DOMAIN",
-                        "description": "Region of a membrane-bound protein predicted to be outside the membrane, in the extracellular region.",
-                        "entry": null,
-                        "name": "Non cytoplasmic domain",
-                        "signatureLibraryRelease": {
-                            "library": "PHOBIUS",
-                            "version": "1.01"
-                        }
-                    }
-                },
-                {
-                    "locations": [
-                        {
                             "end": 32,
                             "location-fragments": [
                                 {
@@ -668,13 +668,13 @@
             "sequence": "MASLLTQPILLYLQILGLLIASVCVPVFSGGGVVEAREQREFDYFVLALQWPGTFCRRTHHCCSSNGCCRGSNSPTEFTIHGLWSNYNDGTWPACCTGSNFDIKEISTLLDALEKYWPSLSCGSSSTCHGGKGLFWAHEWEKHGTCSSPVIRDEYNYFLTTLNIYFKYNVTNVLNEAGYVPSNSEKYPLGGIISAIENAFHATPLVVCSDGAVEELRLCFYKDFKPRDCVIGFTSQDDIISSKSSCPKYVSLPAFASVGLENGGAAFSWLPQHEAL",
             "xref": [
                 {
-                    "id": "NODE_1_length_983_cov_12.827815_g0_i0_revcomp",
-                    "name": "NODE_1_length_983_cov_12.827815_g0_i0_revcomp"
+                    "id": "Camellia_nitidissima_147926_SRR5829581__NODE_1_length_983_cov_12.827815_g0_i0__revcomp__ORF:60:891:1",
+                    "name": "Camellia_nitidissima_147926_SRR5829581__NODE_1_length_983_cov_12.827815_g0_i0__revcomp__ORF:60:891:1"
                 }
             ]
         }
     ],
-    "NODE_2_length_877_cov_6.966250_g1_i0": [
+    "Camellia_nitidissima_147926_SRR5829581__NODE_2_length_877_cov_6.966250_g1_i0__ORF:141:858:1": [
         {
             "matches": [
                 {
@@ -799,41 +799,6 @@
                     }
                 },
                 {
-                    "evalue": 1.9e-128,
-                    "familyName": "",
-                    "locations": [
-                        {
-                            "end": 237,
-                            "envelopeEnd": 238,
-                            "envelopeStart": 1,
-                            "hmmBounds": "INCOMPLETE",
-                            "hmmEnd": 237,
-                            "hmmLength": 238,
-                            "hmmStart": 5,
-                            "location-fragments": [
-                                {
-                                    "dc-status": "CONTINUOUS",
-                                    "end": 237,
-                                    "start": 5
-                                }
-                            ],
-                            "start": 5
-                        }
-                    ],
-                    "model-ac": "PTHR10509",
-                    "score": 429.0,
-                    "signature": {
-                        "accession": "PTHR10509",
-                        "description": null,
-                        "entry": null,
-                        "name": "O-METHYLTRANSFERASE-RELATED",
-                        "signatureLibraryRelease": {
-                            "library": "PANTHER",
-                            "version": "14.1"
-                        }
-                    }
-                },
-                {
                     "evalue": 2.9e-81,
                     "locations": [
                         {
@@ -867,6 +832,41 @@
                         "signatureLibraryRelease": {
                             "library": "GENE3D",
                             "version": "4.2.0"
+                        }
+                    }
+                },
+                {
+                    "evalue": 1.9e-128,
+                    "familyName": "",
+                    "locations": [
+                        {
+                            "end": 237,
+                            "envelopeEnd": 238,
+                            "envelopeStart": 1,
+                            "hmmBounds": "INCOMPLETE",
+                            "hmmEnd": 237,
+                            "hmmLength": 238,
+                            "hmmStart": 5,
+                            "location-fragments": [
+                                {
+                                    "dc-status": "CONTINUOUS",
+                                    "end": 237,
+                                    "start": 5
+                                }
+                            ],
+                            "start": 5
+                        }
+                    ],
+                    "model-ac": "PTHR10509",
+                    "score": 429.0,
+                    "signature": {
+                        "accession": "PTHR10509",
+                        "description": null,
+                        "entry": null,
+                        "name": "O-METHYLTRANSFERASE-RELATED",
+                        "signatureLibraryRelease": {
+                            "library": "PANTHER",
+                            "version": "14.1"
                         }
                     }
                 },
@@ -1018,13 +1018,13 @@
             "sequence": "MEQTTKKVTSPTKGLLQSDELYQYILETSVYPREPELLKELREVTASHPRSMMGTAPDAGQLMAMLLKLVNAKNTIEIGVFTGYSLLLTALSIPDDGKIIAIDLNQETYEIGLPVIRKAGVEHKINFIVSEALPVLDKLLENDENEGSFDFAFVDADKVNYLNYHERLMKLVKVGGIVVYDNTLWGGSVAMPEESVPEGMKHGRHFTIELNKSLASDPRILMSHAPLGDGITICKRIQ",
             "xref": [
                 {
-                    "id": "NODE_2_length_877_cov_6.966250_g1_i0",
-                    "name": "NODE_2_length_877_cov_6.966250_g1_i0"
+                    "id": "Camellia_nitidissima_147926_SRR5829581__NODE_2_length_877_cov_6.966250_g1_i0__ORF:141:858:1",
+                    "name": "Camellia_nitidissima_147926_SRR5829581__NODE_2_length_877_cov_6.966250_g1_i0__ORF:141:858:1"
                 }
             ]
         }
     ],
-    "NODE_3_length_846_cov_3.560468_g2_i0": [
+    "Camellia_nitidissima_147926_SRR5829581__NODE_3_length_846_cov_3.560468_g2_i0__ORF:6:807:1": [
         {
             "matches": [
                 {
@@ -1063,14 +1063,14 @@
                                 {
                                     "category": "MOLECULAR_FUNCTION",
                                     "databaseName": "GO",
-                                    "id": "GO:0033897",
-                                    "name": "ribonuclease T2 activity"
+                                    "id": "GO:0003723",
+                                    "name": "RNA binding"
                                 },
                                 {
                                     "category": "MOLECULAR_FUNCTION",
                                     "databaseName": "GO",
-                                    "id": "GO:0003723",
-                                    "name": "RNA binding"
+                                    "id": "GO:0033897",
+                                    "name": "ribonuclease T2 activity"
                                 }
                             ],
                             "name": "RNase_T2-like_sf",
@@ -1130,6 +1130,32 @@
                             ],
                             "score": 204.103,
                             "sites": [
+                                {
+                                    "description": "B2 nucleotide binding pocket",
+                                    "numLocations": 4,
+                                    "siteLocations": [
+                                        {
+                                            "end": 129,
+                                            "residue": "F",
+                                            "start": 129
+                                        },
+                                        {
+                                            "end": 209,
+                                            "residue": "E",
+                                            "start": 209
+                                        },
+                                        {
+                                            "end": 43,
+                                            "residue": "Q",
+                                            "start": 43
+                                        },
+                                        {
+                                            "end": 48,
+                                            "residue": "V",
+                                            "start": 48
+                                        }
+                                    ]
+                                },
                                 {
                                     "description": "CAS motifs",
                                     "numLocations": 20,
@@ -1237,32 +1263,6 @@
                                     ]
                                 },
                                 {
-                                    "description": "B2 nucleotide binding pocket",
-                                    "numLocations": 4,
-                                    "siteLocations": [
-                                        {
-                                            "end": 129,
-                                            "residue": "F",
-                                            "start": 129
-                                        },
-                                        {
-                                            "end": 209,
-                                            "residue": "E",
-                                            "start": 209
-                                        },
-                                        {
-                                            "end": 43,
-                                            "residue": "Q",
-                                            "start": 43
-                                        },
-                                        {
-                                            "end": 48,
-                                            "residue": "V",
-                                            "start": 48
-                                        }
-                                    ]
-                                },
-                                {
                                     "description": "Active site",
                                     "numLocations": 7,
                                     "siteLocations": [
@@ -1354,32 +1354,6 @@
                     }
                 },
                 {
-                    "locations": [
-                        {
-                            "end": 266,
-                            "location-fragments": [
-                                {
-                                    "dc-status": "CONTINUOUS",
-                                    "end": 266,
-                                    "start": 25
-                                }
-                            ],
-                            "start": 25
-                        }
-                    ],
-                    "model-ac": "NON_CYTOPLASMIC_DOMAIN",
-                    "signature": {
-                        "accession": "NON_CYTOPLASMIC_DOMAIN",
-                        "description": "Region of a membrane-bound protein predicted to be outside the membrane, in the extracellular region.",
-                        "entry": null,
-                        "name": "Non cytoplasmic domain",
-                        "signatureLibraryRelease": {
-                            "library": "PHOBIUS",
-                            "version": "1.01"
-                        }
-                    }
-                },
-                {
                     "evalue": 2.3e-120,
                     "familyName": "RIBONUCLEASE 2",
                     "locations": [
@@ -1411,6 +1385,141 @@
                         "signatureLibraryRelease": {
                             "library": "PANTHER",
                             "version": "14.1"
+                        }
+                    }
+                },
+                {
+                    "locations": [
+                        {
+                            "end": 266,
+                            "location-fragments": [
+                                {
+                                    "dc-status": "CONTINUOUS",
+                                    "end": 266,
+                                    "start": 25
+                                }
+                            ],
+                            "start": 25
+                        }
+                    ],
+                    "model-ac": "NON_CYTOPLASMIC_DOMAIN",
+                    "signature": {
+                        "accession": "NON_CYTOPLASMIC_DOMAIN",
+                        "description": "Region of a membrane-bound protein predicted to be outside the membrane, in the extracellular region.",
+                        "entry": null,
+                        "name": "Non cytoplasmic domain",
+                        "signatureLibraryRelease": {
+                            "library": "PHOBIUS",
+                            "version": "1.01"
+                        }
+                    }
+                },
+                {
+                    "locations": [
+                        {
+                            "end": 24,
+                            "location-fragments": [
+                                {
+                                    "dc-status": "CONTINUOUS",
+                                    "end": 24,
+                                    "start": 1
+                                }
+                            ],
+                            "start": 1
+                        }
+                    ],
+                    "model-ac": "SIGNAL_PEPTIDE",
+                    "signature": {
+                        "accession": "SIGNAL_PEPTIDE",
+                        "description": "Signal peptide region",
+                        "entry": null,
+                        "name": "Signal Peptide",
+                        "signatureLibraryRelease": {
+                            "library": "PHOBIUS",
+                            "version": "1.01"
+                        }
+                    }
+                },
+                {
+                    "locations": [
+                        {
+                            "alignment": "FtIHGLWP",
+                            "cigarAlignment": "1M1I6M",
+                            "end": 79,
+                            "level": "STRONG",
+                            "location-fragments": [
+                                {
+                                    "dc-status": "CONTINUOUS",
+                                    "end": 79,
+                                    "start": 72
+                                }
+                            ],
+                            "start": 72
+                        }
+                    ],
+                    "model-ac": "PS00530",
+                    "signature": {
+                        "accession": "PS00530",
+                        "description": "Ribonuclease T2 family histidine active site 1.",
+                        "entry": {
+                            "accession": "IPR018188",
+                            "description": "Ribonuclease T2, His active site 1",
+                            "goXRefs": [
+                                {
+                                    "category": "MOLECULAR_FUNCTION",
+                                    "databaseName": "GO",
+                                    "id": "GO:0003723",
+                                    "name": "RNA binding"
+                                },
+                                {
+                                    "category": "MOLECULAR_FUNCTION",
+                                    "databaseName": "GO",
+                                    "id": "GO:0033897",
+                                    "name": "ribonuclease T2 activity"
+                                }
+                            ],
+                            "name": "RNase_T2_His_AS_1",
+                            "pathwayXRefs": [
+                                {
+                                    "databaseName": "Reactome",
+                                    "id": "R-HSA-6798695",
+                                    "name": "Neutrophil degranulation"
+                                }
+                            ],
+                            "type": "ACTIVE_SITE"
+                        },
+                        "name": "RNASE_T2_1",
+                        "signatureLibraryRelease": {
+                            "library": "PROSITE_PATTERNS",
+                            "version": "2019_01"
+                        }
+                    }
+                },
+                {
+                    "locations": [
+                        {
+                            "end": 24,
+                            "location-fragments": [
+                                {
+                                    "dc-status": "CONTINUOUS",
+                                    "end": 24,
+                                    "start": 1
+                                }
+                            ],
+                            "score": 0.847,
+                            "start": 1
+                        }
+                    ],
+                    "model-ac": "SignalP-noTM",
+                    "orgType": "EUK",
+                    "signature": {
+                        "accession": "SignalP-noTM",
+                        "description": null,
+                        "entry": null,
+                        "name": "SignalP-noTM",
+                        "signatureLibraryRelease": {
+                            "library": "SIGNALP_EUK",
+                            "version": "4.1"
                         }
                     }
                 },
@@ -1453,60 +1562,6 @@
                         "signatureLibraryRelease": {
                             "library": "PROSITE_PATTERNS",
                             "version": "2019_01"
-                        }
-                    }
-                },
-                {
-                    "locations": [
-                        {
-                            "end": 24,
-                            "location-fragments": [
-                                {
-                                    "dc-status": "CONTINUOUS",
-                                    "end": 24,
-                                    "start": 1
-                                }
-                            ],
-                            "start": 1
-                        }
-                    ],
-                    "model-ac": "SIGNAL_PEPTIDE",
-                    "signature": {
-                        "accession": "SIGNAL_PEPTIDE",
-                        "description": "Signal peptide region",
-                        "entry": null,
-                        "name": "Signal Peptide",
-                        "signatureLibraryRelease": {
-                            "library": "PHOBIUS",
-                            "version": "1.01"
-                        }
-                    }
-                },
-                {
-                    "locations": [
-                        {
-                            "end": 24,
-                            "location-fragments": [
-                                {
-                                    "dc-status": "CONTINUOUS",
-                                    "end": 24,
-                                    "start": 1
-                                }
-                            ],
-                            "score": 0.847,
-                            "start": 1
-                        }
-                    ],
-                    "model-ac": "SignalP-noTM",
-                    "orgType": "EUK",
-                    "signature": {
-                        "accession": "SignalP-noTM",
-                        "description": null,
-                        "entry": null,
-                        "name": "SignalP-noTM",
-                        "signatureLibraryRelease": {
-                            "library": "SIGNALP_EUK",
-                            "version": "4.1"
                         }
                     }
                 },
@@ -1568,61 +1623,6 @@
                         "signatureLibraryRelease": {
                             "library": "PANTHER",
                             "version": "14.1"
-                        }
-                    }
-                },
-                {
-                    "locations": [
-                        {
-                            "alignment": "FtIHGLWP",
-                            "cigarAlignment": "1M1I6M",
-                            "end": 79,
-                            "level": "STRONG",
-                            "location-fragments": [
-                                {
-                                    "dc-status": "CONTINUOUS",
-                                    "end": 79,
-                                    "start": 72
-                                }
-                            ],
-                            "start": 72
-                        }
-                    ],
-                    "model-ac": "PS00530",
-                    "signature": {
-                        "accession": "PS00530",
-                        "description": "Ribonuclease T2 family histidine active site 1.",
-                        "entry": {
-                            "accession": "IPR018188",
-                            "description": "Ribonuclease T2, His active site 1",
-                            "goXRefs": [
-                                {
-                                    "category": "MOLECULAR_FUNCTION",
-                                    "databaseName": "GO",
-                                    "id": "GO:0033897",
-                                    "name": "ribonuclease T2 activity"
-                                },
-                                {
-                                    "category": "MOLECULAR_FUNCTION",
-                                    "databaseName": "GO",
-                                    "id": "GO:0003723",
-                                    "name": "RNA binding"
-                                }
-                            ],
-                            "name": "RNase_T2_His_AS_1",
-                            "pathwayXRefs": [
-                                {
-                                    "databaseName": "Reactome",
-                                    "id": "R-HSA-6798695",
-                                    "name": "Neutrophil degranulation"
-                                }
-                            ],
-                            "type": "ACTIVE_SITE"
-                        },
-                        "name": "RNASE_T2_1",
-                        "signatureLibraryRelease": {
-                            "library": "PROSITE_PATTERNS",
-                            "version": "2019_01"
                         }
                     }
                 },
@@ -1770,14 +1770,14 @@
                                 {
                                     "category": "MOLECULAR_FUNCTION",
                                     "databaseName": "GO",
-                                    "id": "GO:0033897",
-                                    "name": "ribonuclease T2 activity"
+                                    "id": "GO:0003723",
+                                    "name": "RNA binding"
                                 },
                                 {
                                     "category": "MOLECULAR_FUNCTION",
                                     "databaseName": "GO",
-                                    "id": "GO:0003723",
-                                    "name": "RNA binding"
+                                    "id": "GO:0033897",
+                                    "name": "ribonuclease T2 activity"
                                 }
                             ],
                             "name": "RNase_T2-like_sf",
@@ -1828,13 +1828,13 @@
             "sequence": "MASLPTQVILSLQILVLLIAYISGGVVEARKQREFDYFALALQWPGTVCQRSTSHCCSSNACCRGSNAPIAFTIHGLWPDYNDGTWPSCCTRSNFDIKEISTLLSALETYWPSLSCSLASTCHGGKGLFWAHEWEKHGTCSFPVIRDEYDYFLTTLNVYFKYNVTKVLNEAGYIPSNSEKYPLGGIITAIQNAFHATPLLVCSNGAVEELRLCFYKDFKPRDCVIGSDMLSSKSSCPKYVSLPTFVSLGLENGEDAFLSLPQNEAL",
             "xref": [
                 {
-                    "id": "NODE_3_length_846_cov_3.560468_g2_i0",
-                    "name": "NODE_3_length_846_cov_3.560468_g2_i0"
+                    "id": "Camellia_nitidissima_147926_SRR5829581__NODE_3_length_846_cov_3.560468_g2_i0__ORF:6:807:1",
+                    "name": "Camellia_nitidissima_147926_SRR5829581__NODE_3_length_846_cov_3.560468_g2_i0__ORF:6:807:1"
                 }
             ]
         }
     ],
-    "NODE_4_length_821_cov_3.129032_g3_i0": [
+    "Camellia_nitidissima_147926_SRR5829581__NODE_4_length_821_cov_3.129032_g3_i0__ORF:125:821:3": [
         {
             "matches": [
                 {
@@ -2178,8 +2178,8 @@
             "sequence": "MADNIVLKTILKSEALQKYIFDTNAYPREHEQLKRIRDATFKKYGDRAELSVPPDEGLFLSMLLKLMNAKKTLEIGVFTGYSLLTTALALPHDGQIVAIDPNREAFEVGLPFIQKAGVEHKINFIESDAISILNEMLSDEGKLKMEFDFVFVDADKPNYINYHEQAIKLVKVGGVIAYDNTLWYGSVVSNEEEVPERLRTGQKPIIELNKYLASDPRIEIAQISIGDGVTLC",
             "xref": [
                 {
-                    "id": "NODE_4_length_821_cov_3.129032_g3_i0",
-                    "name": "NODE_4_length_821_cov_3.129032_g3_i0"
+                    "id": "Camellia_nitidissima_147926_SRR5829581__NODE_4_length_821_cov_3.129032_g3_i0__ORF:125:821:3",
+                    "name": "Camellia_nitidissima_147926_SRR5829581__NODE_4_length_821_cov_3.129032_g3_i0__ORF:125:821:3"
                 }
             ]
         }
