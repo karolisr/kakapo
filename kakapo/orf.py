@@ -78,7 +78,8 @@ def find_start_codons(seq, start_codons):
     return idx_start_nt
 
 
-def find_orfs(seq, frame, min_len, stop_codons, start_codons=None):  # noqa
+def find_orfs(seq, frame, min_len, stop_codons, start_codons=None,
+              include_terminal_codon=True):  # noqa
     assert frame > -4 and frame != 0 and frame < 4
     assert start_codons is None or type(start_codons) in (list, tuple, set)
 
@@ -98,15 +99,33 @@ def find_orfs(seq, frame, min_len, stop_codons, start_codons=None):  # noqa
                 # Effectively this returns the longest ORF for the zone
                 zone[0] = zone[0] + idx_start_nt[0]
 
+    # Include stop codon?
+    if include_terminal_codon is True:
+        zones_with_terminal_codon = []
+        for zone in zones:
+            beg = zone[0]
+            end = zone[1]
+            end_with_term = end + 3
+            if len(seq) >= end_with_term:
+                end = end_with_term
+            zones_with_terminal_codon.append([beg, end])
+
+        zones = zones_with_terminal_codon
+
     if frame < 0:
         zones = [[len(seq) - x[1], len(seq) - x[0]] for x in zones]
 
     return zones
 
 
-def find_longest_orf(seq, frame, min_len, stop_codons, start_codons=None):  # noqa
+def find_longest_orf(seq, frame, min_len, stop_codons, start_codons=None,
+                     include_terminal_codon=True):  # noqa
 
-    orfs = find_orfs(seq, frame, min_len, stop_codons, start_codons)
+    orfs = find_orfs(seq, frame, min_len, stop_codons, start_codons,
+                     include_terminal_codon)
+
+    if len(orfs) == 0:
+        return None
 
     lengths = [x[1] - x[0] for x in orfs]
     max_len = max(lengths)
@@ -116,14 +135,15 @@ def find_longest_orf(seq, frame, min_len, stop_codons, start_codons=None):  # no
     return longest_orf
 
 
-def find_orf_for_blast_hit(seq, frame, hit_start, hit_end, stop_codons,
-                           start_codons=None):  # noqa
+def find_orf_for_blast_hit(seq, frame, hit_start, hit_end, hit_reduce,
+                           stop_codons, start_codons=None,
+                           include_terminal_codon=True):  # noqa
 
     # If BLAST hit start occurs before the first start codon and the ORF
     # without start codon starts before the BLAST hit, return the ORF without
     # start codon.
 
-    min_len = hit_end - hit_start
+    min_len = hit_end - hit_start - int(hit_reduce)
 
     if start_codons is None:
         sc_to_consider = [None]
@@ -132,20 +152,28 @@ def find_orf_for_blast_hit(seq, frame, hit_start, hit_end, stop_codons,
         sc_to_consider = [['ATG'], start_codons, None]
 
     for sc in sc_to_consider:
-        orf = find_longest_orf(seq, frame, min_len, stop_codons, sc)
+        orf = find_longest_orf(seq, frame, min_len, stop_codons, sc,
+                               include_terminal_codon=include_terminal_codon)
+
+        if orf is None:
+            continue
 
         orf_start = orf[0]
         orf_end = orf[1]
 
-        if orf_start <= hit_start and orf_end >= hit_end:
+        adj = int(hit_reduce / 2)
+
+        if orf_start <= (hit_start + adj) and orf_end >= (hit_end - adj):
             break
 
-    seq_orf = seq[orf_start:orf_end]
+    if orf is None:
+        return None
 
-    print(orf)
-    if frame < 0:
-        print(reverse_complement(seq_orf))
-    else:
-        print(seq_orf)
+    # seq_orf = seq[orf_start:orf_end]
+    # print(orf)
+    # if frame < 0:
+    #     print(reverse_complement(seq_orf))
+    # else:
+    #     print(seq_orf)
 
     return orf

@@ -6,6 +6,7 @@
 import pickle
 import re
 
+from collections import OrderedDict
 from shutil import copyfile
 
 from os import remove as osremove
@@ -18,11 +19,15 @@ from os.path import splitext
 from kakapo.bioio import dnld_ncbi_seqs
 from kakapo.bioio import entrez_summary
 from kakapo.bioio import filter_fasta_text_by_length
+from kakapo.bioio import parse_fasta_text
 from kakapo.bioio import read_fasta_file
 from kakapo.bioio import sra_info
 from kakapo.bioio import standardize_fasta_text
 from kakapo.bioio import write_fasta_file
-from kakapo.blast import make_blast_db, run_blast, BLST_RES_COLS_1
+from kakapo.blast import BLST_RES_COLS_1, BLST_RES_COLS_2
+from kakapo.blast import collate_blast_results
+from kakapo.blast import make_blast_db, run_blast
+from kakapo.blast import parse_blast_results_file
 from kakapo.config import PICKLE_PROTOCOL
 from kakapo.ebi_domain_search import pfam_entry
 from kakapo.ebi_domain_search import pfam_seqs
@@ -31,6 +36,8 @@ from kakapo.ebi_proteins import fasta_by_accession_list
 from kakapo.helpers import combine_text_files
 from kakapo.helpers import keep_unique_lines_in_file
 from kakapo.helpers import make_dir
+from kakapo.orf import find_orf_for_blast_hit
+from kakapo.seq import reverse_complement, translate
 from kakapo.seqtk import seqtk_fq_to_fa, seqtk_extract_reads
 from kakapo.shell import call
 from kakapo.spades import run_spades_se, run_spades_pe
@@ -62,6 +69,22 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
     dir_prj_queries = opj(dir_prj, '01-queries')
     make_dir(dir_prj_queries)
 
+    dir_prj_blast_results_fa_trim = opj(dir_prj, '02-trimmed-fa-blast-results')
+    make_dir(dir_prj_blast_results_fa_trim)
+
+    dir_prj_vsearch_results_fa_trim = opj(dir_prj,
+                                          '03-trimmed-fa-vsearch-results')
+    make_dir(dir_prj_vsearch_results_fa_trim)
+
+    dir_prj_spades_assemblies = opj(dir_prj, '04-spades-assemblies')
+    make_dir(dir_prj_spades_assemblies)
+
+    dir_prj_assmbl_blast_results = opj(dir_prj, '05-assembly-blast-results')
+    make_dir(dir_prj_assmbl_blast_results)
+
+    dir_prj_transcripts = opj(dir_prj, '06-transcripts')
+    make_dir(dir_prj_transcripts)
+
     dir_fq_data = opj(dir_out, '11-sra-fq-data')
     make_dir(dir_fq_data)
 
@@ -74,14 +97,8 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
     dir_blast_fa_trim = opj(dir_out, '14-trimmed-fa-blast-db-data')
     make_dir(dir_blast_fa_trim)
 
-    dir_blast_results_fa_trim = opj(dir_out, '15-trimmed-fa-blast-results')
-    make_dir(dir_blast_results_fa_trim)
-
-    dir_vsearch_results_fa_trim = opj(dir_out, '16-trimmed-fa-vsearch-results')
-    make_dir(dir_vsearch_results_fa_trim)
-
-    dir_spades_assemblies = opj(dir_out, '17-spades-assemblies')
-    make_dir(dir_spades_assemblies)
+    dir_blast_assmbl = opj(dir_out, '31-assemblies-blast-db-data')
+    make_dir(dir_blast_assmbl)
 
     ret_dict = {'dir_temp': dir_temp,
                 'dir_cache': dir_cache,
@@ -94,9 +111,13 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
                 'dir_fq_trim_data': dir_fq_trim_data,
                 'dir_fa_trim_data': dir_fa_trim_data,
                 'dir_blast_fa_trim': dir_blast_fa_trim,
-                'dir_blast_results_fa_trim': dir_blast_results_fa_trim,
-                'dir_vsearch_results_fa_trim': dir_vsearch_results_fa_trim,
-                'dir_spades_assemblies': dir_spades_assemblies}
+                'dir_prj_blast_results_fa_trim': dir_prj_blast_results_fa_trim,
+                'dir_prj_vsearch_results_fa_trim':
+                    dir_prj_vsearch_results_fa_trim,
+                'dir_prj_spades_assemblies': dir_prj_spades_assemblies,
+                'dir_blast_assmbl': dir_blast_assmbl,
+                'dir_prj_assmbl_blast_results': dir_prj_assmbl_blast_results,
+                'dir_prj_transcripts': dir_prj_transcripts}
 
     return ret_dict
 
@@ -853,3 +874,170 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
         else:
             print('\t\tSPAdes produced no transcripts.')
         print()
+
+
+def makeblastdb_assemblies(assemblies, dir_blast_assmbl, makeblastdb):  # noqa
+
+    if len(assemblies) > 0:
+        print('Building BLAST databases for assemblies:\n')
+    for a in assemblies:
+        assmbl_name = a['name']
+
+        assmbl_blast_db_dir = opj(dir_blast_assmbl, assmbl_name)
+        assmbl_blast_db_file = opj(assmbl_blast_db_dir, assmbl_name)
+
+        a['blast_db_path'] = assmbl_blast_db_file
+
+        if ope(assmbl_blast_db_dir):
+            print('\t\tBLAST database for ' + assmbl_name + ' already exists.')
+        else:
+            print('\t\t' + assmbl_name)
+            make_dir(assmbl_blast_db_dir)
+            make_blast_db(exec_file=makeblastdb,
+                          in_file=a['path'],
+                          out_file=assmbl_blast_db_file,
+                          title=assmbl_name)
+
+    print()
+
+
+def run_tblastn_on_assemblies(assemblies, aa_queries_file, tblastn,
+                              dir_prj_assmbl_blast_results, blast_2_evalue,
+                              blast_2_max_target_seqs, blast_2_culling_limit,
+                              blast_2_qcov_hsp_perc, threads, genetic_code):  # noqa
+    if len(assemblies) > 0:
+        print('Running BLAST on assemblies:\n')
+
+    for a in assemblies:
+
+        assmbl_name = a['name']
+        assmbl_blast_db_path = a['blast_db_path']
+
+        __ = opj(dir_prj_assmbl_blast_results, assmbl_name + '.tsv')
+
+        if ope(__):
+            print('BLAST results for sample ' + assmbl_name +
+                  ' already exist.')
+        else:
+
+            print('\t\tRunning tblastn on: ' + assmbl_name)
+
+            run_blast(exec_file=tblastn,
+                      task='tblastn',
+                      threads=threads,
+                      db_path=assmbl_blast_db_path,
+                      queries_file=aa_queries_file,
+                      out_file=__,
+                      evalue=blast_2_evalue,
+                      qcov_hsp_perc=blast_2_qcov_hsp_perc,
+                      culling_limit=blast_2_culling_limit,
+                      max_target_seqs=blast_2_max_target_seqs,
+                      db_genetic_code=genetic_code,
+                      out_cols=BLST_RES_COLS_2)
+
+        a['blast_hits_aa'] = parse_blast_results_file(__, BLST_RES_COLS_2)
+
+    print()
+
+
+def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt):  # noqa
+
+    if len(assemblies) > 0:
+        print('Analyzing BLAST hits for assemblies:\n')
+
+    for a in assemblies:
+
+        assmbl_name = a['name']
+
+        # print('\t' + '-' * 80)
+        print('\t' + assmbl_name)
+        print('\t' + '-' * 80)
+
+        parsed_hits = a['blast_hits_aa']
+        a_path = a['path']
+
+        transcripts_nt_fasta_file = opj(
+            dir_prj_transcripts, assmbl_name + '_transcripts_nt.fasta')
+
+        transcripts_nt_orf_fasta_file = opj(
+            dir_prj_transcripts, assmbl_name + '_transcripts_nt_orf.fasta')
+
+        transcripts_aa_orf_fasta_file = opj(
+            dir_prj_transcripts, assmbl_name + '_transcripts_aa_orf.fasta')
+
+        transcripts_nt = []
+        transcripts_nt_orf = []
+        transcripts_aa_orf = []
+
+        with open(a_path, 'r') as f:
+            __ = f.read()
+
+        parsed_fasta = parse_fasta_text(__)
+        collated = collate_blast_results(parsed_hits)
+
+        for hit in collated:
+
+            target_name = hit['sseqid']
+            target_seq = parsed_fasta[target_name]
+
+            hit_start = hit['start']
+            hit_end = hit['end']
+            hit_frame = hit['frame']
+
+            start_codons = gc_tt['start_codons']
+            stop_codons = gc_tt['stop_codons']
+
+            orf = find_orf_for_blast_hit(
+                seq=target_seq,
+                frame=hit_frame,
+                hit_start=hit_start,
+                hit_end=hit_end,
+                hit_reduce=60,
+                stop_codons=stop_codons,
+                start_codons=start_codons,
+                include_terminal_codon=True)
+
+            if orf is not None:
+                if hit_frame > 0:
+                    orf_seq = target_seq[orf[0]:orf[1]]
+                else:
+                    orf_seq = reverse_complement(target_seq[orf[0]:orf[1]])
+                    target_seq = reverse_complement(target_seq)
+                    target_name = target_name + '_revcomp'
+
+                transcripts_nt_orf.append({'name': target_name,
+                                           'seq': orf_seq})
+
+                transl_seq = translate(orf_seq, gc_tt)
+                transcripts_aa_orf.append({'name': target_name,
+                                           'seq': transl_seq})
+
+            transcripts_nt.append({'name': target_name, 'seq': target_seq})
+
+        # --------------------------------------------------------------------
+
+        print('\t               Transcripts: ' + str(len(transcripts_nt)))
+
+        if len(transcripts_nt) > 0:
+            write_fasta_file(transcripts_nt, transcripts_nt_fasta_file)
+            a['transcripts_nt_fasta_file'] = transcripts_nt_fasta_file
+        else:
+            a['transcripts_nt_fasta_file'] = None
+
+        print('\tTranscripts with valid ORF: ' + str(len(transcripts_nt_orf)))
+
+        if len(transcripts_nt_orf) > 0:
+            write_fasta_file(transcripts_nt_orf, transcripts_nt_orf_fasta_file)
+            a['transcripts_nt_orf_fasta_file'] = transcripts_nt_orf_fasta_file
+        else:
+            a['transcripts_nt_orf_fasta_file'] = None
+
+        if len(transcripts_aa_orf) > 0:
+            write_fasta_file(transcripts_aa_orf, transcripts_aa_orf_fasta_file)
+            a['transcripts_aa_orf_fasta_file'] = transcripts_aa_orf_fasta_file
+        else:
+            a['transcripts_aa_orf_fasta_file'] = None
+
+        print('\t' + '-' * 80 + '\n\n')
+
+        # --------------------------------------------------------------------

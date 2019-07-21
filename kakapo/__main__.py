@@ -32,11 +32,14 @@ from kakapo.workflow import dnld_prot_seqs
 from kakapo.workflow import dnld_sra_fastq_files
 from kakapo.workflow import dnld_sra_info
 from kakapo.workflow import filter_queries
+from kakapo.workflow import find_orfs_translate
+from kakapo.workflow import makeblastdb_assemblies
 from kakapo.workflow import makeblastdb_fq
 from kakapo.workflow import min_accept_read_len
 from kakapo.workflow import pfam_uniprot_accessions
 from kakapo.workflow import prepare_output_directories
 from kakapo.workflow import run_spades
+from kakapo.workflow import run_tblastn_on_assemblies
 from kakapo.workflow import run_tblastn_on_reads
 from kakapo.workflow import run_trimmomatic
 from kakapo.workflow import run_vsearch_on_reads
@@ -74,12 +77,12 @@ def main():
     # Check for dependencies -------------------------------------------------
     print('Checking for dependencies:\n')
     make_dir(DIR_DEP)
-    seqtk = deps.dep_check_seqtk()  # noqa
-    trimmomatic, adapters = deps.dep_check_trimmomatic()  # noqa
-    fasterq_dump = deps.dep_check_sra_toolkit()  # noqa
-    makeblastdb, blastn, tblastn = deps.dep_check_blast()  # noqa
-    vsearch = deps.dep_check_vsearch()  # noqa
-    spades = deps.dep_check_spades()  # noqa
+    seqtk = deps.dep_check_seqtk()
+    trimmomatic, adapters = deps.dep_check_trimmomatic()
+    fasterq_dump = deps.dep_check_sra_toolkit()
+    makeblastdb, __, tblastn = deps.dep_check_blast()
+    vsearch = deps.dep_check_vsearch()
+    spades = deps.dep_check_spades()
 
     # Initialize NCBI taxonomy database --------------------------------------
     tax = taxonomy(DIR_TAX)  # noqa
@@ -101,10 +104,10 @@ def main():
     blast_1_evalue = __['blast_1_evalue']
     blast_1_max_target_seqs = __['blast_1_max_target_seqs']
     blast_1_qcov_hsp_perc = __['blast_1_qcov_hsp_perc']
-    blast_2_culling_limit = __['blast_2_culling_limit']  # noqa
-    blast_2_evalue = __['blast_2_evalue']  # noqa
-    blast_2_max_target_seqs = __['blast_2_max_target_seqs']  # noqa
-    blast_2_qcov_hsp_perc = __['blast_2_qcov_hsp_perc']  # noqa
+    blast_2_culling_limit = __['blast_2_culling_limit']
+    blast_2_evalue = __['blast_2_evalue']
+    blast_2_max_target_seqs = __['blast_2_max_target_seqs']
+    blast_2_qcov_hsp_perc = __['blast_2_qcov_hsp_perc']
     tax_group = __['tax_group']
     tax_group_name = __['tax_group_name']
     tax_ids_user = __['tax_ids']
@@ -119,7 +122,7 @@ def main():
     gc = tax.genetic_code_for_taxid(tax_group)
     # gc_mito = tax.mito_genetic_code_for_taxid(tax_group)
     # gc_plastid = tax.plastid_genetic_code()
-    # gc_tt = tax.trans_table_for_genetic_code_id(gc)
+    gc_tt = tax.trans_table_for_genetic_code_id(gc)
     # gc_mito_tt = tax.trans_table_for_genetic_code_id(gc_mito)
     # gc_plastid_tt = tax.trans_table_for_genetic_code_id(gc_plastid)
 
@@ -144,9 +147,12 @@ def main():
     dir_fq_trim_data = __['dir_fq_trim_data']
     dir_fa_trim_data = __['dir_fa_trim_data']
     dir_blast_fa_trim = __['dir_blast_fa_trim']
-    dir_blast_results_fa_trim = __['dir_blast_results_fa_trim']
-    dir_vsearch_results_fa_trim = __['dir_vsearch_results_fa_trim']
-    dir_spades_assemblies = __['dir_spades_assemblies']
+    dir_prj_blast_results_fa_trim = __['dir_prj_blast_results_fa_trim']
+    dir_prj_vsearch_results_fa_trim = __['dir_prj_vsearch_results_fa_trim']
+    dir_prj_spades_assemblies = __['dir_prj_spades_assemblies']
+    dir_blast_assmbl = __['dir_blast_assmbl']
+    dir_prj_assmbl_blast_results = __['dir_prj_assmbl_blast_results']
+    dir_prj_transcripts = __['dir_prj_transcripts']
 
     # Housekeeping done. Start the analyses. ---------------------------------
 
@@ -237,26 +243,26 @@ def main():
     trimmed_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
                      pe_trim_fa_file_patterns)
 
-    # Run makeblastdb --------------------------------------------------------
+    # Run makeblastdb on reads -----------------------------------------------
     makeblastdb_fq(se_fastq_files, pe_fastq_files, dir_blast_fa_trim,
                    makeblastdb, pe_blast_db_file_patterns)
 
-    # Run tblastn ------------------------------------------------------------
+    # Run tblastn on reads ---------------------------------------------------
     run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                          tblastn, blast_1_evalue, blast_1_max_target_seqs,
                          blast_1_culling_limit, blast_1_qcov_hsp_perc,
-                         dir_blast_results_fa_trim,
+                         dir_prj_blast_results_fa_trim,
                          pe_blast_results_file_patterns, THREADS, gc, seqtk,
                          vsearch)
 
-    # Run vsearch ------------------------------------------------------------
+    # Run vsearch on reads ---------------------------------------------------
     run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
-                         dir_vsearch_results_fa_trim,
+                         dir_prj_vsearch_results_fa_trim,
                          pe_vsearch_results_file_patterns, seqtk)
 
     # Run SPAdes -------------------------------------------------------------
-    run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies, spades,
-               THREADS, RAM)
+    run_spades(se_fastq_files, pe_fastq_files, dir_prj_spades_assemblies,
+               spades, THREADS, RAM)
 
     # Collate SPAdes and user provided assemblies ----------------------------
     assemblies = []
@@ -286,6 +292,17 @@ def main():
         a['name'] = splitext(basename(a_path))[0]
         assemblies.append(a)
 
+    # Run makeblastdb on assemblies  -----------------------------------------
+    makeblastdb_assemblies(assemblies, dir_blast_assmbl, makeblastdb)
+
+    # Run tblastn on assemblies ----------------------------------------------
+    run_tblastn_on_assemblies(assemblies, aa_queries_file, tblastn,
+                              dir_prj_assmbl_blast_results, blast_2_evalue,
+                              blast_2_max_target_seqs, blast_2_culling_limit,
+                              blast_2_qcov_hsp_perc, THREADS, gc)
+
+    # Prepare BLAST hits for analysis: find ORFs, translate ------------------
+    find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt)
 
 ##############################################################################
 
