@@ -36,7 +36,7 @@ from kakapo.workflow import pfam_uniprot_accessions
 from kakapo.workflow import prepare_output_directories
 from kakapo.workflow import run_tblastn_on_reads
 from kakapo.workflow import run_trimmomatic
-# from kakapo.workflow import run_vsearch_on_reads
+from kakapo.workflow import run_vsearch_on_reads
 from kakapo.workflow import trimmed_fq_to_fa
 from kakapo.workflow import user_aa_fasta
 from kakapo.workflow import user_fastq_files
@@ -198,7 +198,7 @@ def main():
     pe_trim_suffixes = [pe_trim_pair_1_sfx, pe_trim_pair_2_sfx,
                         pe_trim_unpr_1_sfx, pe_trim_unpr_2_sfx]
 
-    pe_file_pattern = opj('xDIRx', 'xBASENAMEx')
+    pe_file_pattern = opj('@D@', '@N@')
 
     pe_trim_fq_file_patterns = list(
         zip([pe_file_pattern] * 4, pe_trim_suffixes, ['.fastq'] * 4))
@@ -237,9 +237,9 @@ def main():
                          vsearch)
 
     # Run vsearch ------------------------------------------------------------
-    # run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
-    #                      dir_vsearch_results_fa_trim,
-    #                      pe_vsearch_results_file_patterns, seqtk)
+    run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
+                         dir_vsearch_results_fa_trim,
+                         pe_vsearch_results_file_patterns, seqtk)
 
     # print('SE:')
     # for k in se_fastq_files:

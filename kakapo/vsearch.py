@@ -1,21 +1,21 @@
 # -*- coding: utf-8 -*-
 
-"""Trimmomatic"""
+"""vsearch"""
 
 from kakapo.shell import call
 
 
-def cluster_fast(vsearch, in_file, out_file):  # noqa
+def run_cluster_fast(vsearch, ident, in_file, out_file):  # noqa
 
     cmd = [vsearch,
            '--cluster_fast', in_file,
            '--centroids', out_file,
            '--fasta_width', '0',
-           '--id', '0.9']
+           '--id', str(ident)]
 
     call(cmd)
 
-def vsearch(vsearch, q_file, db_file, out_file, minlen):  # noqa
+def run_vsearch(vsearch, ident, q_file, db_file, out_file, minlen):  # noqa
 
     cmd = [vsearch,
            '--usearch_global', q_file,
@@ -32,6 +32,6 @@ def vsearch(vsearch, q_file, db_file, out_file, minlen):  # noqa
            '--maxsubs', '3',
            '--maxgaps', '1',
            '--target_cov', '0.33',
-           '--id', '0.85']
+           '--id', str(ident)]
 
     call(cmd)

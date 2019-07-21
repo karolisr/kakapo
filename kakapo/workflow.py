@@ -32,7 +32,8 @@ from kakapo.helpers import keep_unique_lines_in_file
 from kakapo.helpers import make_dir
 from kakapo.shell import call
 from kakapo.trimmomatic import trimmomatic_se, trimmomatic_pe
-from kakapo.vsearch import cluster_fast, vsearch
+from kakapo.vsearch import run_cluster_fast, run_vsearch
+from kakapo.seqtk import seqtk_fq_to_fa, seqtk_extract_reads
 
 def prepare_output_directories(dir_out, prj_name):  # noqa
 
@@ -447,8 +448,8 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
         fq_path_2 = pe_fastq_files[pe]['path'][1]
         min_acc_len = pe_fastq_files[pe]['min_acc_len']
         stats_f = opj(dir_fq_trim_data_sample, pe + '.txt')
-        out_fs = [x.replace('xDIRx', dir_fq_trim_data_sample) for x in fpatt]
-        out_fs = [x.replace('xBASENAMEx', pe) for x in out_fs]
+        out_fs = [x.replace('@D@', dir_fq_trim_data_sample) for x in fpatt]
+        out_fs = [x.replace('@N@', pe) for x in out_fs]
         pe_fastq_files[pe]['trim_path_fq'] = out_fs
 
         if ope(dir_fq_trim_data_sample):
@@ -486,16 +487,13 @@ def trimmed_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
         else:
             make_dir(dir_fa_trim_data_sample)
             print('Converting FASTQ to FASTA using Seqtk: ' + fq_path)
-            cmd = [seqtk, 'seq', '-A', fq_path]
-            out, err = call(cmd)
-            with open(out_f, mode='wb') as f:
-                f.write(out)
+            seqtk_fq_to_fa(seqtk, fq_path, out_f)
 
     for pe in pe_fastq_files:
         dir_fa_trim_data_sample = opj(dir_fa_trim_data, pe)
         fq_paths = pe_fastq_files[pe]['trim_path_fq']
-        out_fs = [x.replace('xDIRx', dir_fa_trim_data_sample) for x in fpatt]
-        out_fs = [x.replace('xBASENAMEx', pe) for x in out_fs]
+        out_fs = [x.replace('@D@', dir_fa_trim_data_sample) for x in fpatt]
+        out_fs = [x.replace('@N@', pe) for x in out_fs]
         pe_fastq_files[pe]['trim_path_fa'] = out_fs
 
         if ope(dir_fa_trim_data_sample):
@@ -505,10 +503,7 @@ def trimmed_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
             pe_trim_files = zip(fq_paths, out_fs)
             for x in pe_trim_files:
                 print('Converting FASTQ to FASTA using Seqtk: ' + x[0])
-                cmd = [seqtk, 'seq', '-A', x[0]]
-                out, err = call(cmd)
-                with open(x[1], mode='wb') as f:
-                    f.write(out)
+                seqtk_fq_to_fa(seqtk, x[0], x[1])
 
 
 def makeblastdb_fq(se_fastq_files, pe_fastq_files, dir_blast_fa_trim,
@@ -537,8 +532,8 @@ def makeblastdb_fq(se_fastq_files, pe_fastq_files, dir_blast_fa_trim,
     for pe in pe_fastq_files:
         dir_blast_fa_trim_sample = opj(dir_blast_fa_trim, pe)
         fa_paths = pe_fastq_files[pe]['trim_path_fa']
-        out_fs = [x.replace('xDIRx', dir_blast_fa_trim_sample) for x in fpatt]
-        out_fs = [x.replace('xBASENAMEx', pe) for x in out_fs]
+        out_fs = [x.replace('@D@', dir_blast_fa_trim_sample) for x in fpatt]
+        out_fs = [x.replace('@N@', pe) for x in out_fs]
         pe_fastq_files[pe]['blast_db_path'] = out_fs
 
         if ope(dir_blast_fa_trim_sample):
@@ -564,19 +559,21 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
 
     print()
 
+    ident = 0.85
+
     for se in se_fastq_files:
-        dir_blast_results_fa_trim_sample = opj(dir_blast_results_fa_trim, se)
+        dir_results = opj(dir_blast_results_fa_trim, se)
         blast_db_path = se_fastq_files[se]['blast_db_path']
         fq_path = se_fastq_files[se]['trim_path_fq']
-        out_f = opj(dir_blast_results_fa_trim_sample, se + '.txt')
+        out_f = opj(dir_results, se + '.txt')
         out_f_fastq = out_f.replace('.txt', '.fastq')
         out_f_fasta = out_f.replace('.txt', '.fasta')
         se_fastq_files[se]['blast_results_path'] = out_f_fasta
 
-        if ope(dir_blast_results_fa_trim_sample):
+        if ope(dir_results):
             print('BLAST results for sample ' + se + ' already exists.')
         else:
-            make_dir(dir_blast_results_fa_trim_sample)
+            make_dir(dir_results)
             print('Running tblastn on: ' + blast_db_path)
             run_blast(exec_file=tblastn,
                       task='tblastn',
@@ -595,40 +592,32 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
 
             keep_unique_lines_in_file(out_f)
 
-            cmd = [seqtk, 'subseq', fq_path, out_f]
-            out, err = call(cmd)
-            with open(out_f_fastq, mode='wb') as f:
-                f.write(out)
-
-            cmd = [seqtk, 'seq', '-A', out_f_fastq]
-            out, err = call(cmd)
-            with open(out_f_fasta, mode='wb') as f:
-                f.write(out)
+            seqtk_extract_reads(seqtk, fq_path, out_f_fastq, out_f)
+            seqtk_fq_to_fa(seqtk, out_f_fastq, out_f_fasta)
 
             osremove(out_f)
             osremove(out_f_fastq)
 
             out_f_fasta_temp = out_f_fasta + '_temp'
             copyfile(out_f_fasta, out_f_fasta_temp)
-            cluster_fast(vsearch, out_f_fasta_temp, out_f_fasta)
+            run_cluster_fast(vsearch, ident, out_f_fasta_temp, out_f_fasta)
             osremove(out_f_fasta_temp)
 
     for pe in pe_fastq_files:
-        dir_blast_results_fa_trim_sample = opj(dir_blast_results_fa_trim, pe)
+        dir_results = opj(dir_blast_results_fa_trim, pe)
         blast_db_paths = pe_fastq_files[pe]['blast_db_path']
         fq_paths = pe_fastq_files[pe]['trim_path_fq']
-        out_fs = [x.replace(
-            'xDIRx', dir_blast_results_fa_trim_sample) for x in fpatt]
-        out_fs = [x.replace('xBASENAMEx', pe) for x in out_fs]
+        out_fs = [x.replace('@D@', dir_results) for x in fpatt]
+        out_fs = [x.replace('@N@', pe) for x in out_fs]
         out_fs_fastq = [x.replace('.txt', '.fastq') for x in out_fs]
         out_fs_fasta = [x.replace('.txt', '.fasta') for x in out_fs]
-        out_f_fasta = opj(dir_blast_results_fa_trim_sample, pe + '.fasta')
+        out_f_fasta = opj(dir_results, pe + '.fasta')
         pe_fastq_files[pe]['blast_results_path'] = out_f_fasta
 
-        if ope(dir_blast_results_fa_trim_sample):
+        if ope(dir_results):
             print('BLAST results for sample ' + pe + ' already exist.')
         else:
-            make_dir(dir_blast_results_fa_trim_sample)
+            make_dir(dir_results)
             pe_trim_files = zip(blast_db_paths, out_fs, fq_paths, out_fs_fastq,
                                 out_fs_fasta)
             for x in pe_trim_files:
@@ -650,15 +639,8 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
 
                 keep_unique_lines_in_file(x[1])
 
-                cmd = [seqtk, 'subseq', x[2], x[1]]
-                out, err = call(cmd)
-                with open(x[3], mode='wb') as f:
-                    f.write(out)
-
-                cmd = [seqtk, 'seq', '-A', x[3]]
-                out, err = call(cmd)
-                with open(x[4], mode='wb') as f:
-                    f.write(out)
+                seqtk_extract_reads(seqtk, x[2], x[3], x[1])
+                seqtk_fq_to_fa(seqtk, x[3], x[4])
 
                 osremove(x[1])
                 osremove(x[3])
@@ -667,40 +649,110 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
 
             out_f_fasta_temp = out_f_fasta + '_temp'
             copyfile(out_f_fasta, out_f_fasta_temp)
-            cluster_fast(vsearch, out_f_fasta_temp, out_f_fasta)
+            run_cluster_fast(vsearch, ident, out_f_fasta_temp, out_f_fasta)
             osremove(out_f_fasta_temp)
 
             for x in out_fs_fasta:
                 osremove(x)
 
 
-# def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
-#                          dir_vsearch_results_fa_trim, fpatt, seqtk): # noqa
-#     print()
+def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
+                         dir_vsearch_results_fa_trim, fpatt, seqtk): # noqa
+    print()
 
-#     for se in se_fastq_files:
-#         dir_results = opj(dir_vsearch_results_fa_trim, se)
-#         blast_results_fa_path = se_fastq_files[se]['blast_results_path']
-#         fq_path = se_fastq_files[se]['trim_path_fq']
-#         out_f = opj(dir_results, se + '.txt')
+    ident = 0.85
 
-#         if ope(dir_results):
-#             print('Vsearch results for sample ' + se + ' already exists.')
-#         else:
-#             make_dir(dir_results)
-#             print('Running vsearch on: ' + fq_path)
+    for se in se_fastq_files:
+        dir_results = opj(dir_vsearch_results_fa_trim, se)
+        min_acc_len = se_fastq_files[se]['min_acc_len']
+        blast_results_fa_path = se_fastq_files[se]['blast_results_path']
+        fq_path = se_fastq_files[se]['trim_path_fq']
+        out_f = opj(dir_results, se + '.txt')
+        out_f_fastq = out_f.replace('.txt', '.fastq')
+        se_fastq_files[se]['vsearch_results_path'] = out_f_fastq
 
-#     for pe in pe_fastq_files:
-#         dir_results = opj(dir_vsearch_results_fa_trim, pe)
-#         blast_results_fa_path = pe_fastq_files[pe]['blast_results_path']
-#         fq_paths = pe_fastq_files[pe]['trim_path_fq']
-#         out_fs = [x.replace('xDIRx', dir_results) for x in fpatt]
-#         out_fs = [x.replace('xBASENAMEx', pe) for x in out_fs]
+        if ope(dir_results):
+            print('Vsearch results for sample ' + se + ' already exists.')
+        else:
+            make_dir(dir_results)
+            print('Running vsearch on: ' + fq_path)
+            run_vsearch(vsearch,
+                        ident=ident,
+                        q_file=blast_results_fa_path,
+                        db_file=fq_path,
+                        out_file=out_f,
+                        minlen=min_acc_len)
 
-#         if ope(dir_results):
-#             print('Vsearch results for sample ' + pe + ' already exist.')
-#         else:
-#             make_dir(dir_results)
-#             pe_trim_files = zip(fq_paths, out_fs)
-#             for x in pe_trim_files:
-#                 print('Running vsearch on: ' + x[0])
+            print('\tExtracting unique vsearch hits using Seqtk.\n')
+            keep_unique_lines_in_file(out_f)
+            seqtk_extract_reads(seqtk, fq_path, out_f_fastq, out_f)
+            osremove(out_f)
+
+    for pe in pe_fastq_files:
+        dir_results = opj(dir_vsearch_results_fa_trim, pe)
+        min_acc_len = pe_fastq_files[pe]['min_acc_len']
+        blast_results_fa_path = pe_fastq_files[pe]['blast_results_path']
+        fq_paths = pe_fastq_files[pe]['trim_path_fq']
+        out_fs = [x.replace('@D@', dir_results) for x in fpatt]
+        out_fs = [x.replace('@N@', pe) for x in out_fs]
+        out_fs_fastq = [x.replace('.txt', '.fastq') for x in out_fs]
+        pe_fastq_files[pe]['vsearch_results_path'] = out_fs_fastq
+
+        if ope(dir_results):
+            print('Vsearch results for sample ' + pe + ' already exist.')
+        else:
+            make_dir(dir_results)
+            pe_trim_files = zip(fq_paths, out_fs, out_fs_fastq)
+            for x in pe_trim_files:
+                print('Running vsearch on: ' + x[0])
+                run_vsearch(vsearch,
+                            ident=ident,
+                            q_file=blast_results_fa_path,
+                            db_file=x[0],
+                            out_file=x[1],
+                            minlen=min_acc_len)
+
+            print('\tExtracting unique vsearch hits from paired files '
+                  'using Seqtk.')
+
+            p1txt = out_fs[0]
+            p2txt = out_fs[1]
+
+            p1fq = fq_paths[0]
+            p2fq = fq_paths[1]
+
+            p1fq_out = out_fs_fastq[0]
+            p2fq_out = out_fs_fastq[1]
+
+            p12txt_temp = opj(dir_results, pe + '_paired.txt')
+
+            combine_text_files([p1txt, p2txt], p12txt_temp)
+            keep_unique_lines_in_file(p12txt_temp)
+
+            seqtk_extract_reads(seqtk, p1fq, p1fq_out, p12txt_temp)
+            seqtk_extract_reads(seqtk, p2fq, p2fq_out, p12txt_temp)
+
+            osremove(p1txt)
+            osremove(p2txt)
+            osremove(p12txt_temp)
+
+            print('\tExtracting unique vsearch hits from unpaired files '
+                  'using Seqtk.\n')
+
+            u1txt = out_fs[2]
+            u2txt = out_fs[3]
+
+            u1fq = fq_paths[2]
+            u2fq = fq_paths[3]
+
+            u1fq_out = out_fs_fastq[2]
+            u2fq_out = out_fs_fastq[3]
+
+            keep_unique_lines_in_file(u1txt)
+            keep_unique_lines_in_file(u2txt)
+
+            seqtk_extract_reads(seqtk, u1fq, u1fq_out, u1txt)
+            seqtk_extract_reads(seqtk, u2fq, u2fq_out, u2txt)
+
+            osremove(u1txt)
+            osremove(u2txt)
