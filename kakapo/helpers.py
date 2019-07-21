@@ -110,3 +110,9 @@ def combine_text_files(paths, out_path):  # noqa
 
     with open(out_path, 'w') as f:
         f.write(ret)
+
+
+def sys_ram():  # noqa
+    ram_b = os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES')
+    ram_g = ram_b / (1024**3)
+    return ram_g

@@ -18,6 +18,7 @@ from os.path import splitext
 from kakapo.bioio import dnld_ncbi_seqs
 from kakapo.bioio import entrez_summary
 from kakapo.bioio import filter_fasta_text_by_length
+from kakapo.bioio import read_fasta_file
 from kakapo.bioio import sra_info
 from kakapo.bioio import standardize_fasta_text
 from kakapo.bioio import write_fasta_file
@@ -30,10 +31,11 @@ from kakapo.ebi_proteins import fasta_by_accession_list
 from kakapo.helpers import combine_text_files
 from kakapo.helpers import keep_unique_lines_in_file
 from kakapo.helpers import make_dir
+from kakapo.seqtk import seqtk_fq_to_fa, seqtk_extract_reads
 from kakapo.shell import call
+from kakapo.spades import run_spades_se, run_spades_pe
 from kakapo.trimmomatic import trimmomatic_se, trimmomatic_pe
 from kakapo.vsearch import run_cluster_fast, run_vsearch
-from kakapo.seqtk import seqtk_fq_to_fa, seqtk_extract_reads
 
 def prepare_output_directories(dir_out, prj_name):  # noqa
 
@@ -78,6 +80,9 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
     dir_vsearch_results_fa_trim = opj(dir_out, '16-trimmed-fa-vsearch-results')
     make_dir(dir_vsearch_results_fa_trim)
 
+    dir_spades_assemblies = opj(dir_out, '17-spades-assemblies')
+    make_dir(dir_spades_assemblies)
+
     ret_dict = {'dir_temp': dir_temp,
                 'dir_cache': dir_cache,
                 'dir_cache_pfam_acc': dir_cache_pfam_acc,
@@ -90,7 +95,8 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
                 'dir_fa_trim_data': dir_fa_trim_data,
                 'dir_blast_fa_trim': dir_blast_fa_trim,
                 'dir_blast_results_fa_trim': dir_blast_results_fa_trim,
-                'dir_vsearch_results_fa_trim': dir_vsearch_results_fa_trim}
+                'dir_vsearch_results_fa_trim': dir_vsearch_results_fa_trim,
+                'dir_spades_assemblies': dir_spades_assemblies}
 
     return ret_dict
 
@@ -783,3 +789,67 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
 
             osremove(u1txt)
             osremove(u2txt)
+
+
+def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
+               spades, threads, ram):  # noqa
+
+    print()
+
+    for se in se_fastq_files:
+        dir_results = opj(dir_spades_assemblies, se)
+        fq_path = se_fastq_files[se]['vsearch_results_path']
+        se_fastq_files[se]['spades_assembly'] = None
+
+        if ope(dir_results):
+            print('SPAdes results for sample ' + se + ' already exist.')
+        else:
+            make_dir(dir_results)
+            print('Running SPAdes on: ' + se)
+            run_spades_se(spades,
+                          out_dir=dir_results,
+                          input_file=fq_path,
+                          threads=threads,
+                          memory=ram,
+                          rna=True)
+
+        assmbl_path = opj(dir_results, 'transcripts.fasta')
+        if ope(assmbl_path):
+            count = len(read_fasta_file(assmbl_path))
+            tr_str = ' transcripts.'
+            if count == 1:
+                tr_str = ' transcript.'
+            print('\t\tSPAdes produced ' + str(count) + tr_str)
+            se_fastq_files[se]['spades_assembly'] = assmbl_path
+        else:
+            print('\t\tSPAdes produced no transcripts.')
+        print()
+
+    for pe in pe_fastq_files:
+        dir_results = opj(dir_spades_assemblies, pe)
+        fq_paths = pe_fastq_files[pe]['vsearch_results_path']
+        pe_fastq_files[pe]['spades_assembly'] = None
+
+        if ope(dir_results):
+            print('SPAdes results for sample ' + pe + ' already exist.')
+        else:
+            make_dir(dir_results)
+            print('Running SPAdes on: ' + pe)
+            run_spades_pe(spades,
+                          out_dir=dir_results,
+                          input_files=fq_paths,
+                          threads=threads,
+                          memory=ram,
+                          rna=True)
+
+        assmbl_path = opj(dir_results, 'transcripts.fasta')
+        if ope(assmbl_path):
+            count = len(read_fasta_file(assmbl_path))
+            tr_str = ' transcripts.'
+            if count == 1:
+                tr_str = ' transcript.'
+            print('\t\tSPAdes produced ' + str(count) + tr_str)
+            pe_fastq_files[pe]['spades_assembly'] = assmbl_path
+        else:
+            print('\t\tSPAdes produced no transcripts.')
+        print()

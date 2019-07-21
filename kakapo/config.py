@@ -16,6 +16,7 @@ from multiprocessing import cpu_count
 
 from kakapo.os_diffs import check_os
 from kakapo.py_v_diffs import python_version
+from kakapo.helpers import sys_ram
 
 DEBUG_MODE = True
 DEBUG_PROCESSES = False
@@ -26,6 +27,7 @@ __, PY_V_STR = python_version()
 
 # System information ---------------------------------------------------------
 THREADS = cpu_count()
+RAM = sys_ram()
 
 # Other ----------------------------------------------------------------------
 PICKLE_PROTOCOL = 2

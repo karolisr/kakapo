@@ -10,8 +10,10 @@ from __future__ import nested_scopes
 from __future__ import print_function
 from __future__ import with_statement
 
+from os.path import basename
 from os.path import exists as ope
 from os.path import join as opj
+from os.path import splitext
 from shutil import rmtree
 from sys import exit
 
@@ -20,7 +22,7 @@ from ncbi_taxonomy_local import taxonomy
 from kakapo import dependencies as deps
 from kakapo.config import DIR_CFG, DIR_DEP, DIR_TAX
 from kakapo.config import OS_STR, PY_V_STR
-from kakapo.config import THREADS
+from kakapo.config import THREADS, RAM
 from kakapo.config_file_parse import config_file_parse
 from kakapo.helpers import make_dir
 from kakapo.workflow import combine_aa_fasta
@@ -34,6 +36,7 @@ from kakapo.workflow import makeblastdb_fq
 from kakapo.workflow import min_accept_read_len
 from kakapo.workflow import pfam_uniprot_accessions
 from kakapo.workflow import prepare_output_directories
+from kakapo.workflow import run_spades
 from kakapo.workflow import run_tblastn_on_reads
 from kakapo.workflow import run_trimmomatic
 from kakapo.workflow import run_vsearch_on_reads
@@ -50,8 +53,10 @@ CONFIG_FILE_PATH = 'tests/data/kakapo.ini'
 
 def main():
     """Run the script."""
-    print('\n\nOperating system: {os}'.format(os=OS_STR))
-    print('Python version: {pv}\n'.format(pv=PY_V_STR))
+    print('\n\nPython version: {pv}'.format(pv=PY_V_STR))
+    print('Operating system: {os}'.format(os=OS_STR))
+    print('System info: {cpus} CPUs, {ram} GB RAM\n'.format(cpus=THREADS,
+                                                            ram=RAM))
 
     # Remove configuration directory, if requested ---------------------------
     if CLEAN_CONFIG_DIR and ope(DIR_CFG):
@@ -88,7 +93,7 @@ def main():
     sras = __['sras']
     fq_pe = __['fq_pe']
     fq_se = __['fq_se']
-    assmbl = __['assmbl']  # noqa
+    user_assemblies = __['assmbl']
     min_query_length = __['min_query_length']
     max_query_length = __['max_query_length']
     user_queries = __['user_queries']
@@ -141,6 +146,7 @@ def main():
     dir_blast_fa_trim = __['dir_blast_fa_trim']
     dir_blast_results_fa_trim = __['dir_blast_results_fa_trim']
     dir_vsearch_results_fa_trim = __['dir_vsearch_results_fa_trim']
+    dir_spades_assemblies = __['dir_spades_assemblies']
 
     # Housekeeping done. Start the analyses. ---------------------------------
 
@@ -248,13 +254,37 @@ def main():
                          dir_vsearch_results_fa_trim,
                          pe_vsearch_results_file_patterns, seqtk)
 
-    # print('SE:')
-    # for k in se_fastq_files:
-    #     print(se_fastq_files[k])
+    # Run SPAdes -------------------------------------------------------------
+    run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies, spades,
+               THREADS, RAM)
 
-    # print('PE:')
-    # for k in pe_fastq_files:
-    #     print(pe_fastq_files[k])
+    # Collate SPAdes and user provided assemblies ----------------------------
+    assemblies = []
+
+    for se in se_fastq_files:
+        a_path = se_fastq_files[se]['spades_assembly']
+        if a_path is None:
+            continue
+        a = {}
+        a['path'] = a_path
+        a['name'] = se
+        assemblies.append(a)
+
+    for pe in pe_fastq_files:
+        a_path = pe_fastq_files[pe]['spades_assembly']
+        if a_path is None:
+            continue
+        a = {}
+        a['path'] = a_path
+        a['name'] = pe
+        assemblies.append(a)
+
+    for us in user_assemblies:
+        a_path = us
+        a = {}
+        a['path'] = a_path
+        a['name'] = splitext(basename(a_path))[0]
+        assemblies.append(a)
 
 
 ##############################################################################
