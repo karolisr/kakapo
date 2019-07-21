@@ -45,6 +45,7 @@ from kakapo.shell import call
 from kakapo.spades import run_spades_se, run_spades_pe
 from kakapo.trimmomatic import trimmomatic_se, trimmomatic_pe
 from kakapo.vsearch import run_cluster_fast, run_vsearch
+from kakapo.gff3 import gff_from_kakapo_ips5_json_file
 
 def prepare_output_directories(dir_out, prj_name):  # noqa
 
@@ -87,8 +88,10 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
     dir_prj_transcripts = opj(dir_prj, '06-transcripts')
     make_dir(dir_prj_transcripts)
 
-    dir_prj_ips = opj(dir_prj, '07-InterProScan')
-    make_dir(dir_prj_ips)
+    dir_prj_ips = dir_prj_transcripts
+
+    # dir_prj_ips = opj(dir_prj, '07-inter_pro_scan')
+    # make_dir(dir_prj_ips)
 
     dir_fq_data = opj(dir_out, '11-sra-fq-data')
     make_dir(dir_fq_data)
@@ -1141,3 +1144,23 @@ def run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj):  # noqa
         # Removes cached jobs file.
         # ToDo: Check if there are no failed jobs, before deleting
         osremove(__)
+
+
+def gff_from_json(assemblies, dir_prj_ips):  # noqa
+
+    if len(assemblies) > 0:
+        print('Producing GFF3 file for InterProScan 5 results:')
+
+    for a in assemblies:
+        aa_file = a['transcripts_aa_orf_fasta_file']
+        if aa_file is None:
+            continue
+
+        assmbl_name = a['name']
+
+        json_path = opj(dir_prj_ips, assmbl_name + '.json')
+        gff_path = a['transcripts_nt_fasta_file'].replace('.fasta', '.gff')
+
+        if ope(json_path):
+            print('\t\t' + assmbl_name)
+            gff_from_kakapo_ips5_json_file(json_path, gff_path)
