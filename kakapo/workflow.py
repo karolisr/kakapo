@@ -48,6 +48,9 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
     dir_cache_pfam_acc = opj(dir_cache, 'pfam-uniprot-accessions')
     make_dir(dir_cache_pfam_acc)
 
+    dir_cache_fq_minlen = opj(dir_cache, 'min-acceptable-read-lengths')
+    make_dir(dir_cache_fq_minlen)
+
     dir_cache_prj = opj(dir_cache, 'projects', prj_name)
     make_dir(dir_cache_prj)
 
@@ -78,6 +81,7 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
     ret_dict = {'dir_temp': dir_temp,
                 'dir_cache': dir_cache,
                 'dir_cache_pfam_acc': dir_cache_pfam_acc,
+                'dir_cache_fq_minlen': dir_cache_fq_minlen,
                 'dir_cache_prj': dir_cache_prj,
                 'dir_prj': dir_prj,
                 'dir_prj_queries': dir_prj_queries,
@@ -374,9 +378,18 @@ def user_fastq_files(fq_se, fq_pe): # noqa
     return se_fastq_files, pe_fastq_files
 
 
-def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp, vsearch): # noqa
+def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
+                        dir_cache_fq_minlen, vsearch): # noqa
 
     print('Calculating minimum acceptable read length:\n')
+
+    __ = opj(dir_cache_fq_minlen, 'minlen')
+
+    pickled = {}
+
+    if ope(__):
+        with open(__, 'rb') as f:
+            pickled = pickle.load(f)
 
     queue = []
 
@@ -391,28 +404,42 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp, vsearch): # no
         queue.append([pe, fq_path, stats_file, 'pe'])
 
     for x in queue:
-        cmd = [vsearch, '--fastq_stats', x[1], '--log', x[2]]
-        call(cmd)
 
-        with open(x[2]) as f:
-            stats = f.read()
+        if x[0] in pickled:
+            ml = pickled[x[0]]
 
-        osremove(x[2])
-
-        ml = re.findall(r'>=\s+(\d+)', stats)
-
-        if len(ml) != 0:
-            ml = int(ml[0]) // 2
-            print('\t' + x[0] + ': ' + str(ml))
         else:
-            ml = None
-            print('\t' + x[0] +
-                  ': could not be determined')
+            cmd = [vsearch, '--fastq_stats', x[1], '--log', x[2]]
+            call(cmd)
+
+            with open(x[2]) as f:
+                stats = f.read()
+
+            osremove(x[2])
+
+            ml = re.findall(r'>=\s+(\d+)', stats)
+
+            if len(ml) != 0:
+                ml = int(ml[0]) // 2
+            else:
+                ml = None
+
+            pickled[x[0]] = ml
+
+        if ml is not None:
+            print('\t' + str(ml) + ' nt: ' + x[0])
+        else:
+            print('\t' + ' ?' + ' nt: ' + x[0])
+            ml = 40
 
         if x[3] == 'se':
             se_fastq_files[x[0]]['min_acc_len'] = ml
+
         elif x[3] == 'pe':
             pe_fastq_files[x[0]]['min_acc_len'] = ml
+
+    with open(__, 'wb') as f:
+        pickle.dump(pickled, f, protocol=PICKLE_PROTOCOL)
 
     print()
 

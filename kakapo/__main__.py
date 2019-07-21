@@ -92,19 +92,24 @@ def main():
     min_query_length = __['min_query_length']
     max_query_length = __['max_query_length']
     user_queries = __['user_queries']
-    blast_1_culling_limit = __['blast_1_culling_limit']  # noqa
-    blast_1_evalue = __['blast_1_evalue']  # noqa
-    blast_1_max_target_seqs = __['blast_1_max_target_seqs']  # noqa
-    blast_1_qcov_hsp_perc = __['blast_1_qcov_hsp_perc']  # noqa
+    blast_1_culling_limit = __['blast_1_culling_limit']
+    blast_1_evalue = __['blast_1_evalue']
+    blast_1_max_target_seqs = __['blast_1_max_target_seqs']
+    blast_1_qcov_hsp_perc = __['blast_1_qcov_hsp_perc']
     blast_2_culling_limit = __['blast_2_culling_limit']  # noqa
     blast_2_evalue = __['blast_2_evalue']  # noqa
     blast_2_max_target_seqs = __['blast_2_max_target_seqs']  # noqa
     blast_2_qcov_hsp_perc = __['blast_2_qcov_hsp_perc']  # noqa
-    tax_group = __['tax_group']  # noqa
-    tax_group_name = __['tax_group_name']  # noqa
+    tax_group = __['tax_group']
+    tax_group_name = __['tax_group_name']
     tax_ids_user = __['tax_ids']
     pfam_acc = __['pfam_acc']
     prot_acc_user = __['prot_acc']
+
+    # Genetic code information and translation tables ------------------------
+
+    print('Loading genetic code information and translation tables for ' +
+          tax_group_name + '\n')
 
     gc = tax.genetic_code_for_taxid(tax_group)
     # gc_mito = tax.mito_genetic_code_for_taxid(tax_group)
@@ -126,6 +131,7 @@ def main():
     dir_temp = __['dir_temp']
     # dir_cache = __['dir_cache']
     dir_cache_pfam_acc = __['dir_cache_pfam_acc']
+    dir_cache_fq_minlen = __['dir_cache_fq_minlen']
     dir_cache_prj = __['dir_cache_prj']
     # dir_prj = __['dir_prj']
     dir_prj_queries = __['dir_prj_queries']
@@ -186,7 +192,8 @@ def main():
     pe_fastq_files.update(pe_fastq_files_usr)
 
     # Minimum acceptable read length -----------------------------------------
-    min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp, vsearch)
+    min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
+                        dir_cache_fq_minlen, vsearch)
 
     # File name patterns -----------------------------------------------------
 
