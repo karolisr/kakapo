@@ -33,6 +33,7 @@ from kakapo.workflow import dnld_sra_fastq_files
 from kakapo.workflow import dnld_sra_info
 from kakapo.workflow import filter_queries
 from kakapo.workflow import find_orfs_translate
+from kakapo.workflow import gff_from_json
 from kakapo.workflow import makeblastdb_assemblies
 from kakapo.workflow import makeblastdb_fq
 from kakapo.workflow import min_accept_read_len
@@ -310,6 +311,9 @@ def main():
     # Run InterProScan 5 -----------------------------------------------------
     if inter_pro_scan is True:
         run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj)
+
+    # GFF3 files from InterProScan 5 result JSON files -----------------------
+    gff_from_json(assemblies, dir_prj_ips)
 
 ##############################################################################
 
