@@ -93,8 +93,8 @@ def main():
     """Run the script."""
     print('\nPython version: {pv}'.format(pv=PY_V_STR))
     print('Operating system: {os}'.format(os=OS_STR))
-    print('System info: {cpus} CPUs, {ram} GB RAM\n'.format(cpus=THREADS,
-                                                            ram=RAM))
+    print('System info: {cpus} CPUs, {ram} GB RAM\n'.format(
+        cpus=THREADS, ram='{0:.2f}'.format(RAM)))
 
     # Remove configuration directory, if requested ---------------------------
     if CLEAN_CONFIG_DIR and ope(DIR_CFG):
@@ -188,7 +188,7 @@ def main():
     dir_prj_blast_results_fa_trim = __['dir_prj_blast_results_fa_trim']
     dir_prj_vsearch_results_fa_trim = __['dir_prj_vsearch_results_fa_trim']
     dir_prj_spades_assemblies = __['dir_prj_spades_assemblies']
-    dir_blast_assmbl = __['dir_blast_assmbl']
+    dir_prj_blast_assmbl = __['dir_prj_blast_assmbl']
     dir_prj_assmbl_blast_results = __['dir_prj_assmbl_blast_results']
     dir_prj_transcripts = __['dir_prj_transcripts']
     dir_prj_ips = __['dir_prj_ips']
@@ -334,7 +334,7 @@ def main():
     # Run makeblastdb on assemblies  -----------------------------------------
     if len(se_fastq_files) == 0 and len(pe_fastq_files) == 0:
         print()
-    makeblastdb_assemblies(assemblies, dir_blast_assmbl, makeblastdb)
+    makeblastdb_assemblies(assemblies, dir_prj_blast_assmbl, makeblastdb)
 
     # Run tblastn on assemblies ----------------------------------------------
     run_tblastn_on_assemblies(assemblies, aa_queries_file, tblastn,

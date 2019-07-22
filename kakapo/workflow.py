@@ -68,7 +68,7 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
     dir_cache_prj = opj(dir_cache, 'projects', prj_name)
     make_dir(dir_cache_prj)
 
-    dir_prj = opj(dir_out, '01-projects', prj_name)
+    dir_prj = opj(dir_out, '01-project-specific', prj_name)
     make_dir(dir_prj)
 
     dir_prj_queries = opj(dir_prj, '01-queries')
@@ -84,31 +84,31 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
     dir_prj_spades_assemblies = opj(dir_prj, '04-spades-assemblies')
     make_dir(dir_prj_spades_assemblies)
 
-    dir_prj_assmbl_blast_results = opj(dir_prj, '05-assembly-blast-results')
+    dir_prj_blast_assmbl = opj(dir_prj, '05-assemblies-blast-db-data')
+    make_dir(dir_prj_blast_assmbl)
+
+    dir_prj_assmbl_blast_results = opj(dir_prj, '06-assemblies-blast-results')
     make_dir(dir_prj_assmbl_blast_results)
 
-    dir_prj_transcripts = opj(dir_prj, '06-transcripts')
+    dir_prj_transcripts = opj(dir_prj, '07-transcripts')
     make_dir(dir_prj_transcripts)
 
     dir_prj_ips = dir_prj_transcripts
 
-    # dir_prj_ips = opj(dir_prj, '07-inter_pro_scan')
-    # make_dir(dir_prj_ips)
+    dir_global = opj(dir_out, '02-global')
+    make_dir(dir_global)
 
-    dir_fq_data = opj(dir_out, '11-sra-fq-data')
+    dir_fq_data = opj(dir_global, '01-sra-fq-data')
     make_dir(dir_fq_data)
 
-    dir_fq_trim_data = opj(dir_out, '12-trimmed-fq-data')
+    dir_fq_trim_data = opj(dir_global, '02-trimmed-fq-data')
     make_dir(dir_fq_trim_data)
 
-    dir_fa_trim_data = opj(dir_out, '13-trimmed-fa-data')
+    dir_fa_trim_data = opj(dir_global, '03-trimmed-fa-data')
     make_dir(dir_fa_trim_data)
 
-    dir_blast_fa_trim = opj(dir_out, '14-trimmed-fa-blast-db-data')
+    dir_blast_fa_trim = opj(dir_global, '04-trimmed-fa-blast-db-data')
     make_dir(dir_blast_fa_trim)
-
-    dir_blast_assmbl = opj(dir_out, '31-assemblies-blast-db-data')
-    make_dir(dir_blast_assmbl)
 
     ret_dict = {'dir_temp': dir_temp,
                 'dir_cache': dir_cache,
@@ -125,7 +125,7 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
                 'dir_prj_vsearch_results_fa_trim':
                     dir_prj_vsearch_results_fa_trim,
                 'dir_prj_spades_assemblies': dir_prj_spades_assemblies,
-                'dir_blast_assmbl': dir_blast_assmbl,
+                'dir_prj_blast_assmbl': dir_prj_blast_assmbl,
                 'dir_prj_assmbl_blast_results': dir_prj_assmbl_blast_results,
                 'dir_prj_transcripts': dir_prj_transcripts,
                 'dir_prj_ips': dir_prj_ips}
@@ -909,14 +909,14 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
         print()
 
 
-def makeblastdb_assemblies(assemblies, dir_blast_assmbl, makeblastdb):  # noqa
+def makeblastdb_assemblies(assemblies, dir_prj_blast_assmbl, makeblastdb):  # noqa
 
     if len(assemblies) > 0:
         print('Building BLAST databases for assemblies:\n')
     for a in assemblies:
         assmbl_name = a['name']
 
-        assmbl_blast_db_dir = opj(dir_blast_assmbl, assmbl_name)
+        assmbl_blast_db_dir = opj(dir_prj_blast_assmbl, assmbl_name)
         assmbl_blast_db_file = opj(assmbl_blast_db_dir, assmbl_name)
 
         a['blast_db_path'] = assmbl_blast_db_file
