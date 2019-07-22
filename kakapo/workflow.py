@@ -51,7 +51,7 @@ from kakapo.vsearch import run_cluster_fast, run_vsearch
 
 def prepare_output_directories(dir_out, prj_name):  # noqa
 
-    # -- ToDo: Lock cache files in case of parallel execution ------------
+    # ToDo: Lock cache files in case of parallel execution -------------------
 
     dir_temp = opj(dir_out, '00-temp')
     make_dir(dir_temp)
@@ -976,7 +976,7 @@ def run_tblastn_on_assemblies(assemblies, aa_queries_file, tblastn,
 
 
 def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
-                        dir_temp, only_atg_as_start_codon):  # noqa
+                        dir_temp, prepend_assmbl, only_atg_as_start_codon):  # noqa
 
     if len(assemblies) > 0:
         print('Analyzing BLAST hits for assemblies:\n')
@@ -984,10 +984,6 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
     for a in assemblies:
 
         assmbl_name = a['name']
-
-        # print('\t' + '-' * 80)
-        print('\t' + assmbl_name)
-        print('\t' + '-' * 80)
 
         parsed_hits = a['blast_hits_aa']
         a_path = a['path']
@@ -1033,6 +1029,9 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
         if __.strip() == '':
             continue
 
+        print('\t' + assmbl_name)
+        print('\t' + '-' * 80)
+
         __ = trim_desc_to_first_space_in_fasta_text(__)
 
         parsed_fasta = parse_fasta_text(__)
@@ -1042,6 +1041,10 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
 
             target_name = hit['sseqid']
             target_seq = parsed_fasta[target_name]
+
+            # Prepend assembly name to the sequence name:
+            if prepend_assmbl is True:
+                target_name = assmbl_name + '__' + target_name
 
             hit_start = hit['start']
             hit_end = hit['end']
@@ -1080,8 +1083,6 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
                     ann_hit_b = len(target_seq) - hit_start
                     ann_hit_e = len(target_seq) - hit_end
                     target_name = target_name + '__revcomp'
-
-                target_name = assmbl_name + '__' + target_name
 
                 a['annotations'][target_name] = {}
                 a['annotations'][target_name]['orf_begin'] = ann_orf_b
@@ -1136,7 +1137,12 @@ def run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj):  # noqa
         print('Running InterProScan 5 for assemblies:\n')
 
     for a in assemblies:
+
+        if 'transcripts_aa_orf_fasta_file' not in a:
+            continue
+
         aa_file = a['transcripts_aa_orf_fasta_file']
+
         if aa_file is None:
             continue
 
@@ -1148,8 +1154,6 @@ def run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj):  # noqa
             print('\tInterProScan 5 results for assembly ' + assmbl_name +
                   ' have already been downloaded.')
             continue
-
-        # print(assmbl_name)
 
         seqs = read_fasta_file_dict(aa_file)
 
@@ -1218,7 +1222,12 @@ def gff_from_json(assemblies, dir_prj_ips):  # noqa
         print('\nProducing GFF3 file for InterProScan 5 results:\n')
 
     for a in assemblies:
+
+        if 'transcripts_aa_orf_fasta_file' not in a:
+            continue
+
         aa_file = a['transcripts_aa_orf_fasta_file']
+
         if aa_file is None:
             continue
 

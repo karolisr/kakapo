@@ -133,6 +133,7 @@ def main():
     email = __['email']
     dir_out = __['output_directory']
     inter_pro_scan = __['inter_pro_scan']
+    prepend_assmbl = __['prepend_assmbl']
     sras = __['sras']
     fq_pe = __['fq_pe']
     fq_se = __['fq_se']
@@ -346,7 +347,7 @@ def main():
 
     # Prepare BLAST hits for analysis: find ORFs, translate ------------------
     find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
-                        dir_temp, only_atg_as_start_codon=True)
+                        dir_temp, prepend_assmbl, only_atg_as_start_codon=True)
 
     # Run InterProScan 5 -----------------------------------------------------
     if inter_pro_scan is True:

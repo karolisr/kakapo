@@ -85,6 +85,8 @@ def config_file_parse(file_path, taxonomy):  # noqa
     output_directory = abspath(expanduser(cfg.get(
         'General', 'output_directory')))
     inter_pro_scan = cfg.getboolean('General', 'run_inter_pro_scan')
+    prepend_assmbl = cfg.getboolean('General',
+                                    'prepend_assembly_name_to_sequence_name')
 
     # Target SRA accessions
     sras = cfg.items('Target SRA accessions')
@@ -180,6 +182,7 @@ def config_file_parse(file_path, taxonomy):  # noqa
                 'email': email,
                 'output_directory': output_directory,
                 'inter_pro_scan': inter_pro_scan,
+                'prepend_assmbl': prepend_assmbl,
                 'sras': sras,
                 'fq_pe': fq_pe,
                 'fq_se': fq_se,
