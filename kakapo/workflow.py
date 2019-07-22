@@ -1030,6 +1030,9 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
         with open(temp_a_file, 'r') as f:
             __ = f.read()
 
+        if __.strip() == '':
+            continue
+
         __ = trim_desc_to_first_space_in_fasta_text(__)
 
         parsed_fasta = parse_fasta_text(__)
