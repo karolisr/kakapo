@@ -375,7 +375,7 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
                 sra_dnld_needed = True
 
         if sra_dnld_needed:
-            print('Downloading FASTQ reads for the SRA accession ' + sra)
+            print('\nDownloading FASTQ reads for the SRA accession ' + sra)
             cmd = [fasterq_dump,
                    '--threads', str(threads),
                    '--split-files',
