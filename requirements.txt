@@ -1,4 +1,4 @@
 requests
 xmltodict
 distro
-git+https://github.com/karolisr/ncbi-taxonomy-local
+ncbi-taxonomy-local @ https://github.com/karolisr/ncbi-taxonomy-local/archive/master.zip

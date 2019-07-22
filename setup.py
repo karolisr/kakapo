@@ -5,6 +5,11 @@ with open('README.md', 'r') as f:
 
 description = 'Extract and annotate protein family members from transcriptomes'
 
+with open('requirements.txt', 'r') as f:
+    reqs = f.read()
+
+reqs = reqs.split('\n')[0:-1]
+
 setuptools.setup(
     name='kakapo',
     version='0.0.1',
@@ -15,6 +20,7 @@ setuptools.setup(
     long_description_content_type='text/markdown',
     url='https://github.com/karolisr/kakapo',
     packages=setuptools.find_packages(),
+    install_requires=reqs,
     classifiers=[
         'Programming Language :: Python :: 3',
         'License :: cc-by-sa-4.0',
