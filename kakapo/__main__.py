@@ -82,6 +82,10 @@ ARGS = PARSER.parse_args()
 CLEAN_CONFIG_DIR = ARGS.CLEAN_CONFIG_DIR
 CONFIG_FILE_PATH = ARGS.CONFIG_FILE_PATH
 
+if not ope(CONFIG_FILE_PATH):
+    print('Configuration file: ' + CONFIG_FILE_PATH + ' does not exist.')
+    exit(0)
+
 # ----------------------------------------------------------------------------
 
 
