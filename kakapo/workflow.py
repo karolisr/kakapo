@@ -132,11 +132,11 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
 
 def descending_tax_ids(tax_ids_user, taxonomy):  # noqa
     if len(tax_ids_user) > 0:
-        print('Resolving descending nodes for:')
+        print('Resolving descending nodes for:\n')
     tax_ids = []
     for tx in tax_ids_user:
         tx_name = taxonomy.scientific_name_for_taxid(taxid=tx)
-        print('\t\t' + str(tx) + ': ' + tx_name)
+        print('\t' + str(tx) + ':\t' + tx_name)
         tax_ids_for_tx = taxonomy.all_descending_taxids(taxid=tx)
         tax_ids = tax_ids + tax_ids_for_tx
     tax_ids = list(set(tax_ids))
@@ -148,11 +148,11 @@ def descending_tax_ids(tax_ids_user, taxonomy):  # noqa
 
 def pfam_uniprot_accessions(pfam_acc, tax_ids, dir_cache_pfam_acc):  # noqa
     if len(pfam_acc) > 0:
-        print('\nDownloading UniProt accessions for Pfam families:')
+        print('\nDownloading UniProt accessions for Pfam families:\n')
     pfam_seqs_list = []
     for pa in pfam_acc:
         pfam_id = pfam_entry(pa)[0]['id']
-        print('\t\t' + pa + ': ' + pfam_id)
+        print('\t' + pa + ': ' + pfam_id)
         __ = opj(dir_cache_pfam_acc, pa)
         if ope(__):
             with open(__, 'rb') as f:
@@ -196,7 +196,7 @@ def dnld_pfam_uniprot_seqs(uniprot_acc, aa_uniprot_file, dir_cache_prj):  # noqa
 
 def user_protein_accessions(prot_acc_user):  # noqa
     if len(prot_acc_user) > 0:
-        print('Reading user provided protein accessions:')
+        print('Reading user provided protein accessions:\n')
         pa_info = entrez_summary(prot_acc_user, 'protein')
         prot_acc = []
         for pa in pa_info:
@@ -204,7 +204,11 @@ def user_protein_accessions(prot_acc_user):  # noqa
             title = title[0].upper() + title[1:]
             acc = pa['AccessionVersion']
             prot_acc.append(acc)
-            print('\t\t' + acc + ': ' + title)
+
+            if len(title) > 60:
+                title = title[0:57] + '...'
+
+            print('\t' + acc + ': ' + title)
         print()
 
         return prot_acc
@@ -265,9 +269,9 @@ def filter_queries(aa_queries_file, min_query_length, max_query_length): # noqa
     with open(aa_queries_file, 'r') as f:
         __ = f.read()
 
-    print('Filtering AA query sequences:')
-    print('\t\tmin_query_length: ' + str(min_query_length))
-    print('\t\tmax_query_length: ' + str(max_query_length))
+    print('Filtering AA query sequences:\n')
+    print('\tmin_query_length: ' + str(min_query_length))
+    print('\tmax_query_length: ' + str(max_query_length))
 
     __ = filter_fasta_text_by_length(__, min_query_length, max_query_length)
 
@@ -385,7 +389,7 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
 
         else:
             print('\tFASTQ reads for the SRA run ' + sra +
-                  ' are available locally.\n')
+                  ' are available locally.')
 
     return se_fastq_files, pe_fastq_files
 
@@ -393,7 +397,7 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
 def user_fastq_files(fq_se, fq_pe): # noqa
 
     if len(fq_se) > 0 or len(fq_pe) > 0:
-        print('Preparing user provided FASTQ files:\n')
+        print('\nPreparing user provided FASTQ files:\n')
 
     se_fastq_files = {}
     pe_fastq_files = {}
@@ -417,7 +421,7 @@ def user_fastq_files(fq_se, fq_pe): # noqa
 def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
                         dir_cache_fq_minlen, vsearch): # noqa
 
-    print('Calculating minimum acceptable read length:\n')
+    print('\nCalculating minimum acceptable read length:\n')
 
     __ = opj(dir_cache_fq_minlen, 'minlen')
 
@@ -849,10 +853,10 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
             tr_str = ' transcripts.'
             if count == 1:
                 tr_str = ' transcript.'
-            print('\t\tSPAdes produced ' + str(count) + tr_str)
+            print('\n\tSPAdes produced ' + str(count) + tr_str)
             se_fastq_files[se]['spades_assembly'] = assmbl_path
         else:
-            print('\t\tSPAdes produced no transcripts.')
+            print('\n\tSPAdes produced no transcripts.')
         print()
 
     for pe in pe_fastq_files:
@@ -878,10 +882,10 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
             tr_str = ' transcripts.'
             if count == 1:
                 tr_str = ' transcript.'
-            print('\t\tSPAdes produced ' + str(count) + tr_str)
+            print('\n\tSPAdes produced ' + str(count) + tr_str)
             pe_fastq_files[pe]['spades_assembly'] = assmbl_path
         else:
-            print('\t\tSPAdes produced no transcripts.')
+            print('\n\tSPAdes produced no transcripts.')
         print()
 
 
@@ -898,9 +902,9 @@ def makeblastdb_assemblies(assemblies, dir_blast_assmbl, makeblastdb):  # noqa
         a['blast_db_path'] = assmbl_blast_db_file
 
         if ope(assmbl_blast_db_dir):
-            print('\t\tBLAST database for ' + assmbl_name + ' already exists.')
+            print('\tBLAST database for ' + assmbl_name + ' already exists.')
         else:
-            print('\t\t' + assmbl_name)
+            print('\t' + assmbl_name)
             make_dir(assmbl_blast_db_dir)
             make_blast_db(exec_file=makeblastdb,
                           in_file=a['path'],
@@ -925,7 +929,7 @@ def run_tblastn_on_assemblies(assemblies, aa_queries_file, tblastn,
         __ = opj(dir_prj_assmbl_blast_results, assmbl_name + '.tsv')
 
         if ope(__):
-            print('BLAST results for assembly ' + assmbl_name +
+            print('\tBLAST results for assembly ' + assmbl_name +
                   ' already exist.')
         else:
 
@@ -1082,7 +1086,7 @@ def run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj):  # noqa
     delay = 1
 
     if len(assemblies) > 0:
-        print('Running InterProScan 5 for assemblies:')
+        print('Running InterProScan 5 for assemblies:\n')
 
     for a in assemblies:
         aa_file = a['transcripts_aa_orf_fasta_file']
@@ -1094,7 +1098,7 @@ def run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj):  # noqa
         json_dump_file_path = opj(dir_prj_ips, assmbl_name + '.json')
 
         if ope(json_dump_file_path):
-            print('InterProScan 5 results for assembly ' + assmbl_name +
+            print('\tInterProScan 5 results for assembly ' + assmbl_name +
                   ' have already been downloaded.')
             continue
 
@@ -1114,7 +1118,7 @@ def run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj):  # noqa
             with open(__, 'wb') as f:
                 pickle.dump(jobs, f, protocol=PICKLE_PROTOCOL)
 
-        print('Downloading InterProScan 5 Results.')
+        print('\n\tDownloading InterProScan 5 Results.')
 
         all_ips_results = {}
 
@@ -1164,7 +1168,7 @@ def run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj):  # noqa
 def gff_from_json(assemblies, dir_prj_ips):  # noqa
 
     if len(assemblies) > 0:
-        print('Producing GFF3 file for InterProScan 5 results:')
+        print('\nProducing GFF3 file for InterProScan 5 results:\n')
 
     for a in assemblies:
         aa_file = a['transcripts_aa_orf_fasta_file']
@@ -1178,5 +1182,5 @@ def gff_from_json(assemblies, dir_prj_ips):  # noqa
         gff_path = transcripts_nt_path.replace('.fasta', '.gff')
 
         if ope(json_path):
-            print('\t\t' + assmbl_name)
+            print('\t' + assmbl_name)
             gff_from_kakapo_ips5_json_file(json_path, gff_path)

@@ -85,7 +85,7 @@ CONFIG_FILE_PATH = ARGS.CONFIG_FILE_PATH
 
 def main():
     """Run the script."""
-    print('\n\nPython version: {pv}'.format(pv=PY_V_STR))
+    print('\nPython version: {pv}'.format(pv=PY_V_STR))
     print('Operating system: {os}'.format(os=OS_STR))
     print('System info: {cpus} CPUs, {ram} GB RAM\n'.format(cpus=THREADS,
                                                             ram=RAM))
@@ -346,6 +346,7 @@ def main():
 ##############################################################################
 
     rmtree(dir_temp)
+    print('')
 
 ##############################################################################
 
