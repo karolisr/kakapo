@@ -1074,8 +1074,8 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
                     target_seq = reverse_complement(target_seq)
                     ann_orf_b = len(target_seq) - orf[1]
                     ann_orf_e = len(target_seq) - orf[0]
-                    ann_hit_b = hit_end
-                    ann_hit_e = hit_start
+                    ann_hit_b = len(target_seq) - hit_start
+                    ann_hit_e = len(target_seq) - hit_end
                     target_name = target_name + '__revcomp'
 
                 target_name = assmbl_name + '__' + target_name

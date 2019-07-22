@@ -57,15 +57,15 @@ def list_of_files(path):  # noqa
 def download_file(url, local_path):  # noqa
 
     try:
-        debug_print('Trying urlretrieve')
+        # debug_print('Trying urlretrieve')
         urlretrieve(url, local_path)
     except Exception:
         try:
-            debug_print('Trying curl')
+            # debug_print('Trying curl')
             call(['/usr/bin/curl', '-L', '-o', local_path, url])
         except Exception:
             try:
-                debug_print('Trying wget')
+                # debug_print('Trying wget')
                 call(['wget', '-O', local_path, url])
             except Exception:
                 print("\nDownload operation failed.")
