@@ -5,3 +5,10 @@
 # kakapo
 
 Extract and annotate specified protein families from Sequence Read Archive (SRA), FASTQ files, or assembled transcriptomes.
+
+Installation
+
+```bash
+sudo -H pip install --upgrade git+https://github.com/karolisr/ncbi-taxonomy-local
+sudo -H pip install --upgrade git+https://github.com/karolisr/kakapo
+```
