@@ -10,6 +10,8 @@ from __future__ import nested_scopes
 from __future__ import print_function
 from __future__ import with_statement
 
+import argparse
+
 from os.path import basename
 from os.path import exists as ope
 from os.path import join as opj
@@ -52,8 +54,33 @@ from kakapo.workflow import user_protein_accessions
 
 
 # Command line arguments -----------------------------------------------------
-CLEAN_CONFIG_DIR = False
-CONFIG_FILE_PATH = 'tests/data/kakapo.ini'
+
+# CLEAN_CONFIG_DIR = False
+# CONFIG_FILE_PATH = 'tests/data/kakapo.ini'
+
+PARSER = argparse.ArgumentParser()
+
+PARSER.add_argument(
+    '-clean-config-dir',
+    action='store_true',
+    required=False,
+    dest='CLEAN_CONFIG_DIR',
+    help='remove all downloaded configuration files and software \
+          dependencies.')
+
+PARSER.add_argument(
+    '-config-file',
+    type=str,
+    required=True,
+    dest='CONFIG_FILE_PATH',
+    help='path to configuration (.ini) file.')
+
+ARGS = PARSER.parse_args()
+
+CLEAN_CONFIG_DIR = ARGS.CLEAN_CONFIG_DIR
+CONFIG_FILE_PATH = ARGS.CONFIG_FILE_PATH
+
+# ----------------------------------------------------------------------------
 
 
 def main():
