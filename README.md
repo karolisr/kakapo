@@ -6,7 +6,14 @@
 
 Extract and annotate specified protein families from Sequence Read Archive (SRA), FASTQ files, or assembled transcriptomes.
 
-Installation
+Installation:
+
+```bash
+pip install --upgrade git+https://github.com/karolisr/ncbi-taxonomy-local
+pip install --upgrade git+https://github.com/karolisr/kakapo
+```
+
+or:
 
 ```bash
 sudo -H pip install --upgrade git+https://github.com/karolisr/ncbi-taxonomy-local
