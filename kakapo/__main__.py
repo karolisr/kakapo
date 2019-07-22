@@ -60,7 +60,9 @@ from kakapo.workflow import user_protein_accessions
 
 PARSER = argparse.ArgumentParser()
 
-PARSER.add_argument(
+ARGS_GROUP_INPUT = PARSER.add_mutually_exclusive_group(required=True)
+
+ARGS_GROUP_INPUT.add_argument(
     '-clean-config-dir',
     action='store_true',
     required=False,
@@ -68,10 +70,10 @@ PARSER.add_argument(
     help='remove all downloaded configuration files and software \
           dependencies.')
 
-PARSER.add_argument(
+ARGS_GROUP_INPUT.add_argument(
     '-config-file',
     type=str,
-    required=True,
+    required=False,
     dest='CONFIG_FILE_PATH',
     help='path to configuration (.ini) file.')
 
@@ -94,6 +96,8 @@ def main():
     if CLEAN_CONFIG_DIR and ope(DIR_CFG):
         print('Removing configuration directory:\n\t\t' + DIR_CFG + '\n')
         rmtree(DIR_CFG)
+        exit(0)
+    elif CLEAN_CONFIG_DIR:
         exit(0)
 
     # Create config directory with all the subdirectories --------------------
