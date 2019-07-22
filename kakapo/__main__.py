@@ -146,7 +146,7 @@ def main():
 
     # Genetic code information and translation tables ------------------------
 
-    print('Loading genetic code information and translation tables for ' +
+    print('\nLoading genetic code information and translation tables for ' +
           tax_group_name + '\n')
 
     gc = tax.genetic_code_for_taxid(tax_group)

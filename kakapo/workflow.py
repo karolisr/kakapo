@@ -385,7 +385,7 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
 
         else:
             print('\tFASTQ reads for the SRA run ' + sra +
-                  ' are available locally.')
+                  ' are available locally.\n')
 
     return se_fastq_files, pe_fastq_files
 
@@ -393,7 +393,7 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
 def user_fastq_files(fq_se, fq_pe): # noqa
 
     if len(fq_se) > 0 or len(fq_pe) > 0:
-        print('\nPreparing user provided FASTQ files:\n')
+        print('Preparing user provided FASTQ files:\n')
 
     se_fastq_files = {}
     pe_fastq_files = {}
