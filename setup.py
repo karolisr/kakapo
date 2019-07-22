@@ -20,4 +20,5 @@ setuptools.setup(
         'License :: cc-by-sa-4.0',
         'Operating System :: OS Independent',
     ],
+    entry_points={'console_scripts': ['kakapo=kakapo.__main__:main']}
 )
