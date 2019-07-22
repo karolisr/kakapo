@@ -408,6 +408,17 @@ def standardize_fasta_text(text): # noqa
     return t
 
 
+def trim_desc_to_first_space_in_fasta_text(text): # noqa
+    parsed_fasta = parse_fasta_text(text)
+    t = ''
+    for k in parsed_fasta:
+        desc = k.split(' ')[0]
+        desc = '>' + desc
+        seq = parsed_fasta[k]
+        t = t + desc + '\n' + seq + '\n'
+    return t
+
+
 def filter_fasta_text_by_length(fasta_text, min_len, max_len): # noqa
     parsed_fasta = parse_fasta_text(fasta_text)
 

@@ -24,6 +24,7 @@ from kakapo.bioio import parse_fasta_text
 from kakapo.bioio import read_fasta_file, read_fasta_file_dict
 from kakapo.bioio import sra_info
 from kakapo.bioio import standardize_fasta_text
+from kakapo.bioio import trim_desc_to_first_space_in_fasta_text
 from kakapo.bioio import write_fasta_file
 from kakapo.blast import BLST_RES_COLS_1, BLST_RES_COLS_2
 from kakapo.blast import collate_blast_results
@@ -36,6 +37,7 @@ from kakapo.ebi_domain_search import prot_ids_for_tax_ids
 from kakapo.ebi_iprscan5 import job_runner
 from kakapo.ebi_iprscan5 import result_json
 from kakapo.ebi_proteins import fasta_by_accession_list
+from kakapo.gff3 import gff_from_kakapo_ips5_json_file
 from kakapo.helpers import combine_text_files
 from kakapo.helpers import keep_unique_lines_in_file
 from kakapo.helpers import make_dir
@@ -46,7 +48,6 @@ from kakapo.shell import call
 from kakapo.spades import run_spades_se, run_spades_pe
 from kakapo.trimmomatic import trimmomatic_se, trimmomatic_pe
 from kakapo.vsearch import run_cluster_fast, run_vsearch
-from kakapo.gff3 import gff_from_kakapo_ips5_json_file
 
 def prepare_output_directories(dir_out, prj_name):  # noqa
 
@@ -974,8 +975,8 @@ def run_tblastn_on_assemblies(assemblies, aa_queries_file, tblastn,
         print()
 
 
-def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt,
-                        only_atg_as_start_codon):  # noqa
+def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
+                        dir_temp, only_atg_as_start_codon):  # noqa
 
     if len(assemblies) > 0:
         print('Analyzing BLAST hits for assemblies:\n')
@@ -1006,11 +1007,33 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt,
 
         a['annotations'] = {}
 
-        with open(a_path, 'r') as f:
+        collated = collate_blast_results(parsed_hits)
+
+        ######################################################################
+        # Use seqtk to sample the assembly FASTA file for sequences with
+        # BLAST hits. This increases the speed substantially when the assembly
+        # file is large.
+        temp_a_file = opj(dir_temp, 'temp.fasta')
+        temp_s_file = opj(dir_temp, 'temp.txt')
+        sseqids_subsample = []
+        for hit in collated:
+            target_name = hit['sseqid']
+            sseqids_subsample.append(target_name)
+        sseqids_subsample_text = '\n'.join(sseqids_subsample)
+        with open(temp_s_file, 'w') as f:
+            f.write(sseqids_subsample_text)
+        seqtk_extract_reads(seqtk,
+                            in_file=a_path,
+                            out_file=temp_a_file,
+                            ids_file=temp_s_file)
+
+        with open(temp_a_file, 'r') as f:
             __ = f.read()
 
+        __ = trim_desc_to_first_space_in_fasta_text(__)
+
         parsed_fasta = parse_fasta_text(__)
-        collated = collate_blast_results(parsed_hits)
+        ######################################################################
 
         for hit in collated:
 
