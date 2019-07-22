@@ -15,6 +15,7 @@ from os.path import join as opj
 from os.path import splitext
 from shutil import copyfile
 from time import sleep
+from sys import exit
 
 from kakapo.bioio import dnld_ncbi_seqs
 from kakapo.bioio import entrez_summary
@@ -213,6 +214,9 @@ def user_protein_accessions(prot_acc_user):  # noqa
 
         return prot_acc
 
+    else:
+        return prot_acc_user
+
 
 def dnld_prot_seqs(prot_acc_user, aa_prot_ncbi_file, dir_cache_prj):  # noqa
     if len(prot_acc_user) != 0:
@@ -256,12 +260,16 @@ def combine_aa_fasta(fasta_files, aa_queries_file):  # noqa
     print('Combining all AA query sequences.\n')
     __ = ''
     for fasta_file in fasta_files:
-        with open(fasta_file, 'r') as f:
-            __ = __ + f.read()
+        if ope(fasta_file):
+            with open(fasta_file, 'r') as f:
+                __ = __ + f.read()
 
     if __ != '':
         with open(aa_queries_file, 'w') as f:
             f.write(__)
+    else:
+        print('No queries were provided. Exiting.')
+        exit(0)
 
 
 def filter_queries(aa_queries_file, min_query_length, max_query_length): # noqa
@@ -280,10 +288,12 @@ def filter_queries(aa_queries_file, min_query_length, max_query_length): # noqa
 
 
 def dnld_sra_info(sras, dir_cache_prj):  # noqa
+    sra_runs_info = {}
+
     if len(sras) > 0:
         print('\nDownloading SRA run information:\n')
-
-    sra_runs_info = {}
+    else:
+        return sra_runs_info
 
     __ = opj(dir_cache_prj, 'sra_runs_info_cache')
 
@@ -421,7 +431,10 @@ def user_fastq_files(fq_se, fq_pe): # noqa
 def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
                         dir_cache_fq_minlen, vsearch): # noqa
 
-    print('\nCalculating minimum acceptable read length:\n')
+    if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
+        print('\nCalculating minimum acceptable read length:\n')
+    else:
+        return None
 
     __ = opj(dir_cache_fq_minlen, 'minlen')
 
@@ -537,7 +550,8 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
                 threads=threads,
                 minlen=min_acc_len)
 
-    print()
+    if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
+        print()
 
 
 def trimmed_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
@@ -576,7 +590,8 @@ def trimmed_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
 def makeblastdb_fq(se_fastq_files, pe_fastq_files, dir_blast_fa_trim,
                    makeblastdb, fpatt): # noqa
 
-    print()
+    if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
+        print()
 
     for se in se_fastq_files:
         dir_blast_fa_trim_sample = opj(dir_blast_fa_trim, se)
@@ -624,7 +639,8 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                          dir_blast_results_fa_trim, fpatt, threads,
                          genetic_code, seqtk, vsearch): # noqa
 
-    print()
+    if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
+        print()
 
     ident = 0.85
 
@@ -725,7 +741,9 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
 
 def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
                          dir_vsearch_results_fa_trim, fpatt, seqtk): # noqa
-    print()
+
+    if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
+        print()
 
     ident = 0.85
 
@@ -828,7 +846,8 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
 def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
                spades, threads, ram):  # noqa
 
-    print()
+    if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
+        print()
 
     for se in se_fastq_files:
         dir_results = opj(dir_spades_assemblies, se)
@@ -911,7 +930,8 @@ def makeblastdb_assemblies(assemblies, dir_blast_assmbl, makeblastdb):  # noqa
                           out_file=assmbl_blast_db_file,
                           title=assmbl_name)
 
-    print()
+    if len(assemblies) > 0:
+        print()
 
 
 def run_tblastn_on_assemblies(assemblies, aa_queries_file, tblastn,
@@ -933,7 +953,7 @@ def run_tblastn_on_assemblies(assemblies, aa_queries_file, tblastn,
                   ' already exist.')
         else:
 
-            print('\t\tRunning tblastn on: ' + assmbl_name)
+            print('\tRunning tblastn on: ' + assmbl_name)
 
             run_blast(exec_file=tblastn,
                       task='tblastn',
@@ -950,7 +970,8 @@ def run_tblastn_on_assemblies(assemblies, aa_queries_file, tblastn,
 
         a['blast_hits_aa'] = parse_blast_results_file(__, BLST_RES_COLS_2)
 
-    print()
+    if len(assemblies) > 0:
+        print()
 
 
 def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt,

@@ -328,6 +328,8 @@ def main():
         assemblies.append(a)
 
     # Run makeblastdb on assemblies  -----------------------------------------
+    if len(se_fastq_files) == 0 and len(pe_fastq_files) == 0:
+        print()
     makeblastdb_assemblies(assemblies, dir_blast_assmbl, makeblastdb)
 
     # Run tblastn on assemblies ----------------------------------------------
