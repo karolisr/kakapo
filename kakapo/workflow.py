@@ -1164,12 +1164,14 @@ def run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj):  # noqa
                 jobs = pickle.load(f)
 
         else:
+            print()
             jobs = job_runner(email=email, dir_cache=dir_cache_prj, seqs=seqs)
 
             with open(__, 'wb') as f:
                 pickle.dump(jobs, f, protocol=PICKLE_PROTOCOL)
 
-        print('\n\tDownloading InterProScan 5 Results.')
+        print('\n\tDownloading InterProScan 5 results for transcripts in ' +
+              assmbl_name + '\n')
 
         all_ips_results = {}
 
@@ -1182,9 +1184,11 @@ def run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj):  # noqa
             ips_json = ips_json['results']
 
             # These fields have a value: EMBOSS_001 by default
+            # Delete them
             # Replace with our sequence name
-            ips_json[0]['xref'][0]['id'] = job
-            ips_json[0]['xref'][0]['name'] = job
+            # ips_json[0]['xref'][0]['id'] = job
+            # ips_json[0]['xref'][0]['name'] = job
+            del ips_json[0]['xref']
 
             # kakapo annotations
             ips_json[0]['kakapo_annotations'] = a['annotations'][job]
