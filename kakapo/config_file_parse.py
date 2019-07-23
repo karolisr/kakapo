@@ -88,6 +88,16 @@ def config_file_parse(file_path, taxonomy):  # noqa
     prepend_assmbl = cfg.getboolean('General',
                                     'prepend_assembly_name_to_sequence_name')
 
+    # Target filters
+    min_target_orf_len = cfg.getint('Target filters', 'min_target_orf_length')
+    max_target_orf_len = cfg.getint('Target filters', 'max_target_orf_length')
+    allow_non_aug = cfg.getboolean('Target filters',
+                                   'allow_non_aug_start_codon')
+    allow_no_strt_cod = cfg.getboolean('Target filters',
+                                       'allow_missing_start_codon')
+    allow_no_stop_cod = cfg.getboolean('Target filters',
+                                       'allow_missing_stop_codon')
+
     # Target SRA accessions
     sras = cfg.items('Target SRA accessions')
     sras = [x[0] for x in sras]
@@ -183,6 +193,11 @@ def config_file_parse(file_path, taxonomy):  # noqa
                 'output_directory': output_directory,
                 'inter_pro_scan': inter_pro_scan,
                 'prepend_assmbl': prepend_assmbl,
+                'min_target_orf_len': min_target_orf_len,
+                'max_target_orf_len': max_target_orf_len,
+                'allow_non_aug': allow_non_aug,
+                'allow_no_strt_cod': allow_no_strt_cod,
+                'allow_no_stop_cod': allow_no_stop_cod,
                 'sras': sras,
                 'fq_pe': fq_pe,
                 'fq_se': fq_se,

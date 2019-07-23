@@ -109,7 +109,7 @@ def job_runner(email, dir_cache, seqs=None):
     """Run InterProScan 5"""
     ##########################################################################
     MAX_JOBS = 25
-    DELAY = 5
+    DELAY = 10
     CFP = opj(dir_cache, 'ips5_cache')
     ##########################################################################
 
@@ -156,6 +156,11 @@ def job_runner(email, dir_cache, seqs=None):
     not_found = jobs['not_found']
     other = jobs['other']
 
+    ###
+    # Nicer printing
+    max_title_len = max([len(x) for x in list(queue.keys())])
+    ###
+
     busy = True
     while busy:
 
@@ -169,7 +174,10 @@ def job_runner(email, dir_cache, seqs=None):
                 sequence = queue.pop(title)
                 job_id = submit_job(email, title, sequence)
                 running[title] = job_id
-                print('status:', title, job_id, 'SUBMITTED')
+                title_len = len(title)
+                title_len_diff = max_title_len - title_len
+                print('status:', title, title_len_diff * ' ', '\t', job_id,
+                      '\t', 'SUBMITTED')
 
         if len(running) > 0:
 
@@ -211,7 +219,10 @@ def job_runner(email, dir_cache, seqs=None):
                     other[title] = job_id
 
                 if job_status != 'RUNNING':
-                    print('status:', title, job_id, job_status)
+                    title_len = len(title)
+                    title_len_diff = max_title_len - title_len
+                    print('status:', title, title_len_diff * ' ', '\t',
+                          job_id, '\t', job_status)
 
         if len(running) == 0 and len(queue) == 0:
             busy = False

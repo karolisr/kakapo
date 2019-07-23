@@ -118,8 +118,8 @@ def find_orfs(seq, frame, min_len, stop_codons, start_codons=None,
     return zones
 
 
-def find_longest_orf(seq, frame, min_len, stop_codons, start_codons=None,
-                     include_terminal_codon=True):  # noqa
+def find_longest_orfs(seq, frame, min_len, stop_codons, start_codons=None,
+                      include_terminal_codon=True, ret_max=1):  # noqa
 
     orfs = find_orfs(seq, frame, min_len, stop_codons, start_codons,
                      include_terminal_codon)
@@ -128,14 +128,22 @@ def find_longest_orf(seq, frame, min_len, stop_codons, start_codons=None,
         return None
 
     lengths = [x[1] - x[0] for x in orfs]
-    max_len = max(lengths)
-    idx = lengths.index(max_len)
-    longest_orf = orfs[idx]
 
-    return longest_orf
+    # Indexes of reverse-sorted interval sizes between stop codons
+    idx_len = []
+    for l in sorted(lengths, reverse=True):
+        idx = lengths.index(l)
+        # index() finds the first occurence of a value in the list. Replacing
+        # the found value prevents it from being considered again.
+        lengths[idx] = ''
+        idx_len.append(idx)
+
+    orfs_sorted = [orfs[o] for o in idx_len]
+
+    return orfs_sorted[0:ret_max]
 
 
-def find_orf_for_blast_hit(seq, frame, hit_start, hit_end, hit_reduce,
+def find_orf_for_blast_hit(seq, frame, hit_start, hit_end, hit_length_adjust,
                            stop_codons, start_codons=None,
                            include_terminal_codon=True):  # noqa
 
@@ -143,37 +151,129 @@ def find_orf_for_blast_hit(seq, frame, hit_start, hit_end, hit_reduce,
     # without start codon starts before the BLAST hit, return the ORF without
     # start codon.
 
-    min_len = hit_end - hit_start - int(hit_reduce)
+    # min_len = hit_end - hit_start - int(hit_reduce)
+    hit_len = hit_end - hit_start
+    min_len = hit_len * hit_length_adjust
 
     if start_codons is None:
         sc_to_consider = [None]
     else:
-        start_codons = set(start_codons).difference(['ATG'])
-        sc_to_consider = [['ATG'], start_codons, None]
+        sc_to_consider = [['ATG']]
+        start_codons = list(set(start_codons).difference(['ATG']))
+        if len(start_codons) == 0:
+            sc_to_consider.append(None)
+        else:
+            sc_to_consider.append(start_codons)
+            sc_to_consider.append(None)
 
+    orf = None
     for sc in sc_to_consider:
-        orf = find_longest_orf(seq, frame, min_len, stop_codons, sc,
-                               include_terminal_codon=include_terminal_codon)
+        orfs = find_longest_orfs(seq, frame, min_len, stop_codons, sc,
+                                 include_terminal_codon=include_terminal_codon,
+                                 ret_max=100)
 
-        if orf is None:
+        if orfs is None:
             continue
 
-        orf_start = orf[0]
-        orf_end = orf[1]
+        for orf_to_consider in orfs:
 
-        adj = int(hit_reduce / 2)
+            orf_start = orf_to_consider[0]
+            orf_end = orf_to_consider[1]
 
-        if orf_start <= (hit_start + adj) and orf_end >= (hit_end - adj):
+            adj = (hit_len - min_len) / 2
+
+            if orf_start <= (hit_start + adj) and orf_end >= (hit_end - adj):
+                orf = orf_to_consider
+                break
+
+        if orf is not None:
             break
 
-    if orf is None:
-        return None
-
-    # seq_orf = seq[orf_start:orf_end]
-    # print(orf)
-    # if frame < 0:
-    #     print(reverse_complement(seq_orf))
-    # else:
-    #     print(seq_orf)
-
     return orf
+
+
+# if __name__ == '__main__':
+
+#     print('\n')
+
+#     seq = ('CAACACTGAGAAGCCATAGAAATTATAGAATAGAATTGAAGGCCAGCCCCAAGTCCCCAA'
+#            'CCAACCATTCTTGAGGAGTAATTTGCCTCTACGCTCTACCCCCTTCTCTGGAAGAAATCT'
+#            'GAAAGCTTCTTGGAAAACAATGACCAACGACCTCCAACTCCCCCAAGAAATCCTGATTGA'
+#            'TATCTTCTCAAGACTCCCTGCAAAATCAGTAGGCAAGTGCAGGTGCTTATCAAAGCCATG'
+#            'GCAATCCCTCCTTTCCTCCCCTGAATTCATCAAATCCCACCTCAATAAAAACCCCCACCT'
+#            'GGAAAATCTAATTCTCATCTCCCCTACCCACTCAATCCACTCAATCTCCCCCAACCACGA'
+#            'CACGTGCAGAACCCTCCAACTGGGAGACAATTGGGCTGAATTCGTGGGTTCCATCCATGG'
+#            'TCTAGTTTTGCTCCTCAATAAGGAAGAAGAAGACGTGTTCTTGGCCAATCCCACCACTCT'
+#            'GCAGCAGGTAAAAATCCCTGATTCCCCTCTTGCTTTGAAAAGGGACGAGAGTTTTAGAAT'
+#            'GCACGGGTTCGGGTACGATAGTTGTAACGATGATTACAAGATCGTGACGCTGTCTTATTA'
+#            'CAATACCGACAATGAATATGAGCCGGATTGTGCGGATACATTTGTGGACGTATATTCTGT'
+#            'GAAAATGGGTGTTTGGAAAAGGGTTGGCACTTCTCCTTATGATCATGCTGTTCCTTATCT'
+#            'TTCCTCGGGGGCTTTTGCGAATGGTTGTGTCCATTGGTTGGCCAGCAGTAGGGCTCCGGG'
+#            'TTATCTCTCTGTTATCGCGGCTTTTGACTTGGCACATGAGGTGTTTGATGAAATGCCACC'
+#            'TCCGGATGGGGTTGATGTGGACAAGTTTGTGTTTAATAGACTCGCGGTTCTTGGGGGTTG'
+#            'TCTTTGTATGGTCGATATTAAAAACAGTGGTGGAGCGGATGTTTGGATTATGAAGGAGTA'
+#            'TGGTTTGGGTGATTCTTGGATGAAGTTTAGTATTGATGTTGGTTGCGTTCGGTGGGATGT'
+#            'GATTAAGCCTCTGTGTTTTGTTGGCAACGAGGATGATGTGGTGTTGGTGACTGATGATGA'
+#            'AGACAGCTTGGTTGTGTATAATAGCAAGAATGAAACGTTGAGGGGCATGGTTGTCAATGA'
+#            'AGTACCCGCATTTTTCATAGATGGAGGCACCTATGTTGAGAGCCTCGTCTCACCTACTTT'
+#            'TGGTTAACCCACCCCTTTTGTTTCATGATTGTAATATCTTGCTATTAAGTTCATATTTGG'
+#            'CTGGTTGAGAAGGCAATGAACCGGCGGAATGTCATTGATTTAGATCAAGGATGGGACTTT'
+#            'ATACAACGAGGAATTGCAAAATTGAAAAATATACTAGAGGAAGATAATGCGCCACAGTTT'
+#            'ACCTCAGAGGAATACATGATGCTCTACACGTATTCAGTTGAATCACTCTATATTGATACA'
+#            'TGATTCCACAGGCTGTTTGACTTGATTTCTCTGGTTTCTGATTTTCAGGACAATATACGA'
+#            'CATGTGTACTCAAAAGCCTCCACATGATTACTCTGAGCAGTTGTACGATAAGTATCGGGA'
+#            'GTATTTTGCAGAGTACATTACACATACGGTGCTGCCTGCTTTAAGGGACAAGCATGATGA'
+#            'GTTCATGTTGAGGGAACTTGTGACGAGGTGGTTAAATCATAAGATCATGGTGCAATGGCT'
+#            'TTCAAGATTCTTTCATTATCTTGACAGGTATTTCATAGCTAGGAGGGCAGTTCCAGGGAT'
+#            'GAAAGAAGTTGGCATGATAAGCTTCAGAGAACTGGTATATCAAGAAATTCATGGGAGAGT'
+#            'GAGGGATGCAGTTATATCCATGATTGATCAAGAGCGAGACGGAGATCAAATAGATCGAGC'
+#            'TTTACTAAAGAATGCTGTAGATATTTTTCTTGAAATTGGGATGGGGCAGATGGATTATTA'
+#            'TAAGAATGATTTTGAAGCACCAATGCTGAAGGATACAGAAGTGTACTACTCTGAGAAGGC'
+#            'TTCTATCTGGATCATGGAAGATTCATTTCCTGACTATATGTTGAAAGTTGAAGAGTGTCT'
+#            'AAAACGAGAAAACGACAGGGTTACTCATTATCTTCATTCAAGCAGTGAGGCAAAGTTGCT'
+#            'TGAGAAAGTTCAACAGGAGCTTTTGTTGGTGTACGCCACTCAACTGCTAGAGAAAGTGCA'
+#            'ATCTGGTTGTCATGCCTTACTTAGGGATGACAAGGTAAATGATTTGGCAAGGATGTATAG'
+#            'GCTCTTTTCTAAAATACCTGGGGGCTTAGAATCTGTTGCTAATTTTTTTAATCAGCATGT'
+#            'TACAAATGAAGGTACTGCATTGGTAAAACAAGCAGAAAATGCTGCAAGCACCAAAAAGGT'
+#            'ATTTGTGAGAAAATTAATCGAGCTCCATGAAAAATTCATGGCCTATGTGAATAACTGTTT'
+#            'TCAAAATCACCCTATTTTCCACAAGGCTCTGAAAGTGGCCTTTGAAGTATTCTGCAACAA'
+#            'GGGTATTTCTGGAAGTTCTGGTGCTGAACTTCTTGCCACCTTTTGTGATAGCATTCTTAA'
+#            'AAATGGTGGAAGTGAAAAATTAACCGATGATGCAATTGAAGAAACTTTGGAGAATGTTGT'
+#            'AAAACTGCTTACCTACATCAGCGATAAGGACTTATATGCTGAATTCTATAGGAAAAAGCT'
+#            'TGCACGGCGCTTATTATTTGATAATAGTGCAAATGACGAGCATGAGAGAAGCATCCTGAC'
+#            'AAAACTGAAGCAACAATTTGGTGGCCAGTTTACATCAAAAATGGAGGGAATGGTCACGGA'
+#            'TTTGACACTAGCAAGGGAAAATCAAACCAACTTTGAGGAATATCTTAGTAATAATCCAAA'
+#            'TGTAAATCCAGGGATTGACTTAACAGTGACAGTCCTTACCACTGGTTTCTGGCCAAGTTA'
+#            'TAAGTCCTTCGATCTTAACCTACCAGTTGAGATGGTCAAGTGCATTGAAGTTTTTAGGGA'
+#            'GTACTACCAGACAAAAACAAAGCACAGAAAACTTGCTTGGATACATTCTTTGGGCACTTG'
+#            'CCACATAAACGGAAATTTTCAGCCAAAAACAATAGAGCTGATTGTGACCACCTACCAGGC'
+#            'AGCTGTGTTGTTGCTATTCAATGAATCAGATATATTAAGCTATCGGGAGATTGTATCCCA'
+#            'ATTAAACCTGTCAGATGATGATGTTGTTAGGCTGCTTCACTCGCTCTCATGTGCCAAGTA'
+#            'TAAGATTTTGAGTAAGGAACCAAACAACAGAATAATATCTCCAACAGACTTTTTTGAGCT'
+#            'TAATTCAAAATTTACCAGCCAAATGAGAAGGATCAAGGTGCGCATCCCAATTCTCGTTCT'
+#            'TGTGCTGTTGCTGCAATGTATTTTATGTGTTGGAGAAAGAGAGAGATTGGTCCAGGGAAA'
+#            'AAATAAATAAATTATTGTTGCGTATAGAGGGGAAGGAAGA')
+
+#     start_codons = ['TTG', 'CTG', 'ATG']
+#     stop_codons = ['TAA', 'TAG', 'TGA']
+
+#     ann = {"blast_hit_begin": 133,
+#            "blast_hit_end": 1192,
+#            "orf_begin": 1465,
+#            "orf_end": 3370,
+#            "orf_frame": 2}
+
+#     orf = find_orf_for_blast_hit(seq=seq,
+#                                  frame=ann['orf_frame'],
+#                                  hit_start=ann['blast_hit_begin'],
+#                                  hit_end=ann['blast_hit_end'],
+#                                  hit_reduce=60,
+#                                  stop_codons=stop_codons,
+#                                  start_codons=start_codons,
+#                                  include_terminal_codon=True)
+
+#     print('-' * 100)
+#     print(orf)
+#     print('-' * 100)
+#     print(seq[orf[0]:orf[1]])
+#     print('-' * 100)

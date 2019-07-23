@@ -134,6 +134,11 @@ def main():
     dir_out = __['output_directory']
     inter_pro_scan = __['inter_pro_scan']
     prepend_assmbl = __['prepend_assmbl']
+    min_target_orf_len = __['min_target_orf_len']
+    max_target_orf_len = __['max_target_orf_len']
+    allow_non_aug = __['allow_non_aug']
+    allow_no_strt_cod = __['allow_no_strt_cod']
+    allow_no_stop_cod = __['allow_no_stop_cod']
     sras = __['sras']
     fq_pe = __['fq_pe']
     fq_se = __['fq_se']
@@ -195,6 +200,7 @@ def main():
     dir_prj_assmbl_blast_results = __['dir_prj_assmbl_blast_results']
     dir_prj_transcripts = __['dir_prj_transcripts']
     dir_prj_ips = __['dir_prj_ips']
+    dir_prj_transcripts_combined = __['dir_prj_transcripts_combined']
 
     # Housekeeping done. Start the analyses. ---------------------------------
 
@@ -347,19 +353,27 @@ def main():
 
     # Prepare BLAST hits for analysis: find ORFs, translate ------------------
     find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
-                        dir_temp, prepend_assmbl, only_atg_as_start_codon=True)
+                        dir_temp, prepend_assmbl, min_target_orf_len,
+                        max_target_orf_len, allow_non_aug, allow_no_strt_cod,
+                        allow_no_stop_cod)
+
+    # GFF3 files from kakapo results JSON files ------------------------------
+    gff_from_json(assemblies, dir_prj_ips, dir_prj_transcripts_combined,
+                  prj_name)
 
     # Run InterProScan 5 -----------------------------------------------------
     if inter_pro_scan is True:
         run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj)
 
-    # GFF3 files from InterProScan 5 result JSON files -----------------------
-    gff_from_json(assemblies, dir_prj_ips)
+    # GFF3 files from kakapo and InterProScan 5 results JSON files -----------
+    if inter_pro_scan is True:
+        gff_from_json(assemblies, dir_prj_ips, dir_prj_transcripts_combined,
+                      prj_name)
 
 ##############################################################################
 
     rmtree(dir_temp)
-    print('')
+    print()
 
 ##############################################################################
 

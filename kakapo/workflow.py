@@ -95,6 +95,9 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
 
     dir_prj_ips = dir_prj_transcripts
 
+    dir_prj_transcripts_combined = opj(dir_prj, '08-transcripts-combined')
+    make_dir(dir_prj_transcripts_combined)
+
     dir_global = opj(dir_out, '02-global')
     make_dir(dir_global)
 
@@ -128,7 +131,8 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
                 'dir_prj_blast_assmbl': dir_prj_blast_assmbl,
                 'dir_prj_assmbl_blast_results': dir_prj_assmbl_blast_results,
                 'dir_prj_transcripts': dir_prj_transcripts,
-                'dir_prj_ips': dir_prj_ips}
+                'dir_prj_ips': dir_prj_ips,
+                'dir_prj_transcripts_combined': dir_prj_transcripts_combined}
 
     return ret_dict
 
@@ -976,7 +980,9 @@ def run_tblastn_on_assemblies(assemblies, aa_queries_file, tblastn,
 
 
 def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
-                        dir_temp, prepend_assmbl, only_atg_as_start_codon):  # noqa
+                        dir_temp, prepend_assmbl, min_target_orf_len,
+                        max_target_orf_len, allow_non_aug, allow_no_strt_cod,
+                        allow_no_stop_cod):  # noqa
 
     if len(assemblies) > 0:
         print('Analyzing BLAST hits for assemblies:\n')
@@ -1037,6 +1043,10 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
         parsed_fasta = parse_fasta_text(__)
         ######################################################################
 
+        all_kakapo_results = {}
+        json_dump_file_path = opj(dir_prj_transcripts, assmbl_name +
+                                  '_ann_kakapo.json')
+
         for hit in collated:
 
             target_name = hit['sseqid']
@@ -1050,10 +1060,10 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
             hit_end = hit['end']
             hit_frame = hit['frame']
 
-            if only_atg_as_start_codon is True:
-                start_codons = ['ATG']
-            else:
+            if allow_non_aug is True:
                 start_codons = gc_tt['start_codons']
+            else:
+                start_codons = ['ATG']
 
             stop_codons = gc_tt['stop_codons']
 
@@ -1062,10 +1072,21 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
                 frame=hit_frame,
                 hit_start=hit_start,
                 hit_end=hit_end,
-                hit_reduce=60,
+                hit_length_adjust=0.75,
                 stop_codons=stop_codons,
                 start_codons=start_codons,
                 include_terminal_codon=True)
+
+            if hit_frame > 0:
+                ann_hit_b = hit_start
+                ann_hit_e = hit_end
+            else:
+                target_seq = reverse_complement(target_seq)
+                ann_hit_b = len(target_seq) - hit_start
+                ann_hit_e = len(target_seq) - hit_end
+                target_name = target_name + '__revcomp'
+
+            a['annotations'][target_name] = {}
 
             if orf is not None:
 
@@ -1073,36 +1094,75 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
                     orf_seq = target_seq[orf[0]:orf[1]]
                     ann_orf_b = orf[0]
                     ann_orf_e = orf[1]
-                    ann_hit_b = hit_start
-                    ann_hit_e = hit_end
                 else:
-                    orf_seq = reverse_complement(target_seq[orf[0]:orf[1]])
-                    target_seq = reverse_complement(target_seq)
                     ann_orf_b = len(target_seq) - orf[1]
                     ann_orf_e = len(target_seq) - orf[0]
-                    ann_hit_b = len(target_seq) - hit_start
-                    ann_hit_e = len(target_seq) - hit_end
-                    target_name = target_name + '__revcomp'
+                    orf_seq = target_seq[ann_orf_b:ann_orf_e]
 
-                a['annotations'][target_name] = {}
-                a['annotations'][target_name]['orf_begin'] = ann_orf_b
-                a['annotations'][target_name]['orf_end'] = ann_orf_e
-                a['annotations'][target_name]['orf_frame'] = abs(hit_frame)
-                a['annotations'][target_name]['blast_hit_begin'] = ann_hit_b
-                a['annotations'][target_name]['blast_hit_end'] = ann_hit_e
+                ##############################################################
+                good_orf = True
 
-                transcripts_nt_orf.append({'name': target_name,
-                                           'seq': orf_seq})
+                if allow_non_aug is False and \
+                        orf_seq[0:3] != 'ATG':
 
-                transl_seq = translate(orf_seq, gc_tt)
-                transcripts_aa_orf.append({'name': target_name,
-                                           'seq': transl_seq})
+                    good_orf = False
+                    # print('allow_non_aug', allow_non_aug, orf_seq[0:3])
+
+                elif allow_no_strt_cod is False and \
+                        orf_seq[0:3] not in start_codons:
+
+                    good_orf = False
+                    # print('allow_no_strt_cod', allow_no_strt_cod,
+                    #       orf_seq[0:3])
+
+                elif allow_no_stop_cod is False and \
+                        orf_seq[-3:] not in stop_codons:
+
+                    good_orf = False
+                    # print('allow_no_stop_cod', allow_no_stop_cod,
+                    #       orf_seq[-3:0])
+
+                elif len(orf_seq) < min_target_orf_len:
+                    good_orf = False
+                    # print('min_target_orf_len', min_target_orf_len,
+                    #       len(orf_seq))
+
+                elif len(orf_seq) > max_target_orf_len:
+                    good_orf = False
+                    # print('max_target_orf_len', max_target_orf_len,
+                    #       len(orf_seq))
+                ##############################################################
+
+                if good_orf is True:
+
+                    a['annotations'][target_name]['orf_begin'] = ann_orf_b
+                    a['annotations'][target_name]['orf_end'] = ann_orf_e
+
+                    transcripts_nt_orf.append({'name': target_name,
+                                               'seq': orf_seq})
+
+                    transl_seq = translate(orf_seq, gc_tt)
+                    transcripts_aa_orf.append({'name': target_name,
+                                               'seq': transl_seq})
 
             transcripts_nt.append({'name': target_name, 'seq': target_seq})
 
+            a['annotations'][target_name]['frame'] = abs(hit_frame)
+            a['annotations'][target_name]['blast_hit_begin'] = ann_hit_b
+            a['annotations'][target_name]['blast_hit_end'] = ann_hit_e
+
+            ##################################################################
+            # Collect ORF and BLAST hit annotations for downstream use.
+            kakapo_json = [{}]
+            kakapo_json[0]['kakapo_annotations'] = (
+                a['annotations'][target_name])
+            all_kakapo_results[target_name] = kakapo_json
+            ##################################################################
+
         # --------------------------------------------------------------------
 
-        print('\t               Transcripts: ' + str(len(transcripts_nt)))
+        print('\t                     Transcripts: ' +
+              str(len(transcripts_nt)))
 
         if len(transcripts_nt) > 0:
             write_fasta_file(transcripts_nt, transcripts_nt_fasta_file)
@@ -1110,7 +1170,8 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
         else:
             a['transcripts_nt_fasta_file'] = None
 
-        print('\tTranscripts with valid ORF: ' + str(len(transcripts_nt_orf)))
+        print('\tTranscripts with acceptable ORFs: ' +
+              str(len(transcripts_nt_orf)))
 
         if len(transcripts_nt_orf) > 0:
             write_fasta_file(transcripts_nt_orf, transcripts_nt_orf_fasta_file)
@@ -1124,6 +1185,12 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
         else:
             a['transcripts_aa_orf_fasta_file'] = None
 
+        # --------------------------------------------------------------------
+        # Save ORF and BLAST hit annotations for downstream use.
+        with open(json_dump_file_path, 'w') as f:
+            json.dump(all_kakapo_results, f, sort_keys=True, indent=4)
+        # --------------------------------------------------------------------
+
         print('\t' + '-' * 80 + '\n\n')
 
         # --------------------------------------------------------------------
@@ -1134,7 +1201,7 @@ def run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj):  # noqa
     delay = 1
 
     if len(assemblies) > 0:
-        print('Running InterProScan 5 for assemblies:\n')
+        print('\nRunning InterProScan on translated transcripts:\n')
 
     for a in assemblies:
 
@@ -1148,10 +1215,10 @@ def run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj):  # noqa
 
         assmbl_name = a['name']
 
-        json_dump_file_path = opj(dir_prj_ips, assmbl_name + '.json')
+        json_dump_file_path = opj(dir_prj_ips, assmbl_name + '_ann_ips.json')
 
         if ope(json_dump_file_path):
-            print('\tInterProScan 5 results for assembly ' + assmbl_name +
+            print('\tInterProScan results for assembly ' + assmbl_name +
                   ' have already been downloaded.')
             continue
 
@@ -1170,47 +1237,26 @@ def run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj):  # noqa
             with open(__, 'wb') as f:
                 pickle.dump(jobs, f, protocol=PICKLE_PROTOCOL)
 
-        print('\n\tDownloading InterProScan 5 results for transcripts in ' +
+        print('\n\tDownloading InterProScan results for transcripts in ' +
               assmbl_name + '\n')
 
         all_ips_results = {}
 
         for i, job in enumerate(jobs['finished']):
             sleep(delay)
-            # counter = i + 1
             job_id = jobs['finished'][job]
             ips_json = result_json(job_id)
             # ips_version = ips_json['interproscan-version']
             ips_json = ips_json['results']
 
-            # These fields have a value: EMBOSS_001 by default
+            # These fields are set to 'EMBOSS_001' by default
             # Delete them
-            # Replace with our sequence name
-            # ips_json[0]['xref'][0]['id'] = job
-            # ips_json[0]['xref'][0]['name'] = job
             del ips_json[0]['xref']
 
             # kakapo annotations
             ips_json[0]['kakapo_annotations'] = a['annotations'][job]
 
             all_ips_results[job] = ips_json
-
-            # Edit / Rename GFF files ########################################
-            # sleep(1)
-            # ips_gff = result_gff(job_id)
-            # ips_gff = re.sub(r'>match.*', '', ips_gff, flags=re.DOTALL)
-            # ips_gff = re.sub(r'EMBOSS_001', job, ips_gff, flags=re.DOTALL)
-            # ips_gff = re.sub(r'ID=match\$\d+_\d+_\d+;', '', ips_gff,
-            #                  flags=re.DOTALL)
-
-            # ips_gff_file_name = (assmbl_name + '_{:05d}'.format(counter) +
-            #                      '.gff')
-
-            # ips_gff_file_path = opj(dir_prj_ips, ips_gff_file_name)
-
-            # with open(ips_gff_file_path, 'w') as f:
-            #     f.write(ips_gff)
-            ##################################################################
 
         with open(json_dump_file_path, 'w') as f:
             json.dump(all_ips_results, f, sort_keys=True, indent=4)
@@ -1220,27 +1266,58 @@ def run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj):  # noqa
         osremove(__)
 
 
-def gff_from_json(assemblies, dir_prj_ips):  # noqa
+def gff_from_json(assemblies, dir_prj_ips, dir_prj_transcripts_combined,
+                  prj_name):  # noqa
 
     if len(assemblies) > 0:
-        print('\nProducing GFF3 file for InterProScan 5 results:\n')
+        print('\nProducing GFF3 files:\n')
+
+    all_fas_paths = []
+    all_gff_paths = []
+
+    combined_fas_path = opj(dir_prj_transcripts_combined, prj_name + '.fasta')
+    combined_gff_path = opj(dir_prj_transcripts_combined, prj_name + '.gff')
 
     for a in assemblies:
 
-        if 'transcripts_aa_orf_fasta_file' not in a:
-            continue
-
-        aa_file = a['transcripts_aa_orf_fasta_file']
-
-        if aa_file is None:
+        if 'transcripts_nt_fasta_file' not in a:
             continue
 
         assmbl_name = a['name']
         transcripts_nt_path = a['transcripts_nt_fasta_file']
 
-        json_path = opj(dir_prj_ips, assmbl_name + '.json')
+        kakapo_json_path = opj(dir_prj_ips, assmbl_name + '_ann_kakapo.json')
+        ips_json_path = opj(dir_prj_ips, assmbl_name + '_ann_ips.json')
+        json_path = opj(dir_prj_ips, assmbl_name + '_ann.json')
+
         gff_path = transcripts_nt_path.replace('.fasta', '.gff')
+
+        ips_json_dict = {}
+        kakapo_json_dict = {}
+
+        if ope(ips_json_path):
+            with open(ips_json_path, 'r') as f:
+                ips_json_dict = json.load(f)
+
+        if ope(kakapo_json_path):
+            with open(kakapo_json_path, 'r') as f:
+                kakapo_json_dict = json.load(f)
+            osremove(kakapo_json_path)
+
+        json_dict = kakapo_json_dict.copy()
+        json_dict.update(ips_json_dict)
+
+        with open(json_path, 'w') as f:
+            json.dump(json_dict, f, sort_keys=True, indent=4)
 
         if ope(json_path):
             print('\t' + assmbl_name)
             gff_from_kakapo_ips5_json_file(json_path, gff_path)
+
+            osremove(json_path)
+
+            all_gff_paths.append(gff_path)
+            all_fas_paths.append(transcripts_nt_path)
+
+    combine_text_files(all_fas_paths, combined_fas_path)
+    combine_text_files(all_gff_paths, combined_gff_path)
