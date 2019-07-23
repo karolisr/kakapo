@@ -15,6 +15,7 @@ from __future__ import with_statement
 
 import json
 from collections import OrderedDict
+import re
 # from kakapo.helpers import debug_print as pp
 
 
@@ -38,7 +39,7 @@ def gff_text(gff_dict):  # noqa
     return '\t'.join(list(gff_dict.values())) + '\n'
 
 
-def gff_from_kakapo_json(json_dict):  # noqa
+def gff_orf_blast_hit(json_dict):  # noqa
     gff = ''
 
     for rec_key in json_dict:
@@ -47,36 +48,38 @@ def gff_from_kakapo_json(json_dict):  # noqa
         ann = rec['kakapo_annotations']
 
         # ORF annotation -----------------------------------------------------
-        # orf_frame = ann['orf_frame']
+        orf_frame = ann['orf_frame']
         orf_begin = ann['orf_begin']
         orf_end = ann['orf_end']
         entry_orf = gff_template()
         entry_orf['seqid'] = rec_key
-        entry_orf['source'] = 'kakapo'
+        entry_orf['source'] = 'KAKAPO'
         entry_orf['type'] = 'ORF'
         entry_orf['start'] = str(orf_begin + 1)
         entry_orf['end'] = str(orf_end)
         entry_orf['score'] = '.'
         entry_orf['strand'] = '+'
         entry_orf['phase'] = str(0)
-        entry_orf['attributes'] = 'name=Kakapo Predicted ORF'
+        name = 'name=ORF frame ' + str(orf_frame)
+        entry_orf['attributes'] = name
         gff = gff + gff_text(entry_orf)
 
         # BLAST Hit annotation -----------------------------------------------
         entry_blast_hit = entry_orf
         blast_hit_begin = ann['blast_hit_begin']
         blast_hit_end = ann['blast_hit_end']
-        entry_blast_hit['type'] = 'BLAST Hit'
+        entry_blast_hit['type'] = 'BLAST'
         entry_blast_hit['start'] = str(blast_hit_begin + 1)
         entry_blast_hit['end'] = str(blast_hit_end)
-        entry_blast_hit['attributes'] = 'name=Kakapo Merged BLAST Hits'
+        name = 'name=Hit frame ' + str(orf_frame)
+        entry_blast_hit['attributes'] = name + ';note=Merged tblastn hits;'
         gff = gff + gff_text(entry_orf)
         # --------------------------------------------------------------------
 
     return gff
 
 
-def gff_from_kakapo_ips5_json(json_dict):  # noqa
+def gff_pfam(json_dict):  # noqa
     gff = ''
 
     for rec_key in json_dict:
@@ -98,16 +101,160 @@ def gff_from_kakapo_ips5_json(json_dict):  # noqa
             attributes = ''
 
             if lib_name == 'PFAM':
-                attributes = ('name=' + description + ';' +
+
+                fam_in_dec = re.findall(r'(^.*?)\s*family$', description, re.I)
+
+                if len(fam_in_dec) != 0:
+                    name = fam_in_dec[0]
+                else:
+                    name = description
+
+                name = name.title()
+
+                attributes = ('name=' + name + ': ' + accession + ';' +
                               'accession=' + accession + ';')
+
+                ipr_acc = None
+                entry = sig['entry']
+                if entry is not None:
+                    ipr_acc = entry['accession']
+                if ipr_acc is not None:
+                    attributes = attributes + 'interpro=' + ipr_acc + ';'
+
                 score = str(locations['score'])
                 g = gff_template()
                 g['seqid'] = rec_key
                 g['source'] = lib_name
-                g['type'] = 'PROTEIN_FAMILY'
+                g['type'] = 'PfPfam'
                 g['start'] = beg
                 g['end'] = end
                 g['score'] = score
+                g['strand'] = '+'
+                g['phase'] = str(0)
+                g['attributes'] = attributes
+
+                gff = gff + gff_text(g)
+
+    return gff
+
+
+def gff_phobius(json_dict):  # noqa
+    gff = ''
+
+    phobius_translations = {'SIGNAL_PEPTIDE': 'SigPept',
+                            'SIGNAL_PEPTIDE_N_REGION': 'SigPept1_N',
+                            'SIGNAL_PEPTIDE_H_REGION': 'SigPept2_H',
+                            'SIGNAL_PEPTIDE_C_REGION': 'SigPept3_C',
+                            'NON_CYTOPLASMIC_DOMAIN': 'PhobNonCyt',
+                            'TRANSMEMBRANE': 'PhobTrans',
+                            'CYTOPLASMIC_DOMAIN': 'PhobCyt'}
+
+    for rec_key in json_dict:
+        rec = json_dict[rec_key][0]   # matches md5 sequence xref
+        ann = rec['kakapo_annotations']
+        orf_begin = ann['orf_begin']
+        rec_matches = rec['matches']  # list of dicts
+        for m in rec_matches:
+            locations = m['locations'][0]
+            beg = str(locations['start'] * 3 - 2 + orf_begin)
+            end = str(locations['end'] * 3 + orf_begin)
+            sig = m['signature']
+            lib_info = sig['signatureLibraryRelease']
+            accession = sig['accession']
+            description = sig['description']
+            lib_name = lib_info['library']
+            # lib_vers = lib_info['version']
+
+            if lib_name == 'PHOBIUS':
+                name = sig['name']
+                attributes = ('name=' + name + ';'
+                              'description=' + description + ';')
+
+                accession = phobius_translations[accession]
+
+                g = gff_template()
+                g['seqid'] = rec_key
+                g['source'] = lib_name
+                g['type'] = accession
+                g['start'] = beg
+                g['end'] = end
+                g['score'] = '.'
+                g['strand'] = '+'
+                g['phase'] = str(0)
+                g['attributes'] = attributes
+
+                gff = gff + gff_text(g)
+
+    return gff
+
+
+def gff_panther(json_dict):  # noqa
+    gff = ''
+
+    for rec_key in json_dict:
+        rec = json_dict[rec_key][0]   # matches md5 sequence xref
+        ann = rec['kakapo_annotations']
+        orf_begin = ann['orf_begin']
+        rec_matches = rec['matches']  # list of dicts
+
+        # temp_dict = {}
+        # for m in rec_matches:
+        #     sig = m['signature']
+        #     lib_info = sig['signatureLibraryRelease']
+        #     lib_name = lib_info['library']
+        #     if lib_name == 'PANTHER':
+        #         accession = sig['accession']
+        #         name = sig['name']
+
+        #         if ':' in accession:
+        #             temp_dict['acc'] = accession
+        #         if 'acc' not in temp_dict:
+        #             temp_dict['acc'] = accession
+
+        #         if ':' not in accession:
+        #             temp_dict['name'] = name
+        #         if 'name' not in temp_dict:
+        #             temp_dict['name'] = name
+
+        for m in rec_matches:
+            locations = m['locations'][0]
+            beg = str(locations['start'] * 3 - 2 + orf_begin)
+            end = str(locations['end'] * 3 + orf_begin)
+            sig = m['signature']
+            lib_info = sig['signatureLibraryRelease']
+            accession = sig['accession']
+            lib_name = lib_info['library']
+            # lib_vers = lib_info['version']
+
+            if lib_name == 'PANTHER':
+
+                # if accession != temp_dict['acc']:
+                #     continue
+                # name = temp_dict['name'].title()
+                # attributes = ('name=' + name + ': ' + accession + ';' +
+                #               'accession=' + accession + ';')
+
+                if ':' in accession:
+                    continue
+
+                name = sig['name'].title()
+                attributes = ('name=' + name + ': ' + accession + ';' +
+                              'accession=' + accession + ';')
+
+                ipr_acc = None
+                entry = sig['entry']
+                if entry is not None:
+                    ipr_acc = entry['accession']
+                if ipr_acc is not None:
+                    attributes = attributes + 'interpro=' + ipr_acc + ';'
+
+                g = gff_template()
+                g['seqid'] = rec_key
+                g['source'] = lib_name
+                g['type'] = 'PfPanther'
+                g['start'] = beg
+                g['end'] = end
+                g['score'] = '.'
                 g['strand'] = '+'
                 g['phase'] = str(0)
                 g['attributes'] = attributes
@@ -124,8 +271,12 @@ def gff_from_kakapo_ips5_json_file(json_path, gff_path=None):  # noqa
 
     # gff = '##gff-version 3\n'
 
-    gff = (gff_from_kakapo_json(json_dict) +
-           gff_from_kakapo_ips5_json(json_dict))
+    gff = (
+           gff_orf_blast_hit(json_dict) +
+           gff_pfam(json_dict) +
+           gff_phobius(json_dict) +
+           gff_panther(json_dict)
+           )
 
     if gff_path is not None:
         with open(gff_path, 'w') as f:
@@ -134,21 +285,23 @@ def gff_from_kakapo_ips5_json_file(json_path, gff_path=None):  # noqa
     return gff
 
 
-# if __name__ == '__main__':
+if __name__ == '__main__':
 
-#     from os.path import join as opj
-#     from os.path import basename
-#     from os.path import splitext
+    from os.path import join as opj
+    from os.path import basename
+    from os.path import splitext
 
-#     print()
+    print()
 
-#     base_path = opj('tests', 'data', 'inter_pro_scan_result_samples')
-#     json_path = opj(base_path, 'sample_02.json')
-#     raw_fa_path = opj(base_path, 'sample_02_transcripts_nt.fasta')
-#     gff_path = opj(base_path, splitext(basename(raw_fa_path))[0] + '.gff')
-#     gff = gff_from_kakapo_ips5_json_file(json_path, gff_path)
+    base_path = opj('/', 'Users', 'karolis', 'kakapo_output',
+                    '01-project-specific', 'T2-type-RNases', '07-transcripts')
+    json_path = opj(base_path, 'Schlumbergera_truncata_15H7_sty.json')
+    raw_fa_path = opj(base_path,
+                      'Schlumbergera_truncata_15H7_sty_transcripts_nt.fasta')
+    gff_path = opj(base_path, splitext(basename(raw_fa_path))[0] + '.gff')
+    gff = gff_from_kakapo_ips5_json_file(json_path, gff_path)
 
-#     print(gff)
+    print(gff)
 
 
 # seqid - name of the chromosome or scaffold; chromosome names can be given
