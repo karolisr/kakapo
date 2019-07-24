@@ -84,7 +84,7 @@ CONFIG_FILE_PATH = ARGS.CONFIG_FILE_PATH
 
 if CLEAN_CONFIG_DIR is False and CONFIG_FILE_PATH is not None:
     if not ope(CONFIG_FILE_PATH):
-        print('Configuration file: ' + CONFIG_FILE_PATH + ' does not exist.')
+        print('Configuration file ' + CONFIG_FILE_PATH + ' does not exist.')
         exit(0)
 
 # ----------------------------------------------------------------------------
