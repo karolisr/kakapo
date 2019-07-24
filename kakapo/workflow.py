@@ -516,8 +516,8 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
         elif x[3] == 'pe':
             pe_fastq_files[x[0]]['min_acc_len'] = ml
 
-    with open(__, 'wb') as f:
-        pickle.dump(pickled, f, protocol=PICKLE_PROTOCOL)
+        with open(__, 'wb') as f:
+            pickle.dump(pickled, f, protocol=PICKLE_PROTOCOL)
 
     print()
 
