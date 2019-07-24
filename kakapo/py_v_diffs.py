@@ -32,8 +32,6 @@ def python_version():
 _py_v_hex, _ = python_version()
 
 if _py_v_hex >= 0x03000000:
-    from urllib.request import urlretrieve # noqa
-    from urllib.parse import quote # noqa
     from configparser import ConfigParser as _CP # noqa
 
     maketrans = str.maketrans
@@ -47,8 +45,6 @@ if _py_v_hex >= 0x03000000:
 
 elif _py_v_hex < 0x03000000:
     from string import maketrans # noqa
-    from urllib import urlretrieve # noqa
-    from urllib import quote # noqa
     from ConfigParser import SafeConfigParser as _CP # noqa
 
     unicode = unicode

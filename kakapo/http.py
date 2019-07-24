@@ -10,6 +10,9 @@ from __future__ import print_function
 from __future__ import with_statement
 
 import requests
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
+from requests.exceptions import HTTPError
 
 # Possible values for the Accept request-header field:
 ACC_HEAD = {'json': {'Accept': 'application/json'},
@@ -23,7 +26,27 @@ def _valid_response_formats():
     return tuple(ACC_HEAD.keys())
 
 
-def get(url, params, response_format):
+def retry_session(retries=5, backoff_factor=1,
+                  status_forcelist=(500, 502, 504)):  # noqa
+
+    session = requests.Session()
+
+    retry = Retry(
+        total=retries,
+        read=retries,
+        connect=retries,
+        backoff_factor=backoff_factor,
+        status_forcelist=status_forcelist)
+
+    adapter = HTTPAdapter(max_retries=retry)
+
+    session.mount('http://', adapter)
+    session.mount('https://', adapter)
+
+    return session
+
+
+def get(url, params=None, response_format='json'):
     """
     Wrap requests.get
 
@@ -45,12 +68,13 @@ def get(url, params, response_format):
         assert response_format in _valid_response_formats()
         headers = ACC_HEAD[response_format]
 
-    response = requests.get(url=url, params=params, headers=headers)
+    with retry_session() as session:
+        response = session.get(url=url, params=params, headers=headers)
 
-    if response.ok:
-        pass
-    else:
-        return None
+    try:
+        response.raise_for_status()
+    except HTTPError as e:
+        print(e)
 
     return response
 
@@ -61,5 +85,20 @@ def post(url, data, response_format):
     """
     assert response_format in _valid_response_formats()
     headers = ACC_HEAD[response_format]
-    response = requests.post(url=url, data=data, headers=headers)
+
+    with retry_session() as session:
+        response = session.post(url=url, data=data, headers=headers)
+
+    try:
+        response.raise_for_status()
+    except HTTPError as e:
+        print(e)
+
     return response
+
+
+def download_file(url, local_path):  # noqa
+    r = get(url)
+
+    with open(local_path, 'wb') as f:
+        f.write(r.content)

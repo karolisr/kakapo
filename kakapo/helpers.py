@@ -14,10 +14,7 @@ from __future__ import with_statement
 import fileinput
 import hashlib
 import os
-import sys
 
-from kakapo.py_v_diffs import urlretrieve
-from kakapo.shell import call
 
 def debug_print(msg=''): # noqa
     from kakapo.config import DEBUG_MODE
@@ -52,24 +49,6 @@ def list_of_dirs(path):  # noqa
 def list_of_files(path):  # noqa
     lf = [x for x in os.listdir(path) if os.path.isfile(os.path.join(path, x))]
     return lf
-
-
-def download_file(url, local_path):  # noqa
-
-    try:
-        # debug_print('Trying urlretrieve')
-        urlretrieve(url, local_path)
-    except Exception:
-        try:
-            # debug_print('Trying curl')
-            call(['/usr/bin/curl', '-L', '-o', local_path, url])
-        except Exception:
-            try:
-                # debug_print('Trying wget')
-                call(['wget', '-O', local_path, url])
-            except Exception:
-                print("\nDownload operation failed.")
-                sys.exit(1)
 
 
 def generate_md5_hash_for_file(file_path):  # noqa

@@ -17,7 +17,8 @@ import tarfile
 import zipfile
 
 from kakapo.config import DIR_DEP, DIR_CFG, OS_ID, DIST_ID
-from kakapo.helpers import list_of_dirs, download_file
+from kakapo.helpers import list_of_dirs
+from kakapo.http import download_file
 from kakapo.os_diffs import DEBIAN_DISTS, REDHAT_DISTS
 from kakapo.shell import call
 
@@ -77,7 +78,8 @@ def dep_check_seqtk(): # noqa
                 seqtk = os.path.join(dir_bin, 'seqtk')
                 call(seqtk)
             except Exception:
-                print('\t\tSomething went wrong while trying to compile Seqtk.') # noqa
+                print('\t\tSomething went wrong while trying to compile '
+                      'Seqtk.')
                 print('\t\tTry downloading and installing it manually from:')
                 print('\t\thttps://github.com/lh3/seqtk')
                 sys.exit(1)
@@ -141,7 +143,8 @@ def _write_trimmomatic_adapters_file():
 
 # Trimmomatic
 def dep_check_trimmomatic(): # noqa
-    url = 'http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.39.zip' # noqa
+    url = ('http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/'
+           'Trimmomatic-0.39.zip')
     dnld_path = os.path.join(DIR_DEP, 'Trimmomatic-0.39.zip')
     dir_bin = os.path.join(DIR_DEP, 'Trimmomatic-0.39')
     trimmomatic = os.path.join(dir_bin, 'trimmomatic-0.39.jar')
@@ -166,12 +169,15 @@ def dep_check_trimmomatic(): # noqa
 # SRA Toolkit
 def dep_check_sra_toolkit(): # noqa
     if OS_ID == 'mac':
-        url = 'https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/current/sratoolkit.current-mac64.tar.gz' # noqa
+        url = ('https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/current/'
+               'sratoolkit.current-mac64.tar.gz')
     elif OS_ID == 'linux':
         if DIST_ID in DEBIAN_DISTS:
-            url = 'https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/current/sratoolkit.current-ubuntu64.tar.gz' # noqa
+            url = ('https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/current/'
+                   'sratoolkit.current-ubuntu64.tar.gz')
         elif DIST_ID in REDHAT_DISTS:
-            url = 'https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/current/sratoolkit.current-centos_linux64.tar.gz' # noqa
+            url = ('https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/current/'
+                   'sratoolkit.current-centos_linux64.tar.gz')
 
     dnld_path = os.path.join(DIR_DEP, 'sra-toolkit.tar.gz')
 
@@ -185,8 +191,8 @@ def dep_check_sra_toolkit(): # noqa
             fasterq_dump = os.path.join(dir_bin, 'bin', 'fasterq-dump')
             call(fasterq_dump)
         except Exception:
-            print('\tSRA Toolkit was not found on this system, trying to \
-download.')
+            print('\tSRA Toolkit was not found on this system, trying to '
+                  'download.')
             download_file(url, dnld_path)
             tar_ref = tarfile.open(dnld_path, 'r:gz')
             tar_ref.extractall(DIR_DEP)
@@ -209,9 +215,11 @@ download.')
 # BLAST+
 def dep_check_blast(): # noqa
     if OS_ID == 'mac':
-        url = 'ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.9.0/ncbi-blast-2.9.0+-x64-macosx.tar.gz' # noqa
+        url = ('https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.9.0/'
+               'ncbi-blast-2.9.0+-x64-macosx.tar.gz')
     elif OS_ID == 'linux':
-        url = 'ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.9.0/ncbi-blast-2.9.0+-x64-linux.tar.gz' # noqa
+        url = ('https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.9.0/'
+               'ncbi-blast-2.9.0+-x64-linux.tar.gz')
 
     dnld_path = os.path.join(DIR_DEP, 'ncbi-blast.tar.gz')
 
@@ -267,7 +275,8 @@ def dep_check_vsearch(): # noqa
             vsearch = os.path.join(dir_bin, 'bin', 'vsearch')
             call(vsearch)
         except Exception:
-            print('\tVsearch was not found on this system, trying to download.') # noqa
+            print('\tVsearch was not found on this system, trying to '
+                  'download.')
             download_file(url, dnld_path)
             tar_ref = tarfile.open(dnld_path, 'r:gz')
             tar_ref.extractall(DIR_DEP)
@@ -280,7 +289,8 @@ def dep_check_vsearch(): # noqa
                 vsearch = os.path.join(dir_bin, 'bin', 'vsearch')
                 call(vsearch)
             except Exception:
-                print('\t\tSomething went wrong while trying to compile Vsearch.') # noqa
+                print('\t\tSomething went wrong while trying to compile '
+                      'Vsearch.')
                 print('\t\tTry downloading and installing it manually from:')
                 print('\t\thttps://github.com/torognes/vsearch')
                 sys.exit(1)
@@ -294,9 +304,11 @@ def dep_check_vsearch(): # noqa
 # SPAdes
 def dep_check_spades(): # noqa
     if OS_ID == 'mac':
-        url = 'http://cab.spbu.ru/files/release3.13.1/SPAdes-3.13.1-Darwin.tar.gz' # noqa
+        url = ('http://cab.spbu.ru/files/release3.13.1/'
+               'SPAdes-3.13.1-Darwin.tar.gz')
     elif OS_ID == 'linux':
-        url = 'http://cab.spbu.ru/files/release3.13.1/SPAdes-3.13.1-Linux.tar.gz' # noqa
+        url = ('http://cab.spbu.ru/files/release3.13.1/'
+               'SPAdes-3.13.1-Linux.tar.gz')
 
     dnld_path = os.path.join(DIR_DEP, 'SPAdes.tar.gz')
 
