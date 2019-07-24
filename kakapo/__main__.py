@@ -236,11 +236,12 @@ def main():
     filter_queries(aa_queries_file, min_query_length, max_query_length)
 
     # Download SRA run metadata if needed ------------------------------------
-    sra_runs_info = dnld_sra_info(sras, dir_cache_prj)
+    sra_runs_info, sras_acceptable = dnld_sra_info(sras, dir_cache_prj)
 
     # Download SRA run FASTQ files if needed ---------------------------------
     se_fastq_files_sra, pe_fastq_files_sra = dnld_sra_fastq_files(
-        sras, sra_runs_info, dir_fq_data, fasterq_dump, THREADS, dir_temp)
+        sras_acceptable, sra_runs_info, dir_fq_data, fasterq_dump, THREADS,
+        dir_temp)
 
     # User provided FASTQ files ----------------------------------------------
     se_fastq_files_usr, pe_fastq_files_usr = user_fastq_files(fq_se, fq_pe)

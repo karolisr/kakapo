@@ -294,6 +294,7 @@ def filter_queries(aa_queries_file, min_query_length, max_query_length): # noqa
 
 def dnld_sra_info(sras, dir_cache_prj):  # noqa
     sra_runs_info = {}
+    sras_acceptable = []
 
     if len(sras) > 0:
         print('\nDownloading SRA run information:\n')
@@ -307,8 +308,6 @@ def dnld_sra_info(sras, dir_cache_prj):  # noqa
             sra_runs_info = pickle.load(f)
 
     for sra in sras:
-
-        print(sra)
 
         if sra not in sra_runs_info:
             # Ugly, fix ######################################################
@@ -355,6 +354,12 @@ def dnld_sra_info(sras, dir_cache_prj):  # noqa
                 'is not supported.').format(
                 sra=sra, ltype=sra_run_info['sra_lib_source'])
 
+        elif sra_run_info['sra_seq_platform'] != 'Illumina':
+            sra_info_str = (
+                '{sra}: the SRA library sequencing platform "{plat}" '
+                'is not supported.').format(
+                sra=sra, plat=sra_run_info['sra_seq_platform'])
+
         else:
             sra_info_str = ('\tSRA run {sra}\n\t{source} '
                             '{strategy} {layout}-end library.\n'
@@ -372,13 +377,14 @@ def dnld_sra_info(sras, dir_cache_prj):  # noqa
                                 txid=sra_run_info['sra_taxid'])
 
             sra_runs_info[sra] = sra_run_info
+            sras_acceptable.append(sra)
 
         print(sra_info_str)
 
     with open(__, 'wb') as f:
         pickle.dump(sra_runs_info, f, protocol=PICKLE_PROTOCOL)
 
-    return sra_runs_info
+    return sra_runs_info, sras_acceptable
 
 
 def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
