@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 
-sphinx-apidoc -A "Karolis Ramanauskas" -H "Kakapo" -V "0.0.0" -F -o docs ./ tests/ tests.py
+sphinx-apidoc -A "Karolis Ramanauskas" -H "Kakapo" -V "1.0.0" -F -o docs \
+./ \
+tests/ \
+tests.py \
+setup.py \
+kakapo/__main__.py
 
 ##################################################################################
 # This is for BSD variant of sed, which is found on Mac OS X
