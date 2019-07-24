@@ -307,8 +307,22 @@ def dnld_sra_info(sras, dir_cache_prj):  # noqa
             sra_runs_info = pickle.load(f)
 
     for sra in sras:
+
+        print(sra)
+
         if sra not in sra_runs_info:
-            parsed = sra_info(sra)[0]
+            # Ugly, fix ######################################################
+            parsed = None
+            parsed_tmp = sra_info(sra)[0]
+            if type(parsed_tmp) is list and len(parsed_tmp) > 1:
+                for p in parsed_tmp:
+                    if p['Run'] == sra:
+                        parsed = p
+                        break
+            else:
+                parsed = parsed_tmp
+            ##################################################################
+
             sra_lib_layout = parsed['LibraryLayout'].lower()
             sra_lib_source = parsed['LibrarySource'].lower()
             sra_lib_strategy = parsed['LibraryStrategy']

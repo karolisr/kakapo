@@ -124,7 +124,7 @@ def main():
     spades = deps.dep_check_spades()
 
     # Initialize NCBI taxonomy database --------------------------------------
-    tax = taxonomy(DIR_TAX)  # noqa
+    tax = taxonomy(DIR_TAX)
 
     # Parse configuration file -----------------------------------------------
     __ = config_file_parse(CONFIG_FILE_PATH, tax)
