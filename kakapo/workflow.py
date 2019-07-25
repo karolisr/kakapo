@@ -14,8 +14,8 @@ from os.path import exists as ope
 from os.path import join as opj
 from os.path import splitext
 from shutil import copyfile
-from time import sleep
 from sys import exit
+from time import sleep
 
 from kakapo.bioio import filter_fasta_text_by_length
 from kakapo.bioio import parse_fasta_text
@@ -27,7 +27,7 @@ from kakapo.blast import BLST_RES_COLS_1, BLST_RES_COLS_2
 from kakapo.blast import collate_blast_results
 from kakapo.blast import make_blast_db, run_blast
 from kakapo.blast import parse_blast_results_file
-from kakapo.config import PICKLE_PROTOCOL
+from kakapo.config import PICKLE_PROTOCOL, CONSRED, CONYELL, CONSDFL
 from kakapo.ebi_domain_search import pfam_entry
 from kakapo.ebi_domain_search import pfam_seqs
 from kakapo.ebi_domain_search import prot_ids_for_tax_ids
@@ -35,7 +35,7 @@ from kakapo.ebi_iprscan5 import job_runner
 from kakapo.ebi_iprscan5 import result_json
 from kakapo.ebi_proteins import fasta_by_accession_list
 from kakapo.entrez import dnld_seqs as dnld_ncbi_seqs
-from kakapo.entrez import sra_info
+from kakapo.entrez import sra_run_info
 from kakapo.entrez import summary as entrez_summary
 from kakapo.gff3 import gff_from_kakapo_ips5_json_file
 from kakapo.helpers import combine_text_files
@@ -293,13 +293,14 @@ def filter_queries(aa_queries_file, min_query_length, max_query_length): # noqa
 
 
 def dnld_sra_info(sras, dir_cache_prj):  # noqa
+
     sra_runs_info = {}
     sras_acceptable = []
 
     if len(sras) > 0:
         print('\nDownloading SRA run information:\n')
     else:
-        return sra_runs_info
+        return sra_runs_info, sras_acceptable
 
     __ = opj(dir_cache_prj, 'sra_runs_info_cache')
 
@@ -307,79 +308,76 @@ def dnld_sra_info(sras, dir_cache_prj):  # noqa
         with open(__, 'rb') as f:
             sra_runs_info = pickle.load(f)
 
+    sras_local = [k for k in sra_runs_info.keys()]
+    sras_to_dnld = set(sras).difference(set(sras_local))
+    if len(sras_to_dnld) > 0:
+        temp = sra_run_info(list(sras_to_dnld))
+        new_sra_runs_info = {i['Run']: i for i in temp}
+        sra_runs_info.update(new_sra_runs_info)
+
     for sra in sras:
 
-        if sra not in sra_runs_info:
-            # Ugly, fix ######################################################
-            parsed = None
-            parsed_tmp = sra_info(sra)[0]
-            if type(parsed_tmp) is list and len(parsed_tmp) > 1:
-                for p in parsed_tmp:
-                    if p['Run'] == sra:
-                        parsed = p
-                        break
-            else:
-                parsed = parsed_tmp
-            ##################################################################
+        if sra in sra_runs_info:
 
-            sra_lib_layout = parsed['LibraryLayout'].lower()
-            sra_lib_source = parsed['LibrarySource'].lower()
-            sra_lib_strategy = parsed['LibraryStrategy']
-            sra_seq_platform = parsed['Platform'].lower().capitalize()
-            sra_seq_platform_model = parsed['Model']
-            sra_species = parsed['ScientificName']
-            sra_taxid = parsed['TaxID']
+            info = sra_runs_info[sra]
 
-            sra_run_info = {}
-
-            sra_run_info['sra_lib_layout'] = sra_lib_layout
-            sra_run_info['sra_lib_source'] = sra_lib_source
-            sra_run_info['sra_lib_strategy'] = sra_lib_strategy
-            sra_run_info['sra_seq_platform'] = sra_seq_platform
-            sra_run_info['sra_seq_platform_model'] = sra_seq_platform_model
-            sra_run_info['sra_species'] = sra_species
-            sra_run_info['sra_taxid'] = sra_taxid
+            sra_lib_layout = info['LibraryLayout'].lower()
+            sra_lib_source = info['LibrarySource'].lower()
+            sra_lib_strategy = info['LibraryStrategy']
+            sra_seq_platform = info['Platform'].lower().capitalize()
+            sra_seq_platform_model = info['Model']
+            sra_species = info['ScientificName']
+            sra_taxid = info['TaxID']
+            sra_spots_with_mates = int(info['spots_with_mates'])
 
             sample_base_name = (sra_species.replace(' ', '_') + '_' +
                                 sra_taxid + '_' + sra)
 
-            sra_run_info['sample_base_name'] = sample_base_name
+            sra_runs_info[sra]['KakapoSampleBaseName'] = sample_base_name
 
-        else:
-            sra_run_info = sra_runs_info[sra]
+            if sra_lib_source != 'transcriptomic':
+                sra_info_str = (
+                    '{sra}: the SRA library source type "{ltype}" '
+                    'is not supported.').format(
+                    sra=sra, ltype=sra_lib_source)
 
-        if sra_run_info['sra_lib_source'] != 'transcriptomic':
-            sra_info_str = (
-                '{sra}: the SRA library source type "{ltype}" '
-                'is not supported.').format(
-                sra=sra, ltype=sra_run_info['sra_lib_source'])
+            elif sra_seq_platform != 'Illumina':
+                sra_info_str = (
+                    '{sra}: the SRA library sequencing platform "{plat}" '
+                    'is not supported.').format(
+                    sra=sra, plat=sra_seq_platform)
 
-        elif sra_run_info['sra_seq_platform'] != 'Illumina':
-            sra_info_str = (
-                '{sra}: the SRA library sequencing platform "{plat}" '
-                'is not supported.').format(
-                sra=sra, plat=sra_run_info['sra_seq_platform'])
+            else:
+                sra_info_str = ('\tSRA run {sra}\n\t{source} '
+                                '{strategy} {layout}-end library.\n'
+                                '\tSourced from {species} '
+                                '(Tax ID: {txid}).\n'
+                                '\tSequenced using {platform} platform on '
+                                '{model}.\n').format(
+                                    sra=sra,
+                                    source=sra_lib_source.title(),
+                                    strategy=sra_lib_strategy,
+                                    layout=sra_lib_layout,
+                                    platform=sra_seq_platform,
+                                    model=sra_seq_platform_model,
+                                    species=sra_species,
+                                    txid=sra_taxid)
 
-        else:
-            sra_info_str = ('\tSRA run {sra}\n\t{source} '
-                            '{strategy} {layout}-end library.\n'
-                            '\tSourced from {species} '
-                            '(Tax ID: {txid}).\n'
-                            '\tSequenced using {platform} platform on '
-                            '{model}.\n').format(
-                                sra=sra,
-                                source=sra_run_info['sra_lib_source'].title(),
-                                strategy=sra_run_info['sra_lib_strategy'],
-                                layout=sra_run_info['sra_lib_layout'],
-                                platform=sra_run_info['sra_seq_platform'],
-                                model=sra_run_info['sra_seq_platform_model'],
-                                species=sra_run_info['sra_species'],
-                                txid=sra_run_info['sra_taxid'])
+                sra_runs_info[sra]['KakapoLibraryLayout'] = \
+                    sra_runs_info[sra]['LibraryLayout']
 
-            sra_runs_info[sra] = sra_run_info
-            sras_acceptable.append(sra)
+                if sra_lib_layout == 'paired':
+                    if sra_spots_with_mates == 0:
+                        sra_runs_info[sra]['KakapoLibraryLayout'] = 'SINGLE'
+                        sra_info_str = (
+                            sra_info_str + CONSRED + '\t>>> ' + CONYELL +
+                            sra + CONSDFL + ' is listed as containing '
+                            'paired-end reads, but only a single set of reads '
+                            'is available. Treating as single-ended.\n')
 
-        print(sra_info_str)
+                sras_acceptable.append(sra)
+
+            print(sra_info_str)
 
     with open(__, 'wb') as f:
         pickle.dump(sra_runs_info, f, protocol=PICKLE_PROTOCOL)
@@ -395,14 +393,18 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
 
     for sra in sras:
         sra_run_info = sra_runs_info[sra]
-        sra_lib_layout = sra_run_info['sra_lib_layout']
-        sample_base_name = sra_run_info['sample_base_name']
+        sra_lib_layout = sra_run_info['LibraryLayout'].lower()
+        sra_lib_layout_k = sra_run_info['KakapoLibraryLayout'].lower()
+        sample_base_name = sra_run_info['KakapoSampleBaseName']
+        avg_len = int(sra_run_info['avgLength'])
 
         sra_dnld_needed = False
 
-        if sra_lib_layout == 'single':
+        if sra_lib_layout == 'single' or sra_lib_layout_k == 'single':
             se_file = opj(dir_fq_data, sra + '.fastq')
             se_fastq_files[sample_base_name] = {'path': se_file}
+            se_fastq_files[sample_base_name]['src'] = 'sra'
+            se_fastq_files[sample_base_name]['avg_len'] = avg_len
             if not ope(se_file):
                 sra_dnld_needed = True
 
@@ -410,11 +412,13 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
             pe_file_1 = opj(dir_fq_data, sra + '_1.fastq')
             pe_file_2 = opj(dir_fq_data, sra + '_2.fastq')
             pe_fastq_files[sample_base_name] = {'path': [pe_file_1, pe_file_2]}
+            pe_fastq_files[sample_base_name]['src'] = 'sra'
+            pe_fastq_files[sample_base_name]['avg_len'] = avg_len // 2
             if not ope(pe_file_1) or not ope(pe_file_2):
                 sra_dnld_needed = True
 
         if sra_dnld_needed:
-            print('\nDownloading FASTQ reads for the SRA accession ' + sra)
+            print('\nDownloading FASTQ reads for ' + sample_base_name + '\n')
             cmd = [fasterq_dump,
                    '--threads', str(threads),
                    '--split-files',
@@ -423,10 +427,11 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
             call(cmd)
 
         else:
-            print('\tFASTQ reads for the SRA run ' + sra +
+            print('\tFASTQ reads for the SRA run ' + sample_base_name +
                   ' are available locally.')
+    print()
 
-    return se_fastq_files, pe_fastq_files
+    return se_fastq_files, pe_fastq_files, sra_runs_info
 
 
 def user_fastq_files(fq_se, fq_pe): # noqa
@@ -440,6 +445,8 @@ def user_fastq_files(fq_se, fq_pe): # noqa
     for se in fq_se:
         sample_base_name = splitext(basename(se))[0]
         se_fastq_files[sample_base_name] = {'path': se}
+        se_fastq_files[sample_base_name]['src'] = 'usr'
+        se_fastq_files[sample_base_name]['avg_len'] = None
         print('\t' + sample_base_name + ':\n\t\t' + se)
         print()
 
@@ -447,6 +454,8 @@ def user_fastq_files(fq_se, fq_pe): # noqa
         sample_base_name = basename(commonprefix(pe))
         sample_base_name = sample_base_name.rstrip('_- R')
         pe_fastq_files[sample_base_name] = {'path': pe}
+        pe_fastq_files[sample_base_name]['src'] = 'usr'
+        pe_fastq_files[sample_base_name]['avg_len'] = None
         print('\t' + sample_base_name + ':\n\t\t' + pe[0] + '\n\t\t' + pe[1])
         print()
 
@@ -455,6 +464,9 @@ def user_fastq_files(fq_se, fq_pe): # noqa
 
 def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
                         dir_cache_fq_minlen, vsearch): # noqa
+
+    # lowest allowable
+    low = 30
 
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
         print('\nCalculating minimum acceptable read length:\n')
@@ -472,11 +484,27 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
     queue = []
 
     for se in se_fastq_files:
+        src = se_fastq_files[se]['src']
+        avg_len = se_fastq_files[se]['avg_len']
+        if src == 'sra':
+            ml = max(avg_len // 2, low)
+            se_fastq_files[se]['min_acc_len'] = ml
+            print('\t' + str(ml) + ' nt: ' + se)
+            continue
+
         fq_path = se_fastq_files[se]['path']
         stats_file = opj(dir_temp, se + '_stats.txt')
         queue.append([se, fq_path, stats_file, 'se'])
 
     for pe in pe_fastq_files:
+        src = pe_fastq_files[pe]['src']
+        avg_len = pe_fastq_files[pe]['avg_len']
+        if src == 'sra':
+            ml = max(avg_len // 2, low)
+            pe_fastq_files[pe]['min_acc_len'] = ml
+            print('\t' + str(ml) + ' nt: ' + pe)
+            continue
+
         fq_path = pe_fastq_files[pe]['path'][0]
         stats_file = opj(dir_temp, pe + '_stats.txt')
         queue.append([pe, fq_path, stats_file, 'pe'])
@@ -498,7 +526,7 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
             ml = re.findall(r'>=\s+(\d+)', stats)
 
             if len(ml) != 0:
-                ml = int(ml[0]) // 2
+                ml = max(int(ml[0]) // 2, low)
             else:
                 ml = None
 
@@ -508,7 +536,7 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
             print('\t' + str(ml) + ' nt: ' + x[0])
         else:
             print('\t' + ' ?' + ' nt: ' + x[0])
-            ml = 40
+            ml = low
 
         if x[3] == 'se':
             se_fastq_files[x[0]]['min_acc_len'] = ml

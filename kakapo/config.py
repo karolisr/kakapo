@@ -32,6 +32,11 @@ RAM = sys_ram()
 # Other ----------------------------------------------------------------------
 PICKLE_PROTOCOL = 2
 
+CONSRED = '\033[0;91m'
+CONGREE = '\033[0;92m'
+CONYELL = '\033[0;93m'
+CONSDFL = '\033[0m'
+
 # Filesystem paths for configuration directory -------------------------------
 DIR_USR = os.path.expanduser('~')
 DIR_CFG = os.path.join(DIR_USR, '.config', SCRIPT_NAME)

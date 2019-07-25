@@ -11,6 +11,9 @@ from __future__ import print_function
 from __future__ import with_statement
 
 import argparse
+import inspect
+import os
+import sys
 
 from os.path import basename
 from os.path import exists as ope
@@ -52,6 +55,12 @@ from kakapo.workflow import user_aa_fasta
 from kakapo.workflow import user_fastq_files
 from kakapo.workflow import user_protein_accessions
 
+##############################################################################
+SCRIPT_FILE_PATH = inspect.getfile(inspect.currentframe())
+SCRIPT_DIR_PATH = os.path.dirname(os.path.abspath(SCRIPT_FILE_PATH))
+KAKAPO_DIR_PATH = os.path.sep.join(SCRIPT_DIR_PATH.split(os.path.sep)[0:-1])
+sys.path.insert(0, KAKAPO_DIR_PATH)
+##############################################################################
 
 # Command line arguments -----------------------------------------------------
 
@@ -239,9 +248,12 @@ def main():
     sra_runs_info, sras_acceptable = dnld_sra_info(sras, dir_cache_prj)
 
     # Download SRA run FASTQ files if needed ---------------------------------
-    se_fastq_files_sra, pe_fastq_files_sra = dnld_sra_fastq_files(
-        sras_acceptable, sra_runs_info, dir_fq_data, fasterq_dump, THREADS,
-        dir_temp)
+    x, y, z = dnld_sra_fastq_files(sras_acceptable, sra_runs_info, dir_fq_data,
+                                   fasterq_dump, THREADS, dir_temp)
+
+    se_fastq_files_sra = x
+    pe_fastq_files_sra = y
+    sra_runs_info = z
 
     # User provided FASTQ files ----------------------------------------------
     se_fastq_files_usr, pe_fastq_files_usr = user_fastq_files(fq_se, fq_pe)

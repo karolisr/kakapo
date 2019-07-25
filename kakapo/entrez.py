@@ -19,6 +19,7 @@ from __future__ import with_statement
 
 from time import sleep
 from xmltodict import parse as parse_xml
+from math import ceil
 
 from kakapo.http_k import get
 from kakapo.http_k import post
@@ -28,7 +29,7 @@ from kakapo.parsers import parse_gbseq_xml_text
 from kakapo.parsers import parse_esummary_xml_text
 
 ENTREZ_BASE_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/'
-DELAY = 0
+DELAY = 3
 
 
 def esearch(db, term):
@@ -261,8 +262,30 @@ def dnld_seqs(term, db):  # noqa
     return efetch_results
 
 
-def sra_info(term):  # noqa
-    epost_results = esearch_epost(term, 'sra')
-    efetch_results = efetch(epost_results, parse_efetch_sra_xml_text,
-                            'runinfo')
-    return efetch_results
+def sra_run_info(acc_list):  # noqa
+    ret_list = []
+    page_size = 75
+    tot_acc = len(acc_list)
+    temp_acc_list = acc_list
+    pages = 1
+    if tot_acc > page_size:
+        pages = ceil(tot_acc / page_size)
+    for p in range(0, pages):
+        beg = page_size * p
+        end = beg + page_size
+
+        temp_acc_list = acc_list[beg:end]
+        term = ' OR '.join(temp_acc_list)
+
+        epost_results = esearch_epost(term, 'sra')
+
+        efetch_results = efetch(epost_results, parse_efetch_sra_xml_text,
+                                'runinfo')
+
+        temp = efetch_results[0]
+        if type(temp) is list:
+            ret_list = ret_list + temp
+        else:
+            ret_list = ret_list + efetch_results
+
+    return ret_list
