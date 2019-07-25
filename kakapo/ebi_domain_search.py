@@ -6,7 +6,7 @@ EMBL-EBI Search
 
 import csv
 
-from kakapo.http import get
+from kakapo.http_k import get
 
 # EBI Search RESTful Web Services https://www.ebi.ac.uk/ebisearch/swagger.ebi
 

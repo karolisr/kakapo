@@ -20,8 +20,8 @@ from time import sleep
 
 from xmltodict import parse as parse_xml
 
-from kakapo.http import get
-from kakapo.http import post
+from kakapo.http_k import get
+from kakapo.http_k import post
 
 IPS_URL = 'https://www.ebi.ac.uk/Tools/services/rest/iprscan5'
 

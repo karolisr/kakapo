@@ -20,8 +20,8 @@ from __future__ import with_statement
 from time import sleep
 from xmltodict import parse as parse_xml
 
-from kakapo.http import get
-from kakapo.http import post
+from kakapo.http_k import get
+from kakapo.http_k import post
 
 from kakapo.parsers import parse_efetch_sra_xml_text
 from kakapo.parsers import parse_gbseq_xml_text

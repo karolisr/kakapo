@@ -6,7 +6,7 @@ EMBL-EBI Proteins
 
 from math import ceil
 
-from kakapo.http import get
+from kakapo.http_k import get
 
 # Proteins REST API https://www.ebi.ac.uk/proteins/api/doc ------------------
 
