@@ -23,8 +23,12 @@ from xmltodict import parse as parse_xml
 from kakapo.http import get
 from kakapo.http import post
 
+from kakapo.parsers import parse_efetch_sra_xml_text
+from kakapo.parsers import parse_gbseq_xml_text
+from kakapo.parsers import parse_esummary_xml_text
+
 ENTREZ_BASE_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/'
-DELAY = 1
+DELAY = 0
 
 
 def esearch(db, term):
@@ -234,3 +238,31 @@ def esummary(data, parser):  # noqa
     sleep(DELAY)
 
     return return_value
+
+
+def esearch_epost(term, db):  # noqa
+    if type(term) in [list, tuple]:
+        term = ' OR '.join(term)
+    esearch_results = esearch(db, term)
+    id_list = esearch_results['IdList']
+    epost_results = epost(db, id_list)
+    return epost_results
+
+
+def summary(term, db):  # noqa
+    epost_results = esearch_epost(term, db)
+    esummary_results = esummary(epost_results, parse_esummary_xml_text)
+    return esummary_results
+
+
+def dnld_seqs(term, db):  # noqa
+    epost_results = esearch_epost(term, db)
+    efetch_results = efetch(epost_results, parse_gbseq_xml_text, 'gb')
+    return efetch_results
+
+
+def sra_info(term):  # noqa
+    epost_results = esearch_epost(term, 'sra')
+    efetch_results = efetch(epost_results, parse_efetch_sra_xml_text,
+                            'runinfo')
+    return efetch_results

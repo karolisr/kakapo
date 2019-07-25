@@ -17,12 +17,9 @@ from shutil import copyfile
 from time import sleep
 from sys import exit
 
-from kakapo.bioio import dnld_ncbi_seqs
-from kakapo.bioio import entrez_summary
 from kakapo.bioio import filter_fasta_text_by_length
 from kakapo.bioio import parse_fasta_text
 from kakapo.bioio import read_fasta_file, read_fasta_file_dict
-from kakapo.bioio import sra_info
 from kakapo.bioio import standardize_fasta_text
 from kakapo.bioio import trim_desc_to_first_space_in_fasta_text
 from kakapo.bioio import write_fasta_file
@@ -37,6 +34,9 @@ from kakapo.ebi_domain_search import prot_ids_for_tax_ids
 from kakapo.ebi_iprscan5 import job_runner
 from kakapo.ebi_iprscan5 import result_json
 from kakapo.ebi_proteins import fasta_by_accession_list
+from kakapo.entrez import dnld_seqs as dnld_ncbi_seqs
+from kakapo.entrez import sra_info
+from kakapo.entrez import summary as entrez_summary
 from kakapo.gff3 import gff_from_kakapo_ips5_json_file
 from kakapo.helpers import combine_text_files
 from kakapo.helpers import keep_unique_lines_in_file
