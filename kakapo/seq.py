@@ -19,6 +19,7 @@ from re import match
 
 from kakapo.iupac import *
 from kakapo.py_v_diffs import basestring
+from kakapo.translation import ambiguous_tt
 
 SEQ_TYPE_NT = 'NT'
 SEQ_TYPE_DNA = 'DNA'
@@ -54,6 +55,7 @@ def resolve_ambiguities(seq):  # noqa
 
 
 def translate(seq, trans_table):  # noqa
+    trans_table = ambiguous_tt(trans_table)
     seq = seq.upper()
     strtc = trans_table['start_codons']
     tbl = trans_table['trans_table']
@@ -67,7 +69,14 @@ def translate(seq, trans_table):  # noqa
         trans = 'M'
         idx = 1
 
-    trans = trans + ''.join([tbl[t] for t in seq_codons[idx:len_s]])
+    trans = ''
+
+    for t in seq_codons[idx:len_s]:
+        aa = 'X'
+        if t in tbl:
+            aa = tbl[t]
+
+        trans = trans + aa
 
     return trans
 

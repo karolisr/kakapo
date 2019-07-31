@@ -66,7 +66,8 @@ IUPAC_DNA_DICT = {
     'CGT': 'B',
     'AGT': 'D',
     'ACT': 'H',
-    'ACG': 'V'
+    'ACG': 'V',
+    'ACGT': 'N'
 }
 
 IUPAC_DNA_DICT_REVERSE = {
@@ -83,7 +84,8 @@ IUPAC_DNA_DICT_REVERSE = {
     'B': 'CGT',
     'D': 'AGT',
     'H': 'ACT',
-    'V': 'ACG'
+    'V': 'ACG',
+    'N': 'ACGT'
 }
 
 IUPAC_AMBIGUOUS_DNA_DICT = {
@@ -96,5 +98,6 @@ IUPAC_AMBIGUOUS_DNA_DICT = {
     'CGT': 'B',
     'AGT': 'D',
     'ACT': 'H',
-    'ACG': 'V'
+    'ACG': 'V',
+    'ACGT': 'N'
 }
