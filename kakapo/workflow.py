@@ -1350,7 +1350,6 @@ def gff_from_json(assemblies, dir_prj_ips, dir_prj_transcripts_combined,
         if ope(kakapo_json_path):
             with open(kakapo_json_path, 'r') as f:
                 kakapo_json_dict = json.load(f)
-            osremove(kakapo_json_path)
 
         json_dict = kakapo_json_dict.copy()
         json_dict.update(ips_json_dict)
