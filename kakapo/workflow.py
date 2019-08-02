@@ -1000,7 +1000,7 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
 
             else:
                 _ = opj(dir_temp, 'temp.fasta')
-                combine_text_files(fq_paths)
+                combine_text_files(fq_paths, _)
                 run_spades_se(spades,
                               out_dir=dir_results,
                               input_file=_,
