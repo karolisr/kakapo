@@ -6,6 +6,7 @@
 import json
 import pickle
 import re
+import fileinput
 
 from os import remove as osremove
 from os.path import basename
@@ -329,6 +330,7 @@ def dnld_sra_info(sras, dir_cache_prj):  # noqa
             sra_seq_platform_model = info['Model']
             sra_species = info['ScientificName']
             sra_taxid = info['TaxID']
+            sra_spots = int(info['spots'])
             sra_spots_with_mates = int(info['spots_with_mates'])
 
             sample_base_name = (sra_species.replace(' ', '_') + '_' +
@@ -375,6 +377,14 @@ def dnld_sra_info(sras, dir_cache_prj):  # noqa
                         'paired-end reads, but only a single set of reads '
                         'is available. Treating as single-ended.\n')
 
+                elif (sra_lib_layout == 'paired' and
+                      sra_spots != sra_spots_with_mates):
+                    sra_runs_info[sra]['KakapoLibraryLayout'] = 'PAIRED_UNP'
+                    sra_info_str = (
+                        sra_info_str + CONSRED + '\t>>> ' + CONYELL +
+                        sra + CONSDFL + ' is listed as containing '
+                        'paired-end reads, but not all reads are paired.\n')
+
                 sras_acceptable.append(sra)
 
             print(sra_info_str)
@@ -414,6 +424,9 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
             pe_fastq_files[sample_base_name] = {'path': [pe_file_1, pe_file_2]}
             pe_fastq_files[sample_base_name]['src'] = 'sra'
             pe_fastq_files[sample_base_name]['avg_len'] = avg_len // 2
+            if sra_lib_layout_k == 'paired_unp':
+                pe_file_3 = opj(dir_fq_data, sra + '.fastq')
+                pe_fastq_files[sample_base_name]['path'].append(pe_file_3)
             if not ope(pe_file_1) or not ope(pe_file_2):
                 sra_dnld_needed = True
 
@@ -579,6 +592,9 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
         dir_fq_trim_data_sample = opj(dir_fq_trim_data, pe)
         fq_path_1 = pe_fastq_files[pe]['path'][0]
         fq_path_2 = pe_fastq_files[pe]['path'][1]
+        fq_path_3 = None
+        if len(pe_fastq_files[pe]['path']) == 3:
+            fq_path_3 = pe_fastq_files[pe]['path'][2]
         min_acc_len = pe_fastq_files[pe]['min_acc_len']
         stats_f = opj(dir_fq_trim_data_sample, pe + '.txt')
         out_fs = [x.replace('@D@', dir_fq_trim_data_sample) for x in fpatt]
@@ -602,6 +618,35 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
                 stats_file=stats_f,
                 threads=threads,
                 minlen=min_acc_len)
+
+            if fq_path_3 is not None:
+
+                out_f = opj(dir_fq_trim_data_sample, 'unpaired.fastq')
+                stats_f = opj(dir_fq_trim_data_sample, pe + '_unpaired.txt')
+
+                print('Running Trimmomatic in SE mode: ' + pe +
+                      ' (Paired-read SRA run contains unpaired reads.)')
+
+                trimmomatic_se(
+                    trimmomatic=trimmomatic,
+                    adapters=adapters,
+                    in_file=fq_path_3,
+                    out_file=out_f,
+                    stats_file=stats_f,
+                    threads=threads,
+                    minlen=min_acc_len)
+
+                _ = opj(dir_fq_trim_data_sample, 'temp.fastq')
+                f_temp = open(_, 'a')
+                with fileinput.input(files=[out_fs[2], out_f]) as f:
+                    for line in f:
+                        f_temp.write(line)
+                f_temp.close()
+
+                osremove(out_fs[2])
+                osremove(out_f)
+                copyfile(_, out_fs[2])
+                osremove(_)
 
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
         print()
