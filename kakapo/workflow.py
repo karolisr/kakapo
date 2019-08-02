@@ -943,7 +943,7 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
 
 
 def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
-               spades, threads, ram):  # noqa
+               spades, dir_temp, threads, ram):  # noqa
 
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
         print()
@@ -999,15 +999,15 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
                               rna=True)
 
             else:
-                # This runs spades only on unpaired_1 file.
-                # ToDo: worth running on unpaired_2? It is unlikely to have
-                #       any reads in this case.
+                _ = opj(dir_temp, 'temp.fasta')
+                combine_text_files(fq_paths)
                 run_spades_se(spades,
                               out_dir=dir_results,
-                              input_file=fq_paths[2],
+                              input_file=_,
                               threads=threads,
                               memory=ram,
                               rna=True)
+                osremove(_)
 
         assmbl_path = opj(dir_results, 'transcripts.fasta')
         if ope(assmbl_path):

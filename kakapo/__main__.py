@@ -323,7 +323,7 @@ def main():
 
     # Run SPAdes -------------------------------------------------------------
     run_spades(se_fastq_files, pe_fastq_files, dir_prj_spades_assemblies,
-               spades, THREADS, RAM)
+               spades, dir_temp, THREADS, RAM)
 
     # Collate SPAdes and user provided assemblies ----------------------------
     assemblies = []
