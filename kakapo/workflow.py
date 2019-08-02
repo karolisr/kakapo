@@ -3,12 +3,13 @@
 
 """kakapo workflow"""
 
+import fileinput
 import json
 import pickle
 import re
-import fileinput
 
 from os import remove as osremove
+from os import stat as osstat
 from os.path import basename
 from os.path import commonprefix
 from os.path import exists as ope
@@ -986,12 +987,27 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
         else:
             make_dir(dir_results)
             print('Running SPAdes on: ' + pe)
-            run_spades_pe(spades,
-                          out_dir=dir_results,
-                          input_files=fq_paths,
-                          threads=threads,
-                          memory=ram,
-                          rna=True)
+
+            if osstat(fq_paths[0]).st_size > 0 and \
+               osstat(fq_paths[1]).st_size > 0:
+
+                run_spades_pe(spades,
+                              out_dir=dir_results,
+                              input_files=fq_paths,
+                              threads=threads,
+                              memory=ram,
+                              rna=True)
+
+            else:
+                # This runs spades only on unpaired_1 file.
+                # ToDo: worth running on unpaired_2? It is unlikely to have
+                #       any reads in this case.
+                run_spades_se(spades,
+                              out_dir=dir_results,
+                              input_file=fq_paths[2],
+                              threads=threads,
+                              memory=ram,
+                              rna=True)
 
         assmbl_path = opj(dir_results, 'transcripts.fasta')
         if ope(assmbl_path):
