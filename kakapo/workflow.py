@@ -46,8 +46,10 @@ from kakapo.seq import reverse_complement, translate
 from kakapo.seqtk import seqtk_fq_to_fa, seqtk_extract_reads
 from kakapo.shell import call
 from kakapo.spades import run_spades_se, run_spades_pe
+from kakapo.sra_hacks import confirm_single_ended
 from kakapo.trimmomatic import trimmomatic_se, trimmomatic_pe
 from kakapo.vsearch import run_cluster_fast, run_vsearch
+
 
 def prepare_output_directories(dir_out, prj_name):  # noqa
 
@@ -366,8 +368,9 @@ def dnld_sra_info(sras, dir_cache_prj):  # noqa
                 sra_runs_info[sra]['KakapoLibraryLayout'] = \
                     sra_runs_info[sra]['LibraryLayout']
 
-                if sra_lib_layout == 'paired':
-                    if sra_spots_with_mates == 0:
+                if sra_lib_layout == 'paired' and sra_spots_with_mates == 0:
+                    # Run additional check here. read_mask_bio == 1?
+                    if confirm_single_ended(sra):
                         sra_runs_info[sra]['KakapoLibraryLayout'] = 'SINGLE'
                         sra_info_str = (
                             sra_info_str + CONSRED + '\t>>> ' + CONYELL +
