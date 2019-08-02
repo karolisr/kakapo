@@ -72,7 +72,7 @@ PARSER = argparse.ArgumentParser()
 ARGS_GROUP_INPUT = PARSER.add_mutually_exclusive_group(required=True)
 
 ARGS_GROUP_INPUT.add_argument(
-    '-clean-config-dir',
+    '--clean-config-dir',
     action='store_true',
     required=False,
     dest='CLEAN_CONFIG_DIR',
@@ -80,7 +80,7 @@ ARGS_GROUP_INPUT.add_argument(
           dependencies.')
 
 ARGS_GROUP_INPUT.add_argument(
-    '-config-file',
+    '--config-file',
     type=str,
     required=False,
     dest='CONFIG_FILE_PATH',
