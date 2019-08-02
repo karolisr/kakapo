@@ -46,7 +46,6 @@ from kakapo.seq import reverse_complement, translate
 from kakapo.seqtk import seqtk_fq_to_fa, seqtk_extract_reads
 from kakapo.shell import call
 from kakapo.spades import run_spades_se, run_spades_pe
-from kakapo.sra_hacks import confirm_single_ended
 from kakapo.trimmomatic import trimmomatic_se, trimmomatic_pe
 from kakapo.vsearch import run_cluster_fast, run_vsearch
 
@@ -369,14 +368,12 @@ def dnld_sra_info(sras, dir_cache_prj):  # noqa
                     sra_runs_info[sra]['LibraryLayout']
 
                 if sra_lib_layout == 'paired' and sra_spots_with_mates == 0:
-                    # Run additional check here. read_mask_bio == 1?
-                    if confirm_single_ended(sra):
-                        sra_runs_info[sra]['KakapoLibraryLayout'] = 'SINGLE'
-                        sra_info_str = (
-                            sra_info_str + CONSRED + '\t>>> ' + CONYELL +
-                            sra + CONSDFL + ' is listed as containing '
-                            'paired-end reads, but only a single set of reads '
-                            'is available. Treating as single-ended.\n')
+                    sra_runs_info[sra]['KakapoLibraryLayout'] = 'SINGLE'
+                    sra_info_str = (
+                        sra_info_str + CONSRED + '\t>>> ' + CONYELL +
+                        sra + CONSDFL + ' is listed as containing '
+                        'paired-end reads, but only a single set of reads '
+                        'is available. Treating as single-ended.\n')
 
                 sras_acceptable.append(sra)
 
@@ -424,7 +421,7 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
             print('\nDownloading FASTQ reads for ' + sample_base_name + '\n')
             cmd = [fasterq_dump,
                    '--threads', str(threads),
-                   '--split-files',
+                   '--split-3',
                    '--outdir', dir_fq_data,
                    '--temp', dir_temp, sra]
             call(cmd)
