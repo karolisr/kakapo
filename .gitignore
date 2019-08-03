@@ -107,10 +107,7 @@ venv.bak/
 *.sublime-project
 *.sublime-workspace
 
-/tests/data/kakapo_user_input
 /untracked
-
 /tests/database
-/tests/log.html
-/tests/output.xml
-/tests/report.html
+/tests/output
+/tests/temp

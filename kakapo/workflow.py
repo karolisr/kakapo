@@ -53,7 +53,7 @@ from kakapo.vsearch import run_cluster_fast, run_vsearch
 
 
 def prepare_output_directories(dir_out, prj_name):  # noqa
-
+    # ToDo: Tests
     # ToDo: Lock cache files in case of parallel execution -------------------
 
     dir_temp = opj(dir_out, '00-temp')
@@ -71,7 +71,7 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
     dir_cache_prj = opj(dir_cache, 'projects', prj_name)
     make_dir(dir_cache_prj)
 
-    dir_prj = opj(dir_out, '01-project-specific', prj_name)
+    dir_prj = opj(dir_out, '02-project-specific', prj_name)
     make_dir(dir_prj)
 
     dir_prj_queries = opj(dir_prj, '01-queries')
@@ -101,7 +101,7 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
     dir_prj_transcripts_combined = opj(dir_prj, '08-transcripts-combined')
     make_dir(dir_prj_transcripts_combined)
 
-    dir_global = opj(dir_out, '02-global')
+    dir_global = opj(dir_out, '01-global')
     make_dir(dir_global)
 
     dir_fq_data = opj(dir_global, '01-sra-fq-data')
@@ -116,30 +116,31 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
     dir_blast_fa_trim = opj(dir_global, '04-trimmed-fa-blast-db-data')
     make_dir(dir_blast_fa_trim)
 
-    ret_dict = {'dir_temp': dir_temp,
+    ret_dict = {'dir_blast_fa_trim': dir_blast_fa_trim,
                 'dir_cache': dir_cache,
-                'dir_cache_pfam_acc': dir_cache_pfam_acc,
                 'dir_cache_fq_minlen': dir_cache_fq_minlen,
+                'dir_cache_pfam_acc': dir_cache_pfam_acc,
                 'dir_cache_prj': dir_cache_prj,
-                'dir_prj': dir_prj,
-                'dir_prj_queries': dir_prj_queries,
+                'dir_fa_trim_data': dir_fa_trim_data,
                 'dir_fq_data': dir_fq_data,
                 'dir_fq_trim_data': dir_fq_trim_data,
-                'dir_fa_trim_data': dir_fa_trim_data,
-                'dir_blast_fa_trim': dir_blast_fa_trim,
+                'dir_prj': dir_prj,
+                'dir_prj_assmbl_blast_results': dir_prj_assmbl_blast_results,
+                'dir_prj_blast_assmbl': dir_prj_blast_assmbl,
                 'dir_prj_blast_results_fa_trim': dir_prj_blast_results_fa_trim,
+                'dir_prj_ips': dir_prj_ips,
+                'dir_prj_queries': dir_prj_queries,
+                'dir_prj_spades_assemblies': dir_prj_spades_assemblies,
+                'dir_prj_transcripts': dir_prj_transcripts,
+                'dir_prj_transcripts_combined': dir_prj_transcripts_combined,
                 'dir_prj_vsearch_results_fa_trim':
                     dir_prj_vsearch_results_fa_trim,
-                'dir_prj_spades_assemblies': dir_prj_spades_assemblies,
-                'dir_prj_blast_assmbl': dir_prj_blast_assmbl,
-                'dir_prj_assmbl_blast_results': dir_prj_assmbl_blast_results,
-                'dir_prj_transcripts': dir_prj_transcripts,
-                'dir_prj_ips': dir_prj_ips,
-                'dir_prj_transcripts_combined': dir_prj_transcripts_combined}
+                'dir_temp': dir_temp}
 
     return ret_dict
 
 def descending_tax_ids(tax_ids_user, taxonomy):  # noqa
+    # ToDo: Tests
     if len(tax_ids_user) > 0:
         print('Resolving descending nodes for:\n')
     tax_ids = []
@@ -156,6 +157,7 @@ def descending_tax_ids(tax_ids_user, taxonomy):  # noqa
 
 
 def pfam_uniprot_accessions(pfam_acc, tax_ids, dir_cache_pfam_acc):  # noqa
+    # ToDo: Tests
     if len(pfam_acc) > 0:
         print('\nDownloading UniProt accessions for Pfam families:\n')
     pfam_seqs_list = []
@@ -179,6 +181,7 @@ def pfam_uniprot_accessions(pfam_acc, tax_ids, dir_cache_pfam_acc):  # noqa
 
 
 def dnld_pfam_uniprot_seqs(uniprot_acc, aa_uniprot_file, dir_cache_prj):  # noqa
+    # ToDo: Tests
     if len(uniprot_acc) != 0:
         __ = opj(dir_cache_prj, 'aa_uniprot_acc_cache')
         prev_uniprot_acc = []
@@ -204,6 +207,7 @@ def dnld_pfam_uniprot_seqs(uniprot_acc, aa_uniprot_file, dir_cache_prj):  # noqa
 
 
 def user_protein_accessions(prot_acc_user):  # noqa
+    # ToDo: Tests
     if len(prot_acc_user) > 0:
         print('Reading user provided protein accessions:\n')
         pa_info = entrez_summary(prot_acc_user, 'protein')
@@ -227,6 +231,7 @@ def user_protein_accessions(prot_acc_user):  # noqa
 
 
 def dnld_prot_seqs(prot_acc_user, aa_prot_ncbi_file, dir_cache_prj):  # noqa
+    # ToDo: Tests
     if len(prot_acc_user) != 0:
         __ = opj(dir_cache_prj, 'aa_prot_ncbi_acc_cache')
         prev_prot_acc_user = []
@@ -251,6 +256,7 @@ def dnld_prot_seqs(prot_acc_user, aa_prot_ncbi_file, dir_cache_prj):  # noqa
 
 
 def user_aa_fasta(user_queries, aa_prot_user_file):  # noqa
+    # ToDo: Tests
     __ = ''
     if len(user_queries) > 0:
         print('Reading user provided AA sequences:')
@@ -265,6 +271,7 @@ def user_aa_fasta(user_queries, aa_prot_user_file):  # noqa
 
 
 def combine_aa_fasta(fasta_files, aa_queries_file):  # noqa
+    # ToDo: Tests
     print('Combining all AA query sequences.\n')
     __ = ''
     for fasta_file in fasta_files:
@@ -281,6 +288,7 @@ def combine_aa_fasta(fasta_files, aa_queries_file):  # noqa
 
 
 def filter_queries(aa_queries_file, min_query_length, max_query_length): # noqa
+    # ToDo: Tests
     __ = ''
     with open(aa_queries_file, 'r') as f:
         __ = f.read()
@@ -296,7 +304,7 @@ def filter_queries(aa_queries_file, min_query_length, max_query_length): # noqa
 
 
 def dnld_sra_info(sras, dir_cache_prj):  # noqa
-
+    # ToDo: Tests
     sra_runs_info = {}
     sras_acceptable = []
 
@@ -398,7 +406,7 @@ def dnld_sra_info(sras, dir_cache_prj):  # noqa
 
 def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
                          threads, dir_temp): # noqa
-
+    # ToDo: Tests
     se_fastq_files = {}
     pe_fastq_files = {}
 
@@ -449,7 +457,7 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
 
 
 def user_fastq_files(fq_se, fq_pe): # noqa
-
+    # ToDo: Tests
     if len(fq_se) > 0 or len(fq_pe) > 0:
         print('\nPreparing user provided FASTQ files:\n')
 
@@ -478,7 +486,7 @@ def user_fastq_files(fq_se, fq_pe): # noqa
 
 def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
                         dir_cache_fq_minlen, vsearch): # noqa
-
+    # ToDo: Tests
     # lowest allowable
     low = 30
 
@@ -566,7 +574,7 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
 
 def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
                     trimmomatic, adapters, fpatt, threads): # noqa
-
+    # ToDo: Tests
     for se in se_fastq_files:
         dir_fq_trim_data_sample = opj(dir_fq_trim_data, se)
         fq_path = se_fastq_files[se]['path']
@@ -655,7 +663,7 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
 
 def trimmed_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
                      fpatt): # noqa
-
+    # ToDo: Tests
     for se in se_fastq_files:
         dir_fa_trim_data_sample = opj(dir_fa_trim_data, se)
         fq_path = se_fastq_files[se]['trim_path_fq']
@@ -688,7 +696,7 @@ def trimmed_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
 
 def makeblastdb_fq(se_fastq_files, pe_fastq_files, dir_blast_fa_trim,
                    makeblastdb, fpatt): # noqa
-
+    # ToDo: Tests
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
         print()
 
@@ -737,7 +745,7 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                          blast_1_culling_limit, blast_1_qcov_hsp_perc,
                          dir_blast_results_fa_trim, fpatt, threads,
                          genetic_code, seqtk, vsearch): # noqa
-
+    # ToDo: Tests
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
         print()
 
@@ -840,7 +848,7 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
 
 def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
                          dir_vsearch_results_fa_trim, fpatt, seqtk): # noqa
-
+    # ToDo: Tests
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
         print()
 
@@ -944,7 +952,7 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
 
 def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
                spades, dir_temp, threads, ram):  # noqa
-
+    # ToDo: Tests
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
         print()
 
@@ -1023,7 +1031,7 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
 
 
 def makeblastdb_assemblies(assemblies, dir_prj_blast_assmbl, makeblastdb):  # noqa
-
+    # ToDo: Tests
     if len(assemblies) > 0:
         print('Building BLAST databases for assemblies:\n')
     for a in assemblies:
@@ -1052,6 +1060,7 @@ def run_tblastn_on_assemblies(assemblies, aa_queries_file, tblastn,
                               dir_prj_assmbl_blast_results, blast_2_evalue,
                               blast_2_max_target_seqs, blast_2_culling_limit,
                               blast_2_qcov_hsp_perc, threads, genetic_code):  # noqa
+    # ToDo: Tests
     if len(assemblies) > 0:
         print('Running BLAST on assemblies:\n')
 
@@ -1092,7 +1101,7 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
                         dir_temp, prepend_assmbl, min_target_orf_len,
                         max_target_orf_len, allow_non_aug, allow_no_strt_cod,
                         allow_no_stop_cod):  # noqa
-
+    # ToDo: Tests
     if len(assemblies) > 0:
         print('Analyzing BLAST hits for assemblies:\n')
 
@@ -1306,7 +1315,7 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
 
 
 def run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj):  # noqa
-
+    # ToDo: Tests
     delay = 1
 
     if len(assemblies) > 0:
@@ -1377,7 +1386,7 @@ def run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj):  # noqa
 
 def gff_from_json(assemblies, dir_prj_ips, dir_prj_transcripts_combined,
                   prj_name):  # noqa
-
+    # ToDo: Tests
     if len(assemblies) > 0:
         print('\nProducing GFF3 files:\n')
 
