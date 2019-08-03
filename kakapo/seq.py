@@ -18,8 +18,10 @@ from random import randint
 from re import match
 
 from kakapo.iupac import *
-from kakapo.py_v_diffs import basestring
+from kakapo.py_v_diffs import basestring, python_version
 from kakapo.translation import ambiguous_tt
+
+_PY_V_HEX, _ = python_version()
 
 SEQ_TYPE_NT = 'NT'
 SEQ_TYPE_DNA = 'DNA'
@@ -40,6 +42,8 @@ MOL_TO_SEQ_TYPE_MAP = {
 
 def reverse_complement(seq):  # noqa
     seq = seq.upper()
+    if _PY_V_HEX < 0x03000000:
+        seq = seq.encode('ascii')
     comp = seq.translate(DNA_COMPLEMENT_TABLE)
     comp_rev = comp[::-1]
     return(comp_rev)
