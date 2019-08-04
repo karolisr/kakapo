@@ -13,6 +13,7 @@ from __future__ import with_statement
 
 
 from collections import defaultdict
+from copy import copy
 
 from kakapo.iupac import IUPAC_DNA_DICT, NT_AMBIGUOUS_CHARS
 
@@ -95,7 +96,7 @@ def ambiguous_codons(codons):  # noqa
 
     amb_codons = amb_codons + amb_codons_rev + codons
 
-    for c in amb_codons.copy():
+    for c in copy(amb_codons):
         if c[2] == 'N':
             more_codons = [c[0:2] + amb for amb in NT_AMBIGUOUS_CHARS]
             amb_codons = amb_codons + more_codons
