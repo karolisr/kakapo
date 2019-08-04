@@ -32,6 +32,7 @@ from kakapo.config_file_parse import config_file_parse
 from kakapo.helpers import make_dir
 from kakapo.workflow import combine_aa_fasta
 from kakapo.workflow import descending_tax_ids
+from kakapo.workflow import dnld_cds_for_ncbi_prot_acc
 from kakapo.workflow import dnld_pfam_uniprot_seqs
 from kakapo.workflow import dnld_prot_seqs
 from kakapo.workflow import dnld_sra_fastq_files
@@ -382,6 +383,12 @@ def main():
     if inter_pro_scan is True:
         gff_from_json(assemblies, dir_prj_ips, dir_prj_transcripts_combined,
                       prj_name)
+
+    # Download CDS for NCBI protein queries ----------------------------------
+    nt_prot_ncbi_file = opj(dir_prj_transcripts_combined, prj_name +
+                            '_ncbi_query_cds.fasta')
+    if len(prot_acc_user) > 0:
+        dnld_cds_for_ncbi_prot_acc(prot_acc_user, nt_prot_ncbi_file)
 
 ##############################################################################
 

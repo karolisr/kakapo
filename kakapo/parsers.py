@@ -47,6 +47,7 @@ def parse_gbseq_xml_text(gbseq_xml_text):
         organism, seq, strandedness, taxid, topology, version
     :rtype: dict
     """
+
     tree = ElementTree.parse(StringIO(unicode(gbseq_xml_text)))
     root = tree.getroot()
 
@@ -64,6 +65,7 @@ def parse_gbseq_xml_text(gbseq_xml_text):
 
         if len(temp_acc_ver) == 2:
             version = temp_acc_ver[1]
+            temp_acc_ver = accession + '.' + version
 
         strandedness = rec.find('GBSeq_strandedness')
         if strandedness is not None:
@@ -115,6 +117,7 @@ def parse_gbseq_xml_text(gbseq_xml_text):
             feature['intervals'] = list()
             feature['interval_directions'] = list()
             n_intervals = n_feature.find('GBFeature_intervals')
+
             for n_interval in n_intervals.findall('GBInterval'):
 
                 n_interval_from = n_interval.find('GBInterval_from')
