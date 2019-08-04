@@ -1,7 +1,6 @@
 *** Settings ***
 Library   OperatingSystem
 Library   kakapo.workflow
-
 Resource  resources/resource_directories.robot
 
 *** Test Cases ***

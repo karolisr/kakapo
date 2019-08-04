@@ -53,7 +53,6 @@ from kakapo.vsearch import run_cluster_fast, run_vsearch
 
 
 def prepare_output_directories(dir_out, prj_name):  # noqa
-    # ToDo: Tests
     # ToDo: Lock cache files in case of parallel execution -------------------
 
     dir_temp = opj(dir_out, '00-temp')
@@ -140,7 +139,6 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
     return ret_dict
 
 def descending_tax_ids(tax_ids_user, taxonomy):  # noqa
-    # ToDo: Tests
     if len(tax_ids_user) > 0:
         print('Resolving descending nodes for:\n')
     tax_ids = []
@@ -148,16 +146,16 @@ def descending_tax_ids(tax_ids_user, taxonomy):  # noqa
         tx_name = taxonomy.scientific_name_for_taxid(taxid=tx)
         print('\t' + str(tx) + ':\t' + tx_name)
         tax_ids_for_tx = taxonomy.all_descending_taxids(taxid=tx)
+        if tax_ids_for_tx is None:
+            tax_ids_for_tx = [tx]
         tax_ids = tax_ids + tax_ids_for_tx
-    tax_ids = list(set(tax_ids))
-    # ToDo: Fix Taxonomy class, so it returns integers by default
     tax_ids = [int(x) for x in tax_ids]
+    tax_ids = list(set(tax_ids))
 
     return tax_ids
 
 
 def pfam_uniprot_accessions(pfam_acc, tax_ids, dir_cache_pfam_acc):  # noqa
-    # ToDo: Tests
     if len(pfam_acc) > 0:
         print('\nDownloading UniProt accessions for Pfam families:\n')
     pfam_seqs_list = []
