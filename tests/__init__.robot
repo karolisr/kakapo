@@ -1,6 +1,7 @@
 *** Settings ***
 Library   OperatingSystem
 Library   kakapo.workflow
+Library   ncbi_taxonomy_local.Taxonomy  WITH NAME  Tax
 Resource  resources/resource_directories.robot
 Resource  resources/resource_taxonomy.robot
 Suite Setup      Setup before all tests
@@ -17,6 +18,9 @@ Setup before all tests
 
     ${tax}  Init Taxonomy
     Set Global Variable  ${tax}
+
+    &{tt1}  Tax.trans_table_for_genetic_code_id  1
+    Set Global Variable  ${tt1}
 
 Cleanup after all tests
 

@@ -14,7 +14,7 @@ from __future__ import with_statement
 
 from collections import defaultdict
 
-from kakapo.iupac import IUPAC_DNA_DICT
+from kakapo.iupac import IUPAC_DNA_DICT, NT_AMBIGUOUS_CHARS
 
 
 def invert_tt(tt):  # noqa
@@ -93,7 +93,14 @@ def ambiguous_codons(codons):  # noqa
         c_rev = c[::-1]
         amb_codons_rev.append(c_rev)
 
-    amb_codons = sorted(list(set(amb_codons + amb_codons_rev + codons)))
+    amb_codons = amb_codons + amb_codons_rev + codons
+
+    for c in amb_codons.copy():
+        if c[2] == 'N':
+            more_codons = [c[0:2] + amb for amb in NT_AMBIGUOUS_CHARS]
+            amb_codons = amb_codons + more_codons
+
+    amb_codons = sorted(list(set(amb_codons)))
 
     return amb_codons
 

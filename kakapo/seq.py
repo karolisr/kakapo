@@ -64,6 +64,8 @@ def translate(seq, trans_table):  # noqa
     strtc = trans_table['start_codons']
     tbl = trans_table['trans_table']
     seq_codons = [(seq[i:i + 3]) for i in range(0, len(seq), 3)]
+    # Clip the last item if it has less than three nucleotides
+    seq_codons = [cod for cod in seq_codons if len(cod) == 3]
 
     idx = 0
     len_s = len(seq_codons)

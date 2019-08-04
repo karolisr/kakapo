@@ -2,7 +2,7 @@
 Library  ncbi_taxonomy_local
 
 *** Variables ***
-${dir_tax}                temp/ncbi-taxonomy-db
+${dir_tax}  temp/ncbi-taxonomy-db
 
 *** Keywords ***
 Init Taxonomy
