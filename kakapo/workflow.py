@@ -38,7 +38,7 @@ from kakapo.ebi_iprscan5 import result_json
 from kakapo.ebi_proteins import fasta_by_accession_list
 from kakapo.entrez import cds_acc_for_prot_acc
 from kakapo.entrez import dnld_seqs as dnld_ncbi_seqs
-from kakapo.entrez import dnld_seqs_gb_format as dnld_ncbi_seqs_gb_format
+from kakapo.entrez import dnld_cds_nt_fasta as dnld_ncbi_cds_nt_fasta
 from kakapo.entrez import sra_run_info
 from kakapo.entrez import summary as entrez_summary
 from kakapo.gff3 import gff_from_kakapo_ips5_json_file
@@ -1448,8 +1448,8 @@ def dnld_cds_for_ncbi_prot_acc(prot_acc_user, nt_prot_ncbi_file):  # noqa
         cds_acc = cds_acc_dict[prot_acc]
         cds_accessions.append(cds_acc)
 
-    cds_seqs = dnld_ncbi_seqs_gb_format(cds_accessions, 'nuccore')
-    cds_seqs_text = '\n\n'.join(cds_seqs)
+    cds_seqs = dnld_ncbi_cds_nt_fasta(cds_accessions,)
+    cds_seqs_text = '\n'.join(cds_seqs)
 
     with open(nt_prot_ncbi_file, 'w') as f:
         f.write(cds_seqs_text)

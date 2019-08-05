@@ -274,6 +274,13 @@ def dnld_seqs_gb_format(term, db):  # noqa
     return efetch_results
 
 
+def dnld_cds_nt_fasta(term):  # noqa
+    epost_results = esearch_epost(term, 'nuccore')
+    efetch_results = efetch(epost_results, lambda x: x.split('\n\n')[:-1],
+                            'fasta_cds_na', 'plain_text')
+    return efetch_results
+
+
 def cds_acc_for_prot_acc(prot_accessions):  # noqa
     ret_dict = dict()
     prot_dict_list = dnld_seqs(prot_accessions, 'protein')
