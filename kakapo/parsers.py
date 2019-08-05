@@ -67,6 +67,10 @@ def parse_gbseq_xml_text(gbseq_xml_text):
             version = temp_acc_ver[1]
             temp_acc_ver = accession + '.' + version
 
+        dbsource = rec.find('GBSeq_source-db')
+        if dbsource is not None:
+            dbsource = dbsource.text
+
         strandedness = rec.find('GBSeq_strandedness')
         if strandedness is not None:
             strandedness = strandedness.text
@@ -188,6 +192,8 @@ def parse_gbseq_xml_text(gbseq_xml_text):
 
         record_dict['seq'] = seq
         record_dict['mol_type'] = mol_type
+
+        record_dict['db_source'] = dbsource
 
         record_dict['accession'] = accession
         record_dict['version'] = version

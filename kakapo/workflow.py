@@ -38,6 +38,7 @@ from kakapo.ebi_iprscan5 import result_json
 from kakapo.ebi_proteins import fasta_by_accession_list
 from kakapo.entrez import cds_acc_for_prot_acc
 from kakapo.entrez import dnld_seqs as dnld_ncbi_seqs
+from kakapo.entrez import dnld_seqs_gb_format as dnld_ncbi_seqs_gb_format
 from kakapo.entrez import sra_run_info
 from kakapo.entrez import summary as entrez_summary
 from kakapo.gff3 import gff_from_kakapo_ips5_json_file
@@ -1443,23 +1444,12 @@ def dnld_cds_for_ncbi_prot_acc(prot_acc_user, nt_prot_ncbi_file):  # noqa
     cds_acc_dict = cds_acc_for_prot_acc(prot_acc_user)
 
     cds_accessions = []
-    cds_accessions_coords = {}
     for prot_acc in cds_acc_dict:
-        cds_acc = cds_acc_dict[prot_acc]['cds_acc']
-        cds_beg = cds_acc_dict[prot_acc]['cds_beg']
-        cds_end = cds_acc_dict[prot_acc]['cds_end']
+        cds_acc = cds_acc_dict[prot_acc]
         cds_accessions.append(cds_acc)
-        cds_accessions_coords[cds_acc] = [cds_beg, cds_end]
 
-    cds_seqs = dnld_ncbi_seqs(cds_accessions, 'nuccore')
+    cds_seqs = dnld_ncbi_seqs_gb_format(cds_accessions, 'nuccore')
+    cds_seqs_text = '\n\n'.join(cds_seqs)
 
-    for cds_seq in cds_seqs:
-        acc = cds_seq['accession']
-        ver = cds_seq['version']
-        accv = acc + '.' + ver
-        cds_coords = cds_accessions_coords[accv]
-        seq = cds_seq['seq']
-        seq = seq[cds_coords[0]:cds_coords[1]]
-        cds_seq['seq'] = seq
-
-    write_fasta_file(cds_seqs, nt_prot_ncbi_file)
+    with open(nt_prot_ncbi_file, 'w') as f:
+        f.write(cds_seqs_text)

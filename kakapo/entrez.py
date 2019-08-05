@@ -17,6 +17,8 @@ from __future__ import nested_scopes
 from __future__ import print_function
 from __future__ import with_statement
 
+import re
+
 from time import sleep
 from xmltodict import parse as parse_xml
 from math import ceil
@@ -264,32 +266,30 @@ def dnld_seqs(term, db):  # noqa
     efetch_results = efetch(epost_results, parse_gbseq_xml_text, 'gb')
     return efetch_results
 
+
+def dnld_seqs_gb_format(term, db):  # noqa
+    epost_results = esearch_epost(term, db)
+    efetch_results = efetch(epost_results, lambda x: x.split('\n\n')[:-1],
+                            'gb', 'plain_text')
+    return efetch_results
+
+
 def cds_acc_for_prot_acc(prot_accessions):  # noqa
     ret_dict = dict()
     prot_dict_list = dnld_seqs(prot_accessions, 'protein')
+
     for rec in prot_dict_list:
-        cds_dict = dict()
         acc = rec['accession']
         ver = rec['version']
         accv = acc + '.' + ver
-        features = rec['features']
-        for f in features:
-            f_key = f['key']
-            if f_key == 'CDS':
-                f_qualifiers = f['qualifiers']
-                for q in f_qualifiers:
-                    if 'coded_by' in q:
-                        coded_by = q['coded_by']
-                        coded_by_split = coded_by.split(':')
-                        coded_by_accv = coded_by_split[0]
-                        coded_by_coords = coded_by_split[1]
-                        coded_by_coords_split = coded_by_coords.split('..')
-                        coded_by_begin = int(coded_by_coords_split[0]) - 1
-                        coded_by_end = int(coded_by_coords_split[1])
-                        cds_dict['cds_acc'] = coded_by_accv
-                        cds_dict['cds_beg'] = coded_by_begin
-                        cds_dict['cds_end'] = coded_by_end
-                        ret_dict[accv] = cds_dict
+        dbsource = rec['db_source']
+        dbsource = re.findall('.*accession\s+(.*)', dbsource)
+        if len(dbsource) != 0:
+            dbsource = dbsource[0]
+        else:
+            dbsource = None
+
+        ret_dict[accv] = dbsource
 
     return ret_dict
 

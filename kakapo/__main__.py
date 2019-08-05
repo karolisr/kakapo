@@ -386,7 +386,7 @@ def main():
 
     # Download CDS for NCBI protein queries ----------------------------------
     nt_prot_ncbi_file = opj(dir_prj_transcripts_combined, prj_name +
-                            '_ncbi_query_cds.fasta')
+                            '_ncbi_query_cds.gb')
     if len(prot_acc_user) > 0:
         dnld_cds_for_ncbi_prot_acc(prot_acc_user, nt_prot_ncbi_file)
 
