@@ -1448,8 +1448,18 @@ def dnld_cds_for_ncbi_prot_acc(prot_acc_user, nt_prot_ncbi_file):  # noqa
         cds_acc = cds_acc_dict[prot_acc]
         cds_accessions.append(cds_acc)
 
-    cds_seqs = dnld_ncbi_cds_nt_fasta(cds_accessions,)
-    cds_seqs_text = '\n'.join(cds_seqs)
+    temp = dnld_ncbi_cds_nt_fasta(cds_accessions)
+
+    cds_seqs_fasta_list = []
+
+    for x in temp:
+        prot_id = re.findall('\[protein_id=(.*?)\]', x)
+        if len(prot_id) == 1:
+            prot_id = prot_id[0]
+            if prot_id in prot_acc_user:
+                cds_seqs_fasta_list.append(x)
+
+    cds_seqs_fasta_text = '\n'.join(cds_seqs_fasta_list)
 
     with open(nt_prot_ncbi_file, 'w') as f:
-        f.write(cds_seqs_text)
+        f.write(cds_seqs_fasta_text)
