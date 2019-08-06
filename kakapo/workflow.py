@@ -1486,9 +1486,13 @@ def dnld_cds_for_ncbi_prot_acc(prot_acc_user, nt_prot_ncbi_file, tax):  # noqa
                 cds_acc = re.findall(r'^(.*?)\s',
                                      description)[0].split('_cds_')[0]
                 prot_name = re.findall(r'\[protein=(.*?)\]', x)[0]
-                gene_name = re.findall(r'\[gene=(.*?)\]', x)[0]
+                gene_name = re.findall(r'\[gene=(.*?)\]', x)
+                if len(gene_name) == 0:
+                    gene_name = ''
+                else:
+                    gene_name = '__' + gene_name[0]
                 x_seq = ''.join(x.split('\n')[1:])
-                x_desc = ('>' + taxon + '__' + gene_name + '__' + prot_name +
+                x_desc = ('>' + taxon + gene_name + '__' + prot_name +
                           '__QUERY__' + cds_acc + '__' + prot_id)
                 x_desc = x_desc.replace(',', '')
                 x_desc = x_desc.replace(';', '')
