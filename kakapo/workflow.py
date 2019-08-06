@@ -37,10 +37,11 @@ from kakapo.ebi_iprscan5 import job_runner
 from kakapo.ebi_iprscan5 import result_json
 from kakapo.ebi_proteins import fasta_by_accession_list
 from kakapo.entrez import cds_acc_for_prot_acc
-from kakapo.entrez import dnld_seqs as dnld_ncbi_seqs
 from kakapo.entrez import dnld_cds_nt_fasta as dnld_ncbi_cds_nt_fasta
+from kakapo.entrez import dnld_seqs as dnld_ncbi_seqs
 from kakapo.entrez import sra_run_info
 from kakapo.entrez import summary as entrez_summary
+from kakapo.entrez import taxids_for_acc
 from kakapo.gff3 import gff_from_kakapo_ips5_json_file
 from kakapo.helpers import combine_text_files
 from kakapo.helpers import keep_unique_lines_in_file
@@ -1440,7 +1441,8 @@ def gff_from_json(assemblies, dir_prj_ips, dir_prj_transcripts_combined,
     combine_text_files(all_gff_paths, combined_gff_path)
 
 
-def dnld_cds_for_ncbi_prot_acc(prot_acc_user, nt_prot_ncbi_file):  # noqa
+def dnld_cds_for_ncbi_prot_acc(prot_acc_user, nt_prot_ncbi_file, tax):  # noqa
+    print('Downloading CDS for user provided NCBI protein accessions.')
     cds_acc_dict = cds_acc_for_prot_acc(prot_acc_user)
 
     cds_accessions = []
@@ -1450,16 +1452,36 @@ def dnld_cds_for_ncbi_prot_acc(prot_acc_user, nt_prot_ncbi_file):  # noqa
 
     temp = dnld_ncbi_cds_nt_fasta(cds_accessions)
 
+    taxids = taxids_for_acc(prot_acc_user, 'protein')
+
     cds_seqs_fasta_list = []
 
     for x in temp:
-        prot_id = re.findall('\[protein_id=(.*?)\]', x)
+        description = x.split('\n')[0]
+        description = description.split('|')[1]
+        prot_id = re.findall(r'\[protein_id=(.*?)\]', x)
         if len(prot_id) == 1:
             prot_id = prot_id[0]
             if prot_id in prot_acc_user:
+                tax_id = taxids[prot_id]
+                taxon = tax.scientific_name_for_taxid(tax_id)
+                cds_acc = re.findall(r'^(.*?)\s',
+                                     description)[0].split('_cds_')[0]
+                prot_name = re.findall(r'\[protein=(.*?)\]', x)[0]
+                gene_name = re.findall(r'\[gene=(.*?)\]', x)[0]
+                x_seq = ''.join(x.split('\n')[1:])
+                x_desc = ('>' + taxon + '__' + gene_name + '__' + prot_name +
+                          '__QUERY__' + cds_acc + '__' + prot_id)
+                x_desc = x_desc.replace(',', '')
+                x_desc = x_desc.replace(';', '')
+                x_desc = x_desc.replace(':', '')
+                x_desc = x_desc.replace(' ', '_')
+                x = x_desc + '\n' + x_seq
                 cds_seqs_fasta_list.append(x)
 
     cds_seqs_fasta_text = '\n'.join(cds_seqs_fasta_list)
 
     with open(nt_prot_ncbi_file, 'w') as f:
         f.write(cds_seqs_fasta_text)
+
+    return cds_seqs_fasta_text

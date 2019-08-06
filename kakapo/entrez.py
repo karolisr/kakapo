@@ -261,6 +261,16 @@ def summary(term, db):  # noqa
     return esummary_results
 
 
+def taxids_for_acc(accessions, db):  # noqa
+    summ = summary(accessions, db)
+    ret_dict = dict()
+    for x in summ:
+        acc = x['AccessionVersion']
+        taxid = x['TaxId']
+        ret_dict[acc] = taxid
+
+    return ret_dict
+
 def dnld_seqs(term, db):  # noqa
     epost_results = esearch_epost(term, db)
     efetch_results = efetch(epost_results, parse_gbseq_xml_text, 'gb')

@@ -371,6 +371,12 @@ def main():
                         max_target_orf_len, allow_non_aug, allow_no_strt_cod,
                         allow_no_stop_cod)
 
+    # Download CDS for NCBI protein queries ----------------------------------
+    nt_prot_ncbi_file = opj(dir_prj_transcripts_combined, prj_name +
+                            '_ncbi_query_cds.fasta')
+    if len(prot_acc_user) > 0:
+        dnld_cds_for_ncbi_prot_acc(prot_acc_user, nt_prot_ncbi_file, tax)
+
     # GFF3 files from kakapo results JSON files ------------------------------
     gff_from_json(assemblies, dir_prj_ips, dir_prj_transcripts_combined,
                   prj_name)
@@ -383,12 +389,6 @@ def main():
     if inter_pro_scan is True:
         gff_from_json(assemblies, dir_prj_ips, dir_prj_transcripts_combined,
                       prj_name)
-
-    # Download CDS for NCBI protein queries ----------------------------------
-    nt_prot_ncbi_file = opj(dir_prj_transcripts_combined, prj_name +
-                            '_ncbi_query_cds.fasta')
-    if len(prot_acc_user) > 0:
-        dnld_cds_for_ncbi_prot_acc(prot_acc_user, nt_prot_ncbi_file)
 
 ##############################################################################
 
