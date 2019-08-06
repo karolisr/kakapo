@@ -416,6 +416,7 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
         sra_lib_layout = sra_run_info['LibraryLayout'].lower()
         sra_lib_layout_k = sra_run_info['KakapoLibraryLayout'].lower()
         sample_base_name = sra_run_info['KakapoSampleBaseName']
+        sra_taxid = sra_run_info['TaxID']
         avg_len = int(sra_run_info['avgLength'])
 
         sra_dnld_needed = False
@@ -425,6 +426,7 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
             se_fastq_files[sample_base_name] = {'path': se_file}
             se_fastq_files[sample_base_name]['src'] = 'sra'
             se_fastq_files[sample_base_name]['avg_len'] = avg_len
+            se_fastq_files[sample_base_name]['tax_id'] = sra_taxid
             if not ope(se_file):
                 sra_dnld_needed = True
 
@@ -434,6 +436,7 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
             pe_fastq_files[sample_base_name] = {'path': [pe_file_1, pe_file_2]}
             pe_fastq_files[sample_base_name]['src'] = 'sra'
             pe_fastq_files[sample_base_name]['avg_len'] = avg_len // 2
+            pe_fastq_files[sample_base_name]['tax_id'] = sra_taxid
             if sra_lib_layout_k == 'paired_unp':
                 pe_file_3 = opj(dir_fq_data, sra + '.fastq')
                 pe_fastq_files[sample_base_name]['path'].append(pe_file_3)
@@ -470,6 +473,7 @@ def user_fastq_files(fq_se, fq_pe): # noqa
         se_fastq_files[sample_base_name] = {'path': se}
         se_fastq_files[sample_base_name]['src'] = 'usr'
         se_fastq_files[sample_base_name]['avg_len'] = None
+        se_fastq_files[sample_base_name]['tax_id'] = None
         print('\t' + sample_base_name + ':\n\t\t' + se)
         print()
 
@@ -479,6 +483,7 @@ def user_fastq_files(fq_se, fq_pe): # noqa
         pe_fastq_files[sample_base_name] = {'path': pe}
         pe_fastq_files[sample_base_name]['src'] = 'usr'
         pe_fastq_files[sample_base_name]['avg_len'] = None
+        pe_fastq_files[sample_base_name]['tax_id'] = None
         print('\t' + sample_base_name + ':\n\t\t' + pe[0] + '\n\t\t' + pe[1])
         print()
 
@@ -1101,7 +1106,7 @@ def run_tblastn_on_assemblies(assemblies, aa_queries_file, tblastn,
 def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
                         dir_temp, prepend_assmbl, min_target_orf_len,
                         max_target_orf_len, allow_non_aug, allow_no_strt_cod,
-                        allow_no_stop_cod):  # noqa
+                        allow_no_stop_cod, tax):  # noqa
     # ToDo: Tests
     if len(assemblies) > 0:
         print('Analyzing BLAST hits for assemblies:\n')
@@ -1109,6 +1114,7 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
     for a in assemblies:
 
         assmbl_name = a['name']
+        tax_id = a['tax_id']
 
         parsed_hits = a['blast_hits_aa']
         a_path = a['path']
@@ -1174,6 +1180,18 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
             # Prepend assembly name to the sequence name:
             if prepend_assmbl is True:
                 target_name = assmbl_name + '__' + target_name
+                # Also prepend taxonomic info to the sequence name:
+                if tax_id is not None:
+                    fm = tax.higher_rank_for_taxid(tax_id, rank='family')
+                    cn = tax.genbank_common_name_for_taxid(tax_id)
+
+                    if fm is not None:
+                        target_name = fm + '__' + target_name
+
+                    if cn is not None:
+                        cn = cn.lower()
+                        cn = cn.replace(' ', '_')
+                        target_name = cn + '__' + target_name
 
             hit_start = hit['start']
             hit_end = hit['end']

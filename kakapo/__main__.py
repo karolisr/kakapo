@@ -336,6 +336,7 @@ def main():
         a = {}
         a['path'] = a_path
         a['name'] = se
+        a['tax_id'] = se_fastq_files[se]['tax_id']
         assemblies.append(a)
 
     for pe in pe_fastq_files:
@@ -345,6 +346,7 @@ def main():
         a = {}
         a['path'] = a_path
         a['name'] = pe
+        a['tax_id'] = pe_fastq_files[pe]['tax_id']
         assemblies.append(a)
 
     for us in user_assemblies:
@@ -352,6 +354,7 @@ def main():
         a = {}
         a['path'] = a_path
         a['name'] = splitext(basename(a_path))[0]
+        a['tax_id'] = None
         assemblies.append(a)
 
     # Run makeblastdb on assemblies  -----------------------------------------
@@ -369,7 +372,7 @@ def main():
     find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
                         dir_temp, prepend_assmbl, min_target_orf_len,
                         max_target_orf_len, allow_non_aug, allow_no_strt_cod,
-                        allow_no_stop_cod)
+                        allow_no_stop_cod, tax)
 
     # Download CDS for NCBI protein queries ----------------------------------
     nt_prot_ncbi_file = opj(dir_prj_transcripts_combined, prj_name +
