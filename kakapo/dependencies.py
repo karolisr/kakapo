@@ -334,6 +334,14 @@ def dep_check_vsearch(): # noqa
     return vsearch
 
 
+def get_version_vsearch(vsearch):  # noqa
+    _, err = call([vsearch, '-version'])
+    v = re.findall(r'^vsearch\sv([\d\.]*)', err.decode(), flags=re.MULTILINE)
+    if len(v) > 0:
+        v = v[0]
+    return v
+
+
 # SPAdes
 def dep_check_spades(): # noqa
     if OS_ID == 'mac':
@@ -371,3 +379,11 @@ def dep_check_spades(): # noqa
     print('\t\t' + spades + '\n')
 
     return spades
+
+
+def get_version_spades(spades):  # noqa
+    out, _ = call([spades, '--version'])
+    v = re.findall(r'^SPAdes\sv([\d\.]*)', out.decode(), flags=re.MULTILINE)
+    if len(v) > 0:
+        v = v[0]
+    return v
