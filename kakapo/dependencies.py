@@ -15,6 +15,7 @@ import os
 import sys
 import tarfile
 import zipfile
+import re
 
 from kakapo.config import DIR_DEP, DIR_CFG, OS_ID, DIST_ID
 from kakapo.helpers import list_of_dirs
@@ -88,6 +89,15 @@ def dep_check_seqtk(): # noqa
     print('\t\t' + seqtk + '\n')
 
     return seqtk
+
+
+def get_version_seqtk(seqtk):  # noqa
+    _, err = call(seqtk)
+    v = re.findall(r'Version\:\s([\d\w\.\-]*)', err.decode(),
+                   flags=re.MULTILINE)
+    if len(v) > 0:
+        v = v[0]
+    return v
 
 
 def _write_trimmomatic_adapters_file():
@@ -166,6 +176,13 @@ def dep_check_trimmomatic(): # noqa
     return trimmomatic, path_adapters
 
 
+def get_version_trimmomatic(trimmomatic):  # noqa
+    cmd = ['java', '-jar', trimmomatic, '-version']
+    out, _ = call(cmd)
+    v = out.strip().decode()
+    return v
+
+
 # SRA Toolkit
 def dep_check_sra_toolkit(): # noqa
     if OS_ID == 'mac':
@@ -210,6 +227,14 @@ def dep_check_sra_toolkit(): # noqa
     print('\t\t' + fasterq_dump + '\n')
 
     return fasterq_dump
+
+
+def get_version_fasterq_dump(fasterq_dump):  # noqa
+    out, _ = call([fasterq_dump, '--version'])
+    v = re.findall(r'\:\s([\d\.]*)', out.decode(), flags=re.MULTILINE)
+    if len(v) > 0:
+        v = v[0]
+    return v
 
 
 # BLAST+
@@ -261,6 +286,14 @@ def dep_check_blast(): # noqa
     return (makeblastdb, blastn, tblastn)
 
 
+def get_version_blast(any_blast_bin):  # noqa
+    out, _ = call([any_blast_bin, '-version'])
+    v = re.findall(r'\sblast\s([\d\.]*)', out.decode(), flags=re.MULTILINE)
+    if len(v) > 0:
+        v = v[0]
+    return v
+
+
 # VSEARCH
 def dep_check_vsearch(): # noqa
     url = 'https://github.com/torognes/vsearch/archive/master.tar.gz'
@@ -301,6 +334,14 @@ def dep_check_vsearch(): # noqa
     return vsearch
 
 
+def get_version_vsearch(vsearch):  # noqa
+    _, err = call([vsearch, '-version'])
+    v = re.findall(r'^vsearch\sv([\d\.]*)', err.decode(), flags=re.MULTILINE)
+    if len(v) > 0:
+        v = v[0]
+    return v
+
+
 # SPAdes
 def dep_check_spades(): # noqa
     if OS_ID == 'mac':
@@ -338,3 +379,11 @@ def dep_check_spades(): # noqa
     print('\t\t' + spades + '\n')
 
     return spades
+
+
+def get_version_spades(spades):  # noqa
+    out, _ = call([spades, '--version'])
+    v = re.findall(r'^SPAdes\sv([\d\.]*)', out.decode(), flags=re.MULTILINE)
+    if len(v) > 0:
+        v = v[0]
+    return v
