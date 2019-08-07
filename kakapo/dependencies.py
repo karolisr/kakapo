@@ -22,7 +22,6 @@ from kakapo.helpers import list_of_dirs
 from kakapo.http_k import download_file
 from kakapo.os_diffs import DEBIAN_DISTS, REDHAT_DISTS
 from kakapo.shell import call
-from kakapo.py_v_diffs import str
 
 
 def sra_toolkit_dir_name(path): # noqa
@@ -94,7 +93,8 @@ def dep_check_seqtk(): # noqa
 
 def get_version_seqtk(seqtk):  # noqa
     _, err = call(seqtk)
-    v = re.findall(r'Version\:\s([\d\w\.\-]*)', str(err), flags=re.MULTILINE)
+    v = re.findall(r'Version\:\s([\d\w\.\-]*)', err.decode(),
+                   flags=re.MULTILINE)
     if len(v) > 0:
         v = v[0]
     return v
@@ -174,6 +174,16 @@ def dep_check_trimmomatic(): # noqa
     path_adapters = _write_trimmomatic_adapters_file()
 
     return trimmomatic, path_adapters
+
+
+def get_version_trimmomatic(trimmomatic):  # noqa
+    cmd = ['java', '-jar', trimmomatic, '-version']
+    out, _ = call(cmd)
+    v = out.strip().decode()
+    # v = re.findall(r'Version\:\s([\d\w\.\-]*)', str(err), flags=re.MULTILINE)
+    # if len(v) > 0:
+    #     v = v[0]
+    return v
 
 
 # SRA Toolkit
