@@ -286,6 +286,14 @@ def dep_check_blast(): # noqa
     return (makeblastdb, blastn, tblastn)
 
 
+def get_version_blast(any_blast_bin):  # noqa
+    out, _ = call([any_blast_bin, '-version'])
+    v = re.findall(r'\sblast\s([\d\.]*)', out.decode(), flags=re.MULTILINE)
+    if len(v) > 0:
+        v = v[0]
+    return v
+
+
 # VSEARCH
 def dep_check_vsearch(): # noqa
     url = 'https://github.com/torognes/vsearch/archive/master.tar.gz'
