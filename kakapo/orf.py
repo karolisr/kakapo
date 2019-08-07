@@ -41,21 +41,15 @@ def find_stop_codon_free_zones(seq, forward_frame, min_len, stop_codons):  # noq
     # Stop codon-free zone coordinates sorted by their size from largest to
     # smallest
     zones = []
-    # print(idx_stop)
     for idx_zone_begin in idx_int:
         idx_zone_end = idx_zone_begin + 2
-        # print(idx_zone_begin, idx_zone_end)
         zone = idx_stop[idx_zone_begin:idx_zone_end]
-        # print(zone)
         if len(zone) != 2:
-            # print(zone)
             continue
         # Convert back to nucleotide coordinates
         zone_nt = [(zone[0] * 3) + offset + 3, (zone[1] * 3) + offset]
-        # print(zone_nt)
         if zone_nt[1] - zone_nt[0] < min_len:
             continue
-        # print(zone_nt)
         zones.append(zone_nt)
 
     return zones

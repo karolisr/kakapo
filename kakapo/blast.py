@@ -51,7 +51,6 @@ def run_blast(exec_file, task, threads, db_path, queries_file, out_file,
            '-max_target_seqs', max_target_seqs]
 
     cmd = cmd + db_genetic_code
-    # print(' '.join(cmd))
     call(cmd)
 
 

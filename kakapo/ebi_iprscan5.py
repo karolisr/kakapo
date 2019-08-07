@@ -143,7 +143,7 @@ def job_runner(email, dir_cache, seqs=None):
             dump(jobs)
 
         else:
-            print('No sequences provided.')
+            # print('No sequences provided.')
             sys.exit(0)
 
     ##########################################################################
@@ -176,8 +176,8 @@ def job_runner(email, dir_cache, seqs=None):
                 running[title] = job_id
                 title_len = len(title)
                 title_len_diff = max_title_len - title_len
-                print('status:', title, title_len_diff * ' ', '\t', job_id,
-                      '\t', 'SUBMITTED')
+                # print('status:', title, title_len_diff * ' ', '\t', job_id,
+                #       '\t', 'SUBMITTED')
 
         if len(running) > 0:
 
@@ -221,8 +221,8 @@ def job_runner(email, dir_cache, seqs=None):
                 if job_status != 'RUNNING':
                     title_len = len(title)
                     title_len_diff = max_title_len - title_len
-                    print('status:', title, title_len_diff * ' ', '\t',
-                          job_id, '\t', job_status)
+                    # print('status:', title, title_len_diff * ' ', '\t',
+                    #       job_id, '\t', job_status)
 
         if len(running) == 0 and len(queue) == 0:
             busy = False

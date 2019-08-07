@@ -65,9 +65,6 @@ sys.path.insert(0, KAKAPO_DIR_PATH)
 
 # Command line arguments -----------------------------------------------------
 
-# CLEAN_CONFIG_DIR = False
-# CONFIG_FILE_PATH = 'tests/data/kakapo.ini'
-
 PARSER = argparse.ArgumentParser()
 
 ARGS_GROUP_INPUT = PARSER.add_mutually_exclusive_group(required=True)
@@ -94,7 +91,7 @@ CONFIG_FILE_PATH = ARGS.CONFIG_FILE_PATH
 
 if CLEAN_CONFIG_DIR is False and CONFIG_FILE_PATH is not None:
     if not ope(CONFIG_FILE_PATH):
-        print('Configuration file ' + CONFIG_FILE_PATH + ' does not exist.')
+        # print('Configuration file ' + CONFIG_FILE_PATH + ' does not exist.')
         exit(0)
 
 # ----------------------------------------------------------------------------
@@ -102,29 +99,30 @@ if CLEAN_CONFIG_DIR is False and CONFIG_FILE_PATH is not None:
 
 def main():
     """Run the script."""
-    print('\nPython version: {pv}'.format(pv=PY_V_STR))
-    print('Operating system: {os}'.format(os=OS_STR))
-    print('System info: {cpus} CPUs, {ram} GB RAM\n'.format(
-        cpus=THREADS, ram='{0:.2f}'.format(RAM)))
+    # print('\nPython version: {pv}'.format(pv=PY_V_STR))
+    # print('Operating system: {os}'.format(os=OS_STR))
+    # print('System info: {cpus} CPUs, {ram} GB RAM\n'.format(
+    #     cpus=THREADS, ram='{0:.2f}'.format(RAM)))
 
     # Remove configuration directory, if requested ---------------------------
     if CLEAN_CONFIG_DIR and ope(DIR_CFG):
-        print('Removing configuration directory:\n\t\t' + DIR_CFG + '\n')
+        # print('Removing configuration directory:\n\t\t' + DIR_CFG + '\n')
         rmtree(DIR_CFG)
         exit(0)
     elif CLEAN_CONFIG_DIR:
-        print('Configuration directory does not exist. Nothing to do.\n')
+        # print('Configuration directory does not exist. Nothing to do.\n')
         exit(0)
 
     # Create config directory with all the subdirectories --------------------
     if ope(DIR_CFG):
-        print('Found configuration directory:\n\t\t' + DIR_CFG + '\n')
+        pass
+        # print('Found configuration directory:\n\t\t' + DIR_CFG + '\n')
     else:
-        print('Creating configuration directory:\n\t\t' + DIR_CFG + '\n')
+        # print('Creating configuration directory:\n\t\t' + DIR_CFG + '\n')
         make_dir(DIR_CFG)
 
     # Check for dependencies -------------------------------------------------
-    print('Checking for dependencies:\n')
+    # print('Checking for depend encies:\n')
     make_dir(DIR_DEP)
     seqtk = deps.dep_check_seqtk()
     trimmomatic, adapters = deps.dep_check_trimmomatic()
@@ -172,8 +170,8 @@ def main():
 
     # Genetic code information and translation tables ------------------------
 
-    print('\nLoading genetic code information and translation tables for ' +
-          tax_group_name + '\n')
+    # print('\nLoading genetic code information and translation tables for ' +
+    #       tax_group_name + '\n')
 
     gc = tax.genetic_code_for_taxid(tax_group)
     # gc_mito = tax.mito_genetic_code_for_taxid(tax_group)
@@ -185,9 +183,10 @@ def main():
     # Create output directory with all the subdirectories --------------------
     if dir_out is not None:
         if ope(dir_out):
-            print('Found output directory:\n\t\t' + dir_out + '\n')
+            pass
+            # print('Found output directory:\n\t\t' + dir_out + '\n')
         else:
-            print('Creating output directory:\n\t\t' + dir_out + '\n')
+            # print('Creating output directory:\n\t\t' + dir_out + '\n')
             make_dir(dir_out)
 
     __ = prepare_output_directories(dir_out, prj_name)
@@ -358,8 +357,8 @@ def main():
         assemblies.append(a)
 
     # Run makeblastdb on assemblies  -----------------------------------------
-    if len(se_fastq_files) == 0 and len(pe_fastq_files) == 0:
-        print()
+    # if len(se_fastq_files) == 0 and len(pe_fastq_files) == 0:
+    #     print()
     makeblastdb_assemblies(assemblies, dir_prj_blast_assmbl, makeblastdb)
 
     # Run tblastn on assemblies ----------------------------------------------
@@ -396,7 +395,7 @@ def main():
 ##############################################################################
 
     rmtree(dir_temp)
-    print()
+    # print()
 
 ##############################################################################
 
