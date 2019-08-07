@@ -180,9 +180,6 @@ def get_version_trimmomatic(trimmomatic):  # noqa
     cmd = ['java', '-jar', trimmomatic, '-version']
     out, _ = call(cmd)
     v = out.strip().decode()
-    # v = re.findall(r'Version\:\s([\d\w\.\-]*)', str(err), flags=re.MULTILINE)
-    # if len(v) > 0:
-    #     v = v[0]
     return v
 
 
@@ -230,6 +227,14 @@ def dep_check_sra_toolkit(): # noqa
     print('\t\t' + fasterq_dump + '\n')
 
     return fasterq_dump
+
+
+def get_version_fasterq_dump(fasterq_dump):  # noqa
+    out, _ = call([fasterq_dump, '--version'])
+    v = re.findall(r'\:\s([\d\.]*)', out.decode(), flags=re.MULTILINE)
+    if len(v) > 0:
+        v = v[0]
+    return v
 
 
 # BLAST+
