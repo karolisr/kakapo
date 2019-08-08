@@ -3,7 +3,6 @@
 """BLAST"""
 
 import csv
-from io import StringIO
 import os.path
 
 from operator import itemgetter
@@ -11,7 +10,7 @@ from collections import OrderedDict
 from collections import Counter
 
 from kakapo.shell import call
-from kakapo.py_v_diffs import unicode
+from kakapo.py_v_diffs import StringIO
 
 BLST_RES_COLS_1 = ['sseqid']
 BLST_RES_COLS_2 = ['sseqid', 'evalue', 'sframe', 'sstart', 'send', 'qseqid']
@@ -65,7 +64,7 @@ def _prs_blst_res(blast_results, col_names):  # noqa
 
 def _prs_blst_res_f(blast_results_file, col_names):  # noqa
     with open(blast_results_file, 'r') as f:
-        blast_results = unicode(f.read())
+        blast_results = f.read()
     parsed = _prs_blst_res(blast_results, col_names)
     return parsed
 

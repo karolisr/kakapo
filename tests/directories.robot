@@ -10,7 +10,7 @@ workflow.prepare_output_directories
     ...    dir_out=${dir_out}
     ...    prj_name=${prj_name}
 
-    Length Should Be  ${result}  19
+    Length Should Be  ${result}  20
 
 Output Directory
 

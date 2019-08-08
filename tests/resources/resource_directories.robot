@@ -18,8 +18,9 @@ ${dir_global}             ${dir_out}/01-global
 ${dir_global_count}       4
 
 ${dir_prj}                ${dir_out}/02-project-specific/${prj_name}
-${dir_prj_count}          8
+${dir_prj_count}          9
 
+${dir_prj_logs}                        ${dir_prj}/00-logs
 ${dir_prj_queries}                     ${dir_prj}/01-queries
 ${dir_prj_blast_results_fa_trim}       ${dir_prj}/02-trimmed-fa-blast-results
 ${dir_prj_vsearch_results_fa_trim}     ${dir_prj}/03-trimmed-fa-vsearch-results

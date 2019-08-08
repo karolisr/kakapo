@@ -33,6 +33,7 @@ _py_v_hex, _ = python_version()
 
 if _py_v_hex >= 0x03000000:
     from configparser import ConfigParser as _CP # noqa
+    from io import StringIO # noqa
 
     maketrans = str.maketrans
 
@@ -46,6 +47,7 @@ if _py_v_hex >= 0x03000000:
 elif _py_v_hex < 0x03000000:
     from string import maketrans # noqa
     from ConfigParser import SafeConfigParser as _CP # noqa
+    from StringIO import StringIO # noqa
 
     unicode = unicode
     bytes = str

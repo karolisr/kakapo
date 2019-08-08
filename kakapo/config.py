@@ -14,6 +14,7 @@ from __future__ import with_statement
 import os
 from multiprocessing import cpu_count
 
+from kakapo import __script_name__
 from kakapo.os_diffs import check_os
 from kakapo.py_v_diffs import python_version
 from kakapo.helpers import sys_ram
@@ -21,7 +22,6 @@ from kakapo.helpers import sys_ram
 DEBUG_MODE = True
 DEBUG_PROCESSES = False
 
-SCRIPT_NAME = 'kakapo'
 OS_ID, OS_STR, DIST_ID = check_os()
 __, PY_V_STR = python_version()
 
@@ -39,6 +39,6 @@ CONSDFL = '\033[0m'
 
 # Filesystem paths for configuration directory -------------------------------
 DIR_USR = os.path.expanduser('~')
-DIR_CFG = os.path.join(DIR_USR, '.config', SCRIPT_NAME)
+DIR_CFG = os.path.join(DIR_USR, '.config', __script_name__)
 DIR_DEP = os.path.join(DIR_CFG, 'dependencies')
 DIR_TAX = os.path.join(DIR_CFG, 'ncbi-taxonomy')
