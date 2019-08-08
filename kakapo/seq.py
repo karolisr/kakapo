@@ -75,8 +75,6 @@ def translate(seq, trans_table):  # noqa
         trans = 'M'
         idx = 1
 
-    trans = ''
-
     for t in seq_codons[idx:len_s]:
         aa = 'X'
         if t in tbl:
