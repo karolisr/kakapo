@@ -3,7 +3,7 @@
 
 from kakapo.py_v_diffs import StringIO
 from xml.etree import ElementTree
-from xmltodict import parse as parse_xml
+import csv
 
 
 def parse_esummary_xml_text(esummary_xml_text):  # noqa
@@ -29,8 +29,9 @@ def parse_esummary_xml_text(esummary_xml_text):  # noqa
     return return_value
 
 
-def parse_efetch_sra_xml_text(efetch_sra_xml_text):  # noqa
-    return [parse_xml(efetch_sra_xml_text)['SraRunInfo']['Row']]
+def parse_efetch_sra_csv_text(efetch_sra_csv_text):  # noqa
+    csv_reader = csv.DictReader(StringIO(efetch_sra_csv_text))
+    return list(csv_reader)
 
 
 def parse_gbseq_xml_text(gbseq_xml_text):

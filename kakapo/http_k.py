@@ -15,11 +15,14 @@ from requests.packages.urllib3.util.retry import Retry
 from requests.exceptions import HTTPError
 
 # Possible values for the Accept request-header field:
-ACC_HEAD = {'json': {'Accept': 'application/json'},
-            'csv': {'Accept': 'text/csv'},
-            'fasta': {'Accept': 'text/x-fasta'},
-            'plain_text': {'Accept': 'text/plain'},
-            'xml': {'Accept': 'application/xml'}}
+ACC_HEAD = {
+    'csv': {'Accept': 'text/csv'},
+    'fasta': {'Accept': 'text/x-fasta'},
+    'json': {'Accept': 'application/json'},
+    'text': {'Accept': 'text/plain'},
+    'asn.1': {'Accept': 'text/plain'},
+    'xml': {'Accept': 'application/xml'},
+}
 
 
 def _valid_response_formats():

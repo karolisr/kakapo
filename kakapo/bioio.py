@@ -11,39 +11,8 @@ from __future__ import with_statement
 
 import re
 from collections import OrderedDict
-from datetime import datetime
 
 from kakapo.py_v_diffs import handle_types
-from kakapo.seq import SeqRecord
-
-
-def seq_records_from_efetch_results(efetch_results):  # noqa
-
-    return_value = []
-
-    for r in efetch_results:
-
-        seq_record = SeqRecord(
-            seq=r['seq'],
-            mol_type=r['mol_type'],
-            accession=r['accession'],
-            version=r['version'],
-            description=r['definition'],
-            strandedness=r['strandedness'],
-            topology=r['topology'],
-            division=r['division'],
-            date_create=(datetime.strptime(
-                r['date_create'], '%d-%b-%Y')).strftime('%Y-%m-%d'),
-            date_update=(datetime.strptime(
-                r['date_update'], '%d-%b-%Y')).strftime('%Y-%m-%d'),
-            taxid=r['taxid'],
-            organism=r['organism'],
-            features=r['features']
-        )
-
-        return_value.append(seq_record)
-
-    return return_value
 
 
 def write_fasta_file(records, file_path_or_handle):  # noqa

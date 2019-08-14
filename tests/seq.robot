@@ -14,9 +14,9 @@ seq.reverse_complement
     Should Be Equal As Strings  ${x}  VHDBSWKMYRTGCA
 
 seq.translate 1
-    ${x}  Translate  ${nt1}  ${tt1}
+    ${x}  Translate  ${nt1}  ${tt1}  ${startc1}
     Should Be Equal  ${x}    ${aa1}
 
 seq.translate 2
-    ${x}  Translate  ${nt2}  ${tt1}
+    ${x}  Translate  ${nt2}  ${tt1}  ${startc1}
     Should Be Equal  ${x}    ${aa2}

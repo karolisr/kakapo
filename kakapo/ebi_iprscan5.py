@@ -29,7 +29,7 @@ IPS_URL = 'https://www.ebi.ac.uk/Tools/services/rest/iprscan5'
 def submit_job(email, title, sequence):  # noqa
     data = {'email': email, 'title': title, 'sequence': sequence}
     url = IPS_URL + '/run'
-    response_format = 'plain_text'
+    response_format = 'text'
     r = post(url, data, response_format)
     job_id = r.text
     return job_id
@@ -46,7 +46,7 @@ def status(job_id):  # noqa
     #   NOT_FOUND: the job cannot be found.
 
     url = IPS_URL + '/status/' + job_id
-    r = get(url=url, params=None, response_format='plain_text')
+    r = get(url=url, params=None, response_format='text')
     job_status = r.text
     return job_status
 
@@ -105,11 +105,11 @@ def result_gff(job_id, out_file=None):  # noqa
     return gff_text
 
 
-def job_runner(email, dir_cache, seqs=None):
+def job_runner(email, dir_cache, seqs=None, logger=print):
     """Run InterProScan 5"""
     ##########################################################################
     MAX_JOBS = 25
-    DELAY = 10
+    DELAY = 5
     CFP = opj(dir_cache, 'ips5_cache')
     ##########################################################################
 
@@ -176,8 +176,9 @@ def job_runner(email, dir_cache, seqs=None):
                 running[title] = job_id
                 title_len = len(title)
                 title_len_diff = max_title_len - title_len
-                # print('status:', title, title_len_diff * ' ', '\t', job_id,
-                #       '\t', 'SUBMITTED')
+                msg = '' + title + title_len_diff * ' ' + \
+                      '\t' + job_id + '\t' + 'SUBMITTED'
+                logger(msg)
 
         if len(running) > 0:
 
@@ -221,8 +222,9 @@ def job_runner(email, dir_cache, seqs=None):
                 if job_status != 'RUNNING':
                     title_len = len(title)
                     title_len_diff = max_title_len - title_len
-                    # print('status:', title, title_len_diff * ' ', '\t',
-                    #       job_id, '\t', job_status)
+                    msg = '' + title + title_len_diff * ' ' + \
+                          '\t' + job_id + '\t' + job_status
+                    logger(msg)
 
         if len(running) == 0 and len(queue) == 0:
             busy = False

@@ -12,20 +12,19 @@ from __future__ import print_function
 from __future__ import with_statement
 
 import os
-from multiprocessing import cpu_count
 
-from kakapo import __script_name__
+from kakapo import __script_name__, __version__
+from kakapo.helpers import sys_ram
 from kakapo.os_diffs import check_os
 from kakapo.py_v_diffs import python_version
-from kakapo.helpers import sys_ram
+from multiprocessing import cpu_count
 
 DEBUG_MODE = True
 DEBUG_PROCESSES = False
 
-OS_ID, OS_STR, DIST_ID = check_os()
-__, PY_V_STR = python_version()
-
 # System information ---------------------------------------------------------
+OS_ID, OS_STR, DIST_ID = check_os()
+_, PY_V_STR = python_version()
 THREADS = cpu_count()
 RAM = sys_ram()
 
@@ -42,3 +41,12 @@ DIR_USR = os.path.expanduser('~')
 DIR_CFG = os.path.join(DIR_USR, '.config', __script_name__)
 DIR_DEP = os.path.join(DIR_CFG, 'dependencies')
 DIR_TAX = os.path.join(DIR_CFG, 'ncbi-taxonomy')
+
+# Script Info ----------------------------------------------------------------
+SCRIPT_INFO = ('\n' +
+               '{s} version: {v}\n'.format(s=__script_name__.title(),
+                                           v=__version__) +
+               'Python version: {pv}\n'.format(pv=PY_V_STR) +
+               'Operating system: {os}\n'.format(os=OS_STR) +
+               'System info: {cpus} CPUs, {ram} GB RAM\n'.format(
+                   cpus=THREADS, ram='{0:.2f}'.format(RAM)))
