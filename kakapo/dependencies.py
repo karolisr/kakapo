@@ -55,7 +55,7 @@ def spades_dir_name(path): # noqa
 
 
 # Seqtk
-def dep_check_seqtk(): # noqa
+def dep_check_seqtk(logger=print): # noqa
     url = 'https://github.com/lh3/seqtk/archive/master.zip'
     dnld_path = os.path.join(DIR_DEP, 'seqtk.zip')
     dir_bin = os.path.join(DIR_DEP, 'seqtk-master')
@@ -68,25 +68,23 @@ def dep_check_seqtk(): # noqa
             seqtk = os.path.join(dir_bin, 'seqtk')
             call(seqtk)
         except Exception:
-            # print('\tSeqtk was not found on this system, trying to download.')
+            logger('Seqtk was not found on this system, trying to download.')
             download_file(url, dnld_path)
             zip_ref = zipfile.ZipFile(dnld_path, 'r')
             zip_ref.extractall(DIR_DEP)
             zip_ref.close()
             try:
-                # print('\tCompiling Seqtk.')
+                logger('Compiling Seqtk.')
                 call('make', cwd=dir_bin)
                 seqtk = os.path.join(dir_bin, 'seqtk')
                 call(seqtk)
             except Exception:
-                # print('\t\tSomething went wrong while trying to compile '
-                #       'Seqtk.')
-                # print('\t\tTry downloading and installing it manually from:')
-                # print('\t\thttps://github.com/lh3/seqtk')
+                logger('Something went wrong while trying to compile Seqtk.')
+                logger('Try downloading and installing it manually from: '
+                       'https://github.com/lh3/seqtk')
                 sys.exit(1)
 
-    # print('\tSeqtk is available:')
-    # print('\t\t' + seqtk + '\n')
+    logger('Seqtk is available: ' + seqtk)
 
     return seqtk
 
@@ -100,7 +98,7 @@ def get_version_seqtk(seqtk):  # noqa
     return v
 
 
-def _write_trimmomatic_adapters_file():
+def _write_trimmomatic_adapters_file(logger=print):
 
     path_adapters = os.path.join(DIR_CFG, 'trimmomatic_adapters.fasta')
 
@@ -144,15 +142,14 @@ def _write_trimmomatic_adapters_file():
                 'AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC')
 
     if not os.path.exists(path_adapters):
-        # print('\tWriting Trimmomatic adapter files:\n\t\t' +
-        #       path_adapters + '\n')
+        logger('Writing Trimmomatic adapter files: ' + path_adapters)
         with open(path_adapters, mode='w') as f:
             f.write(adapters)
 
     return path_adapters
 
 # Trimmomatic
-def dep_check_trimmomatic(): # noqa
+def dep_check_trimmomatic(logger=print): # noqa
     url = ('http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/'
            'Trimmomatic-0.39.zip')
     dnld_path = os.path.join(DIR_DEP, 'Trimmomatic-0.39.zip')
@@ -166,11 +163,10 @@ def dep_check_trimmomatic(): # noqa
         zip_ref.close()
 
     if not os.path.exists(trimmomatic):
-        # print('\tCould not download Trimmomatic.')
+        logger('Could not download Trimmomatic.')
         sys.exit(1)
 
-    # print('\tTrimmomatic is available:')
-    # print('\t\t' + trimmomatic + '\n')
+    logger('Trimmomatic is available: ' + trimmomatic)
     path_adapters = _write_trimmomatic_adapters_file()
 
     return trimmomatic, path_adapters
@@ -184,7 +180,7 @@ def get_version_trimmomatic(trimmomatic):  # noqa
 
 
 # SRA Toolkit
-def dep_check_sra_toolkit(): # noqa
+def dep_check_sra_toolkit(logger=print): # noqa
     if OS_ID == 'mac':
         url = ('https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/current/'
                'sratoolkit.current-mac64.tar.gz')
@@ -208,8 +204,8 @@ def dep_check_sra_toolkit(): # noqa
             fasterq_dump = os.path.join(dir_bin, 'bin', 'fasterq-dump')
             call(fasterq_dump)
         except Exception:
-            # print('\tSRA Toolkit was not found on this system, trying to '
-            #       'download.')
+            logger('SRA Toolkit was not found on this system, trying to '
+                   'download.')
             download_file(url, dnld_path)
             tar_ref = tarfile.open(dnld_path, 'r:gz')
             tar_ref.extractall(DIR_DEP)
@@ -220,11 +216,10 @@ def dep_check_sra_toolkit(): # noqa
             fasterq_dump = os.path.join(dir_bin, 'bin', 'fasterq-dump')
 
             if not os.path.exists(fasterq_dump):
-                # print('\tCould not download SRA Toolkit.')
+                logger('Could not download SRA Toolkit.')
                 sys.exit(1)
 
-    # print('\tSRA Toolkit is available:')
-    # print('\t\t' + fasterq_dump + '\n')
+    logger('SRA Toolkit is available: ' + fasterq_dump)
 
     return fasterq_dump
 
@@ -238,7 +233,7 @@ def get_version_fasterq_dump(fasterq_dump):  # noqa
 
 
 # BLAST+
-def dep_check_blast(): # noqa
+def dep_check_blast(logger=print): # noqa
     if OS_ID == 'mac':
         url = ('https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.9.0/'
                'ncbi-blast-2.9.0+-x64-macosx.tar.gz')
@@ -261,7 +256,7 @@ def dep_check_blast(): # noqa
             tblastn = os.path.join(dir_bin, 'bin', 'tblastn')
             call(makeblastdb)
         except Exception:
-            # print('\tBLAST+ was not found on this system, trying to download.')
+            logger('BLAST+ was not found on this system, trying to download.')
             download_file(url, dnld_path)
             tar_ref = tarfile.open(dnld_path, 'r:gz')
             tar_ref.extractall(DIR_DEP)
@@ -275,13 +270,12 @@ def dep_check_blast(): # noqa
             if not os.path.exists(makeblastdb) or \
                not os.path.exists(blastn) or \
                not os.path.exists(tblastn):
-                # print('\tCould not download BLAST+.')
+                logger('Could not download BLAST+.')
                 sys.exit(1)
 
-    # print('\tBLAST+ is available:')
-    # print('\t\t' + makeblastdb)
-    # print('\t\t' + blastn)
-    # print('\t\t' + tblastn + '\n')
+    logger('makeblastdb is available: ' + makeblastdb)
+    logger('blastn is available: ' + blastn)
+    logger('tblastn is available: ' + tblastn)
 
     return (makeblastdb, blastn, tblastn)
 
@@ -295,7 +289,7 @@ def get_version_blast(any_blast_bin):  # noqa
 
 
 # VSEARCH
-def dep_check_vsearch(): # noqa
+def dep_check_vsearch(logger=print): # noqa
     url = 'https://github.com/torognes/vsearch/archive/master.tar.gz'
     dnld_path = os.path.join(DIR_DEP, 'vsearch.tar.gz')
     dir_bin = os.path.join(DIR_DEP, 'vsearch-master')
@@ -308,28 +302,25 @@ def dep_check_vsearch(): # noqa
             vsearch = os.path.join(dir_bin, 'bin', 'vsearch')
             call(vsearch)
         except Exception:
-            # print('\tVsearch was not found on this system, trying to '
-            #       'download.')
+            logger('Vsearch was not found on this system, trying to download.')
             download_file(url, dnld_path)
             tar_ref = tarfile.open(dnld_path, 'r:gz')
             tar_ref.extractall(DIR_DEP)
             tar_ref.close()
             try:
-                # print('\tCompiling Vsearch.')
+                logger('Compiling Vsearch.')
                 call('./autogen.sh', cwd=dir_bin)
                 call('./configure', cwd=dir_bin)
                 call('make', cwd=dir_bin)
                 vsearch = os.path.join(dir_bin, 'bin', 'vsearch')
                 call(vsearch)
             except Exception:
-                # print('\t\tSomething went wrong while trying to compile '
-                #       'Vsearch.')
-                # print('\t\tTry downloading and installing it manually from:')
-                # print('\t\thttps://github.com/torognes/vsearch')
+                logger('Something went wrong while trying to compile Vsearch.')
+                logger('Try downloading and installing it manually from: '
+                       'https://github.com/torognes/vsearch')
                 sys.exit(1)
 
-    # print('\tVsearch is available:')
-    # print('\t\t' + vsearch + '\n')
+    logger('Vsearch is available: ' + vsearch)
 
     return vsearch
 
@@ -343,7 +334,7 @@ def get_version_vsearch(vsearch):  # noqa
 
 
 # SPAdes
-def dep_check_spades(): # noqa
+def dep_check_spades(logger=print): # noqa
     if OS_ID == 'mac':
         url = ('http://cab.spbu.ru/files/release3.13.1/'
                'SPAdes-3.13.1-Darwin.tar.gz')
@@ -362,7 +353,7 @@ def dep_check_spades(): # noqa
             spades = os.path.join(dir_bin, 'bin', 'spades.py')
             call(spades)
         except Exception:
-            # print('\tSPAdes was not found on this system, trying to download.')
+            logger('SPAdes was not found on this system, trying to download.')
             download_file(url, dnld_path)
             tar_ref = tarfile.open(dnld_path, 'r:gz')
             tar_ref.extractall(DIR_DEP)
@@ -372,11 +363,10 @@ def dep_check_spades(): # noqa
                 spades = os.path.join(dir_bin, 'bin', 'spades.py')
                 call(spades)
             except Exception:
-                # print('\tCould not download SPAdes.')
+                logger('Could not download SPAdes.')
                 sys.exit(1)
 
-    # print('\tSPAdes is available:')
-    # print('\t\t' + spades + '\n')
+    logger('SPAdes is available: ' + spades)
 
     return spades
 

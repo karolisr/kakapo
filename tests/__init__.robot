@@ -1,7 +1,7 @@
 *** Settings ***
 Library   OperatingSystem
 Library   kakapo.workflow
-Library   ncbi_taxonomy_local.Taxonomy  WITH NAME  Tax
+Library   kakapo.translation_tables
 Resource  resources/resource_directories.robot
 Resource  resources/resource_taxonomy.robot
 Suite Setup      Setup before all tests
@@ -10,7 +10,7 @@ Suite Teardown   Cleanup after all tests
 *** Keywords ***
 Setup before all tests
 
-    Evaluate  os.chdir('tests')  modules=os, sys
+    Evaluate  os.chdir('tests')  modules=os
 
     Prepare Output Directories
         ...    dir_out=${dir_out}
@@ -19,8 +19,11 @@ Setup before all tests
     ${tax}  Init Taxonomy
     Set Global Variable  ${tax}
 
-    &{tt1}  Tax.trans_table_for_genetic_code_id  1
+    ${TT}  Get Library Instance  kakapo.translation_tables
+    &{tt1}  Set Variable  ${TT.TranslationTable(1).table_ambiguous}
     Set Global Variable  ${tt1}
+    @{startc1}  Set Variable  ${TT.TranslationTable(1).start_codons_ambiguous}
+    Set Global Variable  ${startc1}
 
 Cleanup after all tests
 

@@ -36,12 +36,14 @@ from kakapo import __version__, __script_name__
 from kakapo import dependencies as deps
 from kakapo.config import CONYELL, CONSDFL
 from kakapo.config import DIR_CFG, DIR_DEP, DIR_TAX
-from kakapo.config import OS_STR, PY_V_STR
 from kakapo.config import THREADS, RAM
+from kakapo.config import SCRIPT_INFO
 from kakapo.config_file_parse import config_file_parse
 from kakapo.helpers import make_dir
 from kakapo.helpers import time_stamp
 from kakapo.logging_k import prepare_logger
+from kakapo.py_v_diffs import StringIO
+from kakapo.translation_tables import TranslationTable
 from kakapo.workflow import combine_aa_fasta
 from kakapo.workflow import descending_tax_ids
 from kakapo.workflow import dnld_cds_for_ncbi_prot_acc
@@ -125,16 +127,8 @@ CONFIG_FILE_PATH = ARGS.CONFIG_FILE_PATH
 PRINT_VERSION = ARGS.PRINT_VERSION
 PRINT_HELP = ARGS.PRINT_HELP
 
-script_info = ('\n' +
-               '{s} version: {v}\n'.format(s=__script_name__.title(),
-                                           v=__version__) +
-               'Python version: {pv}\n'.format(pv=PY_V_STR) +
-               'Operating system: {os}\n'.format(os=OS_STR) +
-               'System info: {cpus} CPUs, {ram} GB RAM\n'.format(
-                   cpus=THREADS, ram='{0:.2f}'.format(RAM)))
-
 if PRINT_HELP is True:
-    print(script_info)
+    print(SCRIPT_INFO)
     PARSER.print_help()
     exit(0)
 
@@ -155,7 +149,7 @@ if CLEAN_CONFIG_DIR is False and CONFIG_FILE_PATH is not None:
         print('Configuration file ' + CONFIG_FILE_PATH + ' does not exist.')
         exit(0)
 else:
-    print(script_info)
+    print(SCRIPT_INFO)
     print(CONYELL +
           'Configuration file was not provided. Nothing to do.' +
           CONSDFL)
@@ -166,21 +160,28 @@ else:
     print()
     exit(0)
 
-print(script_info)
-
-if ope(DIR_CFG):
-    print('Found configuration directory: ' + DIR_CFG)
-else:
-    print('Creating configuration directory: ' + DIR_CFG)
-    make_dir(DIR_CFG)
+print(SCRIPT_INFO)
 
 # ----------------------------------------------------------------------------
 
 
 def main():
     """Run the script."""
+    # Prepare initial logger (before we know the log file path) --------------
+    prj_log_file_suffix = time_stamp() + '.log'
+    log_stream = StringIO()
+    log, stream_log_handler = prepare_logger(console=True, stream=log_stream)
+    linfo = log.info
+
+    # Prepare configuration directory ----------------------------------------
+    if ope(DIR_CFG):
+        linfo('Found configuration directory: ' + DIR_CFG)
+    else:
+        linfo('Creating configuration directory: ' + DIR_CFG)
+        make_dir(DIR_CFG)
+
     # Initialize NCBI taxonomy database --------------------------------------
-    print('Loading NCBI taxonomy data.')
+    linfo('Loading NCBI taxonomy data')
     tax = taxonomy(DIR_TAX)
 
     # Parse configuration file -----------------------------------------------
@@ -220,19 +221,17 @@ def main():
     # Create output directory with all the subdirectories --------------------
     if dir_out is not None:
         if ope(dir_out):
-            print('Found output directory: ' + dir_out)
+            linfo('Found output directory: ' + dir_out)
         else:
-            print('Creating output directory: ' + dir_out)
+            linfo('Creating output directory: ' + dir_out)
             make_dir(dir_out)
 
     __ = prepare_output_directories(dir_out, prj_name)
 
     dir_temp = __['dir_temp']
-    # dir_cache = __['dir_cache']
     dir_cache_pfam_acc = __['dir_cache_pfam_acc']
     dir_cache_fq_minlen = __['dir_cache_fq_minlen']
     dir_cache_prj = __['dir_cache_prj']
-    # dir_prj = __['dir_prj']
     dir_prj_logs = __['dir_prj_logs']
     dir_prj_queries = __['dir_prj_queries']
     dir_fq_data = __['dir_fq_data']
@@ -249,31 +248,29 @@ def main():
     dir_prj_transcripts_combined = __['dir_prj_transcripts_combined']
 
     # Prepare logger ---------------------------------------------------------
-    prj_log_file = opj(dir_prj_logs, prj_name + '_' + time_stamp() + '.log')
-    log = prepare_logger(console=True, file=prj_log_file)
+    prj_log_file = opj(dir_prj_logs, prj_name + '_' + prj_log_file_suffix)
+    with open(prj_log_file, 'w') as f:
+        f.write(SCRIPT_INFO.strip() + '\n\n' + log_stream.getvalue())
+    log, _ = prepare_logger(console=True, stream=None, file=prj_log_file)
     linfo = log.info
 
     # Check for dependencies -------------------------------------------------
     linfo('Checking for dependencies')
     make_dir(DIR_DEP)
-    seqtk = deps.dep_check_seqtk()
-    trimmomatic, adapters = deps.dep_check_trimmomatic()
-    fasterq_dump = deps.dep_check_sra_toolkit()
-    makeblastdb, __, tblastn = deps.dep_check_blast()
-    vsearch = deps.dep_check_vsearch()
-    spades = deps.dep_check_spades()
+    seqtk = deps.dep_check_seqtk(linfo)
+    trimmomatic, adapters = deps.dep_check_trimmomatic(linfo)
+    fasterq_dump = deps.dep_check_sra_toolkit(linfo)
+    makeblastdb, __, tblastn = deps.dep_check_blast(linfo)
+    vsearch = deps.dep_check_vsearch(linfo)
+    spades = deps.dep_check_spades(linfo)
 
     # Genetic code information and translation tables ------------------------
 
     linfo('Loading genetic code information and translation tables for ' +
           tax_group_name)
 
-    gc = tax.genetic_code_for_taxid(tax_group)
-    # gc_mito = tax.mito_genetic_code_for_taxid(tax_group)
-    # gc_plastid = tax.plastid_genetic_code()
-    gc_tt = tax.trans_table_for_genetic_code_id(gc)
-    # gc_mito_tt = tax.trans_table_for_genetic_code_id(gc_mito)
-    # gc_plastid_tt = tax.trans_table_for_genetic_code_id(gc_plastid)
+    gc_id = tax.genetic_code_for_taxid(tax_group)
+    gc_tt = TranslationTable(gc_id)
 
     # Housekeeping done. Start the analyses. ---------------------------------
 
@@ -380,7 +377,7 @@ def main():
                          tblastn, blast_1_evalue, blast_1_max_target_seqs,
                          blast_1_culling_limit, blast_1_qcov_hsp_perc,
                          dir_prj_blast_results_fa_trim,
-                         pe_blast_results_file_patterns, THREADS, gc, seqtk,
+                         pe_blast_results_file_patterns, THREADS, gc_id, seqtk,
                          vsearch, linfo)
 
     # Run vsearch on reads ---------------------------------------------------
@@ -431,7 +428,7 @@ def main():
     run_tblastn_on_assemblies(assemblies, aa_queries_file, tblastn,
                               dir_prj_assmbl_blast_results, blast_2_evalue,
                               blast_2_max_target_seqs, blast_2_culling_limit,
-                              blast_2_qcov_hsp_perc, THREADS, gc, linfo)
+                              blast_2_qcov_hsp_perc, THREADS, gc_id, linfo)
 
     # Prepare BLAST hits for analysis: find ORFs, translate ------------------
     find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
