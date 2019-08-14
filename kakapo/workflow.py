@@ -36,7 +36,7 @@ from kakapo.blast import BLST_RES_COLS_1, BLST_RES_COLS_2
 from kakapo.blast import collate_blast_results
 from kakapo.blast import make_blast_db, run_blast
 from kakapo.blast import parse_blast_results_file
-from kakapo.config import PICKLE_PROTOCOL, CONSRED, CONYELL, CONSDFL
+from kakapo.config import PICKLE_PROTOCOL
 from kakapo.ebi_domain_search import pfam_entry
 from kakapo.ebi_domain_search import pfam_seqs
 from kakapo.ebi_domain_search import prot_ids_for_tax_ids
@@ -365,12 +365,12 @@ def dnld_sra_info(sras, dir_cache_prj, linfo=print):  # noqa
                     sra=sra, plat=sra_seq_platform)
 
             else:
-                sra_info_str = ('\tSRA run {sra}\n\t{source} '
-                                '{strategy} {layout}-end library.\n'
-                                '\tSourced from {species} '
-                                '(Tax ID: {txid}).\n'
-                                '\tSequenced using {platform} platform on '
-                                '{model}.\n').format(
+                sra_info_str = ('SRA run {sra} {source} '
+                                '{strategy} {layout}-end library. '
+                                'Sourced from {species} '
+                                '(Tax ID: {txid}). '
+                                'Sequenced using {platform} platform on '
+                                '{model}.').format(
                                     sra=sra,
                                     source=sra_lib_source.title(),
                                     strategy=sra_lib_strategy,
@@ -386,18 +386,16 @@ def dnld_sra_info(sras, dir_cache_prj, linfo=print):  # noqa
                 if sra_lib_layout == 'paired' and sra_spots_with_mates == 0:
                     sra_runs_info[sra]['KakapoLibraryLayout'] = 'SINGLE'
                     sra_info_str = (
-                        sra_info_str + CONSRED + '\t>>> ' + CONYELL +
-                        sra + CONSDFL + ' is listed as containing '
+                        sra_info_str + ' Listed as containing '
                         'paired-end reads, but only a single set of reads '
-                        'is available. Treating as single-ended.\n')
+                        'is available. Treating as single-ended.')
 
                 elif (sra_lib_layout == 'paired' and
                       sra_spots != sra_spots_with_mates):
                     sra_runs_info[sra]['KakapoLibraryLayout'] = 'PAIRED_UNP'
                     sra_info_str = (
-                        sra_info_str + CONSRED + '\t>>> ' + CONYELL +
-                        sra + CONSDFL + ' is listed as containing '
-                        'paired-end reads, but not all reads are paired.\n')
+                        sra_info_str + ' Listed as containing '
+                        'paired-end reads, but not all reads are paired.')
 
                 sras_acceptable.append(sra)
 
