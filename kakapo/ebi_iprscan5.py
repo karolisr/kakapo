@@ -6,6 +6,13 @@ EMBL-EBI InterProScan 5
 Documentation: https://www.ebi.ac.uk/seqdb/confluence/display/JDSAT/InterProScan+5+Help+and+Documentation#InterProScan5HelpandDocumentation-OpenAPIInterface  # noqa
 """
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import generators
+from __future__ import nested_scopes
+from __future__ import print_function
+from __future__ import with_statement
+
 import io
 import pickle
 import sys
@@ -22,6 +29,7 @@ from xml.etree import ElementTree
 
 from kakapo.http_k import get
 from kakapo.http_k import post
+from kakapo.config import PICKLE_PROTOCOL
 
 IPS_URL = 'https://www.ebi.ac.uk/Tools/services/rest/iprscan5'
 
@@ -123,7 +131,7 @@ def job_runner(email, dir_cache, seqs=None, logger=print):
 
     def dump(c):
         with open(CFP, 'wb') as f:
-            pickle.dump(c, f, protocol=2)
+            pickle.dump(c, f, protocol=PICKLE_PROTOCOL)
     ##########################################################################
 
     seqs = deepcopy(seqs)

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """Read and write biological sequence and alignment files."""
 
-
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import generators
