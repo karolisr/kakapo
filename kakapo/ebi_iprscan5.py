@@ -18,7 +18,7 @@ from os.path import exists as ope
 from os.path import join as opj
 from time import sleep
 
-from xmltodict import parse as parse_xml
+from xml.etree import ElementTree
 
 from kakapo.http_k import get
 from kakapo.http_k import post
@@ -54,8 +54,10 @@ def status(job_id):  # noqa
 def result_types(job_id):  # noqa
     url = IPS_URL + '/resulttypes/' + job_id
     r = get(url=url, params=None, response_format='xml')
-    r = parse_xml(r.text)['types']['type']
-    r = {x['identifier']: {'Accept': x['mediaType']} for x in r}
+    root = ElementTree.fromstring(r.text)
+    types = root.findall('type')
+    r = {x.find('identifier').text: {
+         'Accept': x.find('mediaType').text} for x in types}
     return r
 
 

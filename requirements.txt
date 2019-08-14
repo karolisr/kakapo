@@ -1,4 +1,3 @@
 requests
-xmltodict
 distro
 git+https://github.com/karolisr/ncbi-taxonomy-local

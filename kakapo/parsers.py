@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 """Parsers."""
 
-from kakapo.py_v_diffs import StringIO
 from xml.etree import ElementTree
 import csv
 
 
 def parse_esummary_xml_text(esummary_xml_text):  # noqa
-    tree = ElementTree.parse(StringIO(esummary_xml_text))
-    root = tree.getroot()
+    root = ElementTree.fromstring(esummary_xml_text)
 
     return_value = list()
 
@@ -30,8 +28,7 @@ def parse_esummary_xml_text(esummary_xml_text):  # noqa
 
 
 def parse_efetch_sra_csv_text(efetch_sra_csv_text):  # noqa
-    csv_reader = csv.DictReader(StringIO(efetch_sra_csv_text))
-    return list(csv_reader)
+    return list(csv.DictReader(efetch_sra_csv_text.splitlines()))
 
 
 def parse_gbseq_xml_text(gbseq_xml_text):
@@ -47,8 +44,7 @@ def parse_gbseq_xml_text(gbseq_xml_text):
         organism, seq, strandedness, taxid, topology, version
     :rtype: dict
     """
-    tree = ElementTree.parse(StringIO(gbseq_xml_text))
-    root = tree.getroot()
+    root = ElementTree.fromstring(gbseq_xml_text)
 
     return_value = list()
 

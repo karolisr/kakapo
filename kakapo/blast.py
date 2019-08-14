@@ -10,7 +10,6 @@ from collections import OrderedDict
 from collections import Counter
 
 from kakapo.shell import call
-from kakapo.py_v_diffs import StringIO
 
 BLST_RES_COLS_1 = ['sseqid']
 BLST_RES_COLS_2 = ['sseqid', 'evalue', 'sframe', 'sstart', 'send', 'qseqid']
@@ -54,12 +53,9 @@ def run_blast(exec_file, task, threads, db_path, queries_file, out_file,
 
 
 def _prs_blst_res(blast_results, col_names):  # noqa
-
-    rdr = csv.DictReader(StringIO(blast_results),
+    rdr = csv.DictReader(blast_results.splitlines(),
                          fieldnames=col_names, delimiter='\t')
-
-    lst = [row for row in rdr]
-    return lst
+    return list(rdr)
 
 
 def _prs_blst_res_f(blast_results_file, col_names):  # noqa
