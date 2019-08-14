@@ -223,9 +223,9 @@ def user_protein_accessions(prot_acc_user, linfo=print):  # noqa
         pa_info = entrez_summary(prot_acc_user, 'protein')
         prot_acc = []
         for pa in pa_info:
-            title = pa['Title']
+            title = pa['title']
             title = title[0].upper() + title[1:]
-            acc = pa['AccessionVersion']
+            acc = pa['accessionversion']
             prot_acc.append(acc)
 
             if len(title) > 60:
