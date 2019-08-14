@@ -15,6 +15,8 @@ import fileinput
 import hashlib
 import os
 
+from datetime import datetime
+
 
 def debug_print(msg=''): # noqa
     from kakapo.config import DEBUG_MODE
@@ -95,3 +97,7 @@ def sys_ram():  # noqa
     ram_b = os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES')
     ram_g = ram_b / (1024**3)
     return ram_g
+
+
+def time_stamp():  # noqa
+    return datetime.now().strftime(format='%Y%m%d%H%M%S')

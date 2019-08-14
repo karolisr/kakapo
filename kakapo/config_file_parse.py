@@ -29,8 +29,8 @@ def _parse_taxa(taxa, tax_group, taxonomy, config_file_path):
                 name=tax, group_tax_id=tax_group)
 
             if txid is None:
-                msg = 'NCBI taxonomy ID for ' + tax + ' could not be found.'
-                print(msg)
+                # msg = 'NCBI taxonomy ID for ' + tax + ' could not be found.'
+                # print(msg)
                 replace_line_in_file(
                     file_path=config_file_path,
                     line_str=tax_orig,
@@ -38,8 +38,8 @@ def _parse_taxa(taxa, tax_group, taxonomy, config_file_path):
 
             else:
                 txids.append(int(txid))
-                msg = 'NCBI taxonomy ID for ' + tax + ' is ' + str(txid)
-                print(msg)
+                # msg = 'NCBI taxonomy ID for ' + tax + ' is ' + str(txid)
+                # print(msg)
                 replace_line_in_file(
                     file_path=config_file_path,
                     line_str=tax_orig,

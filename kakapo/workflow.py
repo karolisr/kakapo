@@ -3,6 +3,13 @@
 
 """kakapo workflow"""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import generators
+from __future__ import nested_scopes
+from __future__ import print_function
+from __future__ import with_statement
+
 import fileinput
 import json
 import pickle
@@ -57,7 +64,6 @@ from kakapo.vsearch import run_cluster_fast, run_vsearch
 
 def prepare_output_directories(dir_out, prj_name):  # noqa
     # ToDo: Lock cache files in case of parallel execution -------------------
-
     dir_temp = opj(dir_out, '00-temp')
     make_dir(dir_temp)
 
@@ -75,6 +81,9 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
 
     dir_prj = opj(dir_out, '02-project-specific', prj_name)
     make_dir(dir_prj)
+
+    dir_prj_logs = opj(dir_prj, '00-logs')
+    make_dir(dir_prj_logs)
 
     dir_prj_queries = opj(dir_prj, '01-queries')
     make_dir(dir_prj_queries)
@@ -127,6 +136,7 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
                 'dir_fq_data': dir_fq_data,
                 'dir_fq_trim_data': dir_fq_trim_data,
                 'dir_prj': dir_prj,
+                'dir_prj_logs': dir_prj_logs,
                 'dir_prj_assmbl_blast_results': dir_prj_assmbl_blast_results,
                 'dir_prj_blast_assmbl': dir_prj_blast_assmbl,
                 'dir_prj_blast_results_fa_trim': dir_prj_blast_results_fa_trim,
@@ -141,13 +151,13 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
 
     return ret_dict
 
-def descending_tax_ids(tax_ids_user, taxonomy):  # noqa
+def descending_tax_ids(tax_ids_user, taxonomy, linfo=print):  # noqa
     if len(tax_ids_user) > 0:
-        print('Resolving descending nodes for:\n')
+        linfo('Resolving descending nodes for:')
     tax_ids = []
     for tx in tax_ids_user:
         tx_name = taxonomy.scientific_name_for_taxid(taxid=tx)
-        print('\t' + str(tx) + ':\t' + tx_name)
+        linfo(str(tx) + ': ' + tx_name)
         tax_ids_for_tx = taxonomy.all_descending_taxids(taxid=tx)
         if tax_ids_for_tx is None:
             tax_ids_for_tx = [tx]
@@ -158,13 +168,13 @@ def descending_tax_ids(tax_ids_user, taxonomy):  # noqa
     return tax_ids
 
 
-def pfam_uniprot_accessions(pfam_acc, tax_ids, dir_cache_pfam_acc):  # noqa
+def pfam_uniprot_accessions(pfam_acc, tax_ids, dir_cache_pfam_acc, linfo=print):  # noqa
     if len(pfam_acc) > 0:
-        print('\nDownloading UniProt accessions for Pfam families:\n')
+        linfo('Downloading UniProt accessions for Pfam families:')
     pfam_seqs_list = []
     for pa in pfam_acc:
         pfam_id = pfam_entry(pa)[0]['id']
-        print('\t' + pa + ': ' + pfam_id)
+        linfo(pa + ': ' + pfam_id)
         __ = opj(dir_cache_pfam_acc, pa)
         if ope(__):
             with open(__, 'rb') as f:
@@ -177,12 +187,10 @@ def pfam_uniprot_accessions(pfam_acc, tax_ids, dir_cache_pfam_acc):  # noqa
                 pickle.dump(acc, f, protocol=PICKLE_PROTOCOL)
 
     pfam_uniprot_acc = prot_ids_for_tax_ids(pfam_seqs_list, tax_ids)
-    print()
     return pfam_uniprot_acc
 
 
-def dnld_pfam_uniprot_seqs(uniprot_acc, aa_uniprot_file, dir_cache_prj):  # noqa
-    # ToDo: Tests
+def dnld_pfam_uniprot_seqs(uniprot_acc, aa_uniprot_file, dir_cache_prj, linfo=print):  # noqa
     if len(uniprot_acc) != 0:
         __ = opj(dir_cache_prj, 'aa_uniprot_acc_cache')
         prev_uniprot_acc = []
@@ -196,7 +204,7 @@ def dnld_pfam_uniprot_seqs(uniprot_acc, aa_uniprot_file, dir_cache_prj):  # noqa
         if (set(uniprot_acc) != set(prev_uniprot_acc)) or \
            (not ope(aa_uniprot_file)):
 
-            print('Downloading Pfam protein sequences from UniProt.\n')
+            linfo('Downloading Pfam protein sequences from UniProt.')
             __ = fasta_by_accession_list(uniprot_acc)
             __ = standardize_fasta_text(__)
 
@@ -207,10 +215,9 @@ def dnld_pfam_uniprot_seqs(uniprot_acc, aa_uniprot_file, dir_cache_prj):  # noqa
             osremove(aa_uniprot_file)
 
 
-def user_protein_accessions(prot_acc_user):  # noqa
-    # ToDo: Tests
+def user_protein_accessions(prot_acc_user, linfo=print):  # noqa
     if len(prot_acc_user) > 0:
-        print('Reading user provided protein accessions:\n')
+        linfo('Reading user provided protein accessions:')
         pa_info = entrez_summary(prot_acc_user, 'protein')
         prot_acc = []
         for pa in pa_info:
@@ -222,8 +229,7 @@ def user_protein_accessions(prot_acc_user):  # noqa
             if len(title) > 60:
                 title = title[0:57] + '...'
 
-            print('\t' + acc + ': ' + title)
-        print()
+            linfo(acc + ': ' + title)
 
         return prot_acc
 
@@ -231,8 +237,7 @@ def user_protein_accessions(prot_acc_user):  # noqa
         return prot_acc_user
 
 
-def dnld_prot_seqs(prot_acc_user, aa_prot_ncbi_file, dir_cache_prj):  # noqa
-    # ToDo: Tests
+def dnld_prot_seqs(prot_acc_user, aa_prot_ncbi_file, dir_cache_prj, linfo=print):  # noqa
     if len(prot_acc_user) != 0:
         __ = opj(dir_cache_prj, 'aa_prot_ncbi_acc_cache')
         prev_prot_acc_user = []
@@ -246,7 +251,7 @@ def dnld_prot_seqs(prot_acc_user, aa_prot_ncbi_file, dir_cache_prj):  # noqa
         if (set(prot_acc_user) != set(prev_prot_acc_user)) or \
            (not ope(aa_prot_ncbi_file)):
 
-            print('Downloading protein sequences from NCBI.\n')
+            linfo('Downloading protein sequences from NCBI.')
             __ = dnld_ncbi_seqs(prot_acc_user, 'protein')
 
             write_fasta_file(__, aa_prot_ncbi_file)
@@ -256,24 +261,21 @@ def dnld_prot_seqs(prot_acc_user, aa_prot_ncbi_file, dir_cache_prj):  # noqa
             osremove(aa_prot_ncbi_file)
 
 
-def user_aa_fasta(user_queries, aa_prot_user_file):  # noqa
-    # ToDo: Tests
+def user_aa_fasta(user_queries, aa_prot_user_file, linfo=print):  # noqa
     __ = ''
     if len(user_queries) > 0:
-        print('Reading user provided AA sequences:')
+        linfo('Reading user provided AA sequences:')
         for ap in user_queries:
-            print('\t\t' + ap)
+            linfo(ap)
             with open(ap, 'r') as f:
                 __ = __ + f.read()
-        print()
     if __ != '':
         with open(aa_prot_user_file, 'w') as f:
             f.write(standardize_fasta_text(__))
 
 
-def combine_aa_fasta(fasta_files, aa_queries_file):  # noqa
-    # ToDo: Tests
-    print('Combining all AA query sequences.\n')
+def combine_aa_fasta(fasta_files, aa_queries_file, linfo=print):  # noqa
+    linfo('Combining all AA query sequences.')
     __ = ''
     for fasta_file in fasta_files:
         if ope(fasta_file):
@@ -284,19 +286,18 @@ def combine_aa_fasta(fasta_files, aa_queries_file):  # noqa
         with open(aa_queries_file, 'w') as f:
             f.write(__)
     else:
-        print('No queries were provided. Exiting.')
+        linfo('No queries were provided. Exiting.')
         exit(0)
 
 
-def filter_queries(aa_queries_file, min_query_length, max_query_length): # noqa
-    # ToDo: Tests
+def filter_queries(aa_queries_file, min_query_length, max_query_length, linfo=print): # noqa
     __ = ''
     with open(aa_queries_file, 'r') as f:
         __ = f.read()
 
-    print('Filtering AA query sequences:\n')
-    print('\tmin_query_length: ' + str(min_query_length))
-    print('\tmax_query_length: ' + str(max_query_length))
+    linfo('Filtering AA query sequences:')
+    linfo('min_query_length: ' + str(min_query_length))
+    linfo('max_query_length: ' + str(max_query_length))
 
     __ = filter_fasta_text_by_length(__, min_query_length, max_query_length)
 
@@ -304,13 +305,12 @@ def filter_queries(aa_queries_file, min_query_length, max_query_length): # noqa
         f.write(__)
 
 
-def dnld_sra_info(sras, dir_cache_prj):  # noqa
-    # ToDo: Tests
+def dnld_sra_info(sras, dir_cache_prj, linfo=print):  # noqa
     sra_runs_info = {}
     sras_acceptable = []
 
     if len(sras) > 0:
-        print('\nDownloading SRA run information:\n')
+        linfo('Downloading SRA run information:')
     else:
         return sra_runs_info, sras_acceptable
 
@@ -397,7 +397,7 @@ def dnld_sra_info(sras, dir_cache_prj):  # noqa
 
                 sras_acceptable.append(sra)
 
-            print(sra_info_str)
+            linfo(sra_info_str)
 
     with open(__, 'wb') as f:
         pickle.dump(sra_runs_info, f, protocol=PICKLE_PROTOCOL)
@@ -406,8 +406,7 @@ def dnld_sra_info(sras, dir_cache_prj):  # noqa
 
 
 def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
-                         threads, dir_temp): # noqa
-    # ToDo: Tests
+                         threads, dir_temp, linfo=print): # noqa
     se_fastq_files = {}
     pe_fastq_files = {}
 
@@ -444,7 +443,7 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
                 sra_dnld_needed = True
 
         if sra_dnld_needed:
-            print('\nDownloading FASTQ reads for ' + sample_base_name + '\n')
+            linfo('Downloading FASTQ reads for ' + sample_base_name)
             cmd = [fasterq_dump,
                    '--threads', str(threads),
                    '--split-3',
@@ -453,17 +452,15 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
             call(cmd)
 
         else:
-            print('\tFASTQ reads for the SRA run ' + sample_base_name +
+            linfo('FASTQ reads for the SRA run ' + sample_base_name +
                   ' are available locally.')
-    print()
 
     return se_fastq_files, pe_fastq_files, sra_runs_info
 
 
-def user_fastq_files(fq_se, fq_pe): # noqa
-    # ToDo: Tests
+def user_fastq_files(fq_se, fq_pe, linfo=print): # noqa
     if len(fq_se) > 0 or len(fq_pe) > 0:
-        print('\nPreparing user provided FASTQ files:\n')
+        linfo('Preparing user provided FASTQ files:')
 
     se_fastq_files = {}
     pe_fastq_files = {}
@@ -474,8 +471,7 @@ def user_fastq_files(fq_se, fq_pe): # noqa
         se_fastq_files[sample_base_name]['src'] = 'usr'
         se_fastq_files[sample_base_name]['avg_len'] = None
         se_fastq_files[sample_base_name]['tax_id'] = None
-        print('\t' + sample_base_name + ':\n\t\t' + se)
-        print()
+        linfo(sample_base_name + ': ' + se)
 
     for pe in fq_pe:
         sample_base_name = basename(commonprefix(pe))
@@ -484,20 +480,18 @@ def user_fastq_files(fq_se, fq_pe): # noqa
         pe_fastq_files[sample_base_name]['src'] = 'usr'
         pe_fastq_files[sample_base_name]['avg_len'] = None
         pe_fastq_files[sample_base_name]['tax_id'] = None
-        print('\t' + sample_base_name + ':\n\t\t' + pe[0] + '\n\t\t' + pe[1])
-        print()
+        linfo(sample_base_name + ': ' + pe[0] + ', ' + pe[1])
 
     return se_fastq_files, pe_fastq_files
 
 
 def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
-                        dir_cache_fq_minlen, vsearch): # noqa
-    # ToDo: Tests
+                        dir_cache_fq_minlen, vsearch, linfo=print): # noqa
     # lowest allowable
     low = 30
 
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
-        print('\nCalculating minimum acceptable read length:\n')
+        linfo('Calculating minimum acceptable read length:')
     else:
         return None
 
@@ -517,7 +511,7 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
         if src == 'sra':
             ml = max(avg_len // 2, low)
             se_fastq_files[se]['min_acc_len'] = ml
-            print('\t' + str(ml) + ' nt: ' + se)
+            linfo(str(ml) + ' nt: ' + se)
             continue
 
         fq_path = se_fastq_files[se]['path']
@@ -530,7 +524,7 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
         if src == 'sra':
             ml = max(avg_len // 2, low)
             pe_fastq_files[pe]['min_acc_len'] = ml
-            print('\t' + str(ml) + ' nt: ' + pe)
+            linfo(str(ml) + ' nt: ' + pe)
             continue
 
         fq_path = pe_fastq_files[pe]['path'][0]
@@ -561,9 +555,9 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
             pickled[x[0]] = ml
 
         if ml is not None:
-            print('\t' + str(ml) + ' nt: ' + x[0])
+            linfo(str(ml) + ' nt: ' + x[0])
         else:
-            print('\t' + ' ?' + ' nt: ' + x[0])
+            linfo(' ?' + ' nt: ' + x[0])
             ml = low
 
         if x[3] == 'se':
@@ -575,12 +569,9 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
         with open(__, 'wb') as f:
             pickle.dump(pickled, f, protocol=PICKLE_PROTOCOL)
 
-    print()
-
 
 def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
-                    trimmomatic, adapters, fpatt, threads): # noqa
-    # ToDo: Tests
+                    trimmomatic, adapters, fpatt, threads, linfo=print): # noqa
     for se in se_fastq_files:
         dir_fq_trim_data_sample = opj(dir_fq_trim_data, se)
         fq_path = se_fastq_files[se]['path']
@@ -590,10 +581,10 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
         se_fastq_files[se]['trim_path_fq'] = out_f
 
         if ope(dir_fq_trim_data_sample):
-            print('Trimmed FASTQ files for sample ' + se + ' already exist.')
+            linfo('Trimmed FASTQ files for sample ' + se + ' already exist.')
         else:
             make_dir(dir_fq_trim_data_sample)
-            print('Running Trimmomatic in SE mode: ' + se)
+            linfo('Running Trimmomatic in SE mode: ' + se)
             trimmomatic_se(
                 trimmomatic=trimmomatic,
                 adapters=adapters,
@@ -617,10 +608,10 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
         pe_fastq_files[pe]['trim_path_fq'] = out_fs
 
         if ope(dir_fq_trim_data_sample):
-            print('Trimmed FASTQ files for sample ' + pe + ' already exist.')
+            linfo('Trimmed FASTQ files for sample ' + pe + ' already exist.')
         else:
             make_dir(dir_fq_trim_data_sample)
-            print('Running Trimmomatic in PE mode: ' + pe)
+            linfo('Running Trimmomatic in PE mode: ' + pe)
             trimmomatic_pe(
                 trimmomatic=trimmomatic,
                 adapters=adapters,
@@ -639,7 +630,7 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
                 out_f = opj(dir_fq_trim_data_sample, 'unpaired.fastq')
                 stats_f = opj(dir_fq_trim_data_sample, pe + '_unpaired.txt')
 
-                print('Running Trimmomatic in SE mode: ' + pe +
+                linfo('Running Trimmomatic in SE mode: ' + pe +
                       ' (Paired-read SRA run contains unpaired reads.)')
 
                 trimmomatic_se(
@@ -663,13 +654,9 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
                 copyfile(_, out_fs[2])
                 osremove(_)
 
-    if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
-        print()
-
 
 def trimmed_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
-                     fpatt): # noqa
-    # ToDo: Tests
+                     fpatt, linfo=print): # noqa
     for se in se_fastq_files:
         dir_fa_trim_data_sample = opj(dir_fa_trim_data, se)
         fq_path = se_fastq_files[se]['trim_path_fq']
@@ -677,10 +664,10 @@ def trimmed_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
         se_fastq_files[se]['trim_path_fa'] = out_f
 
         if ope(dir_fa_trim_data_sample):
-            print('Trimmed FASTA files for sample ' + se + ' already exist.')
+            linfo('Trimmed FASTA files for sample ' + se + ' already exist.')
         else:
             make_dir(dir_fa_trim_data_sample)
-            print('Converting FASTQ to FASTA using Seqtk: ' + fq_path)
+            linfo('Converting FASTQ to FASTA using Seqtk: ' + fq_path)
             seqtk_fq_to_fa(seqtk, fq_path, out_f)
 
     for pe in pe_fastq_files:
@@ -691,21 +678,17 @@ def trimmed_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
         pe_fastq_files[pe]['trim_path_fa'] = out_fs
 
         if ope(dir_fa_trim_data_sample):
-            print('Trimmed FASTA files for sample ' + pe + ' already exist.')
+            linfo('Trimmed FASTA files for sample ' + pe + ' already exist.')
         else:
             make_dir(dir_fa_trim_data_sample)
             pe_trim_files = zip(fq_paths, out_fs)
             for x in pe_trim_files:
-                print('Converting FASTQ to FASTA using Seqtk: ' + x[0])
+                linfo('Converting FASTQ to FASTA using Seqtk: ' + x[0])
                 seqtk_fq_to_fa(seqtk, x[0], x[1])
 
 
 def makeblastdb_fq(se_fastq_files, pe_fastq_files, dir_blast_fa_trim,
-                   makeblastdb, fpatt): # noqa
-    # ToDo: Tests
-    if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
-        print()
-
+                   makeblastdb, fpatt, linfo=print): # noqa
     for se in se_fastq_files:
         dir_blast_fa_trim_sample = opj(dir_blast_fa_trim, se)
         fa_path = se_fastq_files[se]['trim_path_fa']
@@ -713,10 +696,10 @@ def makeblastdb_fq(se_fastq_files, pe_fastq_files, dir_blast_fa_trim,
         se_fastq_files[se]['blast_db_path'] = out_f
 
         if ope(dir_blast_fa_trim_sample):
-            print('BLAST database for sample ' + se + ' already exists.')
+            linfo('BLAST database for sample ' + se + ' already exists.')
         else:
             make_dir(dir_blast_fa_trim_sample)
-            print('Building BLAST database for: ' + fa_path)
+            linfo('Building BLAST database for: ' + fa_path)
             make_blast_db(
                 exec_file=makeblastdb,
                 in_file=fa_path,
@@ -732,12 +715,12 @@ def makeblastdb_fq(se_fastq_files, pe_fastq_files, dir_blast_fa_trim,
         pe_fastq_files[pe]['blast_db_path'] = out_fs
 
         if ope(dir_blast_fa_trim_sample):
-            print('BLAST database for sample ' + pe + ' already exists.')
+            linfo('BLAST database for sample ' + pe + ' already exists.')
         else:
             make_dir(dir_blast_fa_trim_sample)
             pe_trim_files = zip(fa_paths, out_fs)
             for x in pe_trim_files:
-                print('Building BLAST database for: ' + x[0])
+                linfo('Building BLAST database for: ' + x[0])
                 make_blast_db(
                     exec_file=makeblastdb,
                     in_file=x[0],
@@ -750,11 +733,7 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                          tblastn, blast_1_evalue, blast_1_max_target_seqs,
                          blast_1_culling_limit, blast_1_qcov_hsp_perc,
                          dir_blast_results_fa_trim, fpatt, threads,
-                         genetic_code, seqtk, vsearch): # noqa
-    # ToDo: Tests
-    if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
-        print()
-
+                         genetic_code, seqtk, vsearch, linfo=print): # noqa
     ident = 0.85
 
     for se in se_fastq_files:
@@ -767,10 +746,10 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
         se_fastq_files[se]['blast_results_path'] = out_f_fasta
 
         if ope(dir_results):
-            print('BLAST results for sample ' + se + ' already exists.')
+            linfo('BLAST results for sample ' + se + ' already exists.')
         else:
             make_dir(dir_results)
-            print('Running tblastn on: ' + blast_db_path)
+            linfo('Running tblastn on: ' + blast_db_path)
             run_blast(exec_file=tblastn,
                       task='tblastn',
                       threads=threads,
@@ -784,7 +763,7 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                       db_genetic_code=genetic_code,
                       out_cols=BLST_RES_COLS_1)
 
-            print('\tExtracting unique BLAST hits using Seqtk.\n')
+            linfo('Extracting unique BLAST hits using Seqtk.')
 
             keep_unique_lines_in_file(out_f)
 
@@ -811,13 +790,13 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
         pe_fastq_files[pe]['blast_results_path'] = out_f_fasta
 
         if ope(dir_results):
-            print('BLAST results for sample ' + pe + ' already exist.')
+            linfo('BLAST results for sample ' + pe + ' already exist.')
         else:
             make_dir(dir_results)
             pe_trim_files = zip(blast_db_paths, out_fs, fq_paths, out_fs_fastq,
                                 out_fs_fasta)
             for x in pe_trim_files:
-                print('Running tblastn on: ' + x[0])
+                linfo('Running tblastn on: ' + x[0])
                 run_blast(exec_file=tblastn,
                           task='tblastn',
                           threads=threads,
@@ -831,7 +810,7 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                           db_genetic_code=genetic_code,
                           out_cols=BLST_RES_COLS_1)
 
-                print('\tExtracting unique BLAST hits using Seqtk.\n')
+                linfo('\tExtracting unique BLAST hits using Seqtk.')
 
                 keep_unique_lines_in_file(x[1])
 
@@ -853,11 +832,7 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
 
 
 def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
-                         dir_vsearch_results_fa_trim, fpatt, seqtk): # noqa
-    # ToDo: Tests
-    if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
-        print()
-
+                         dir_vsearch_results_fa_trim, fpatt, seqtk, linfo=print): # noqa
     ident = 0.85
 
     for se in se_fastq_files:
@@ -870,10 +845,10 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
         se_fastq_files[se]['vsearch_results_path'] = out_f_fastq
 
         if ope(dir_results):
-            print('Vsearch results for sample ' + se + ' already exists.')
+            linfo('Vsearch results for sample ' + se + ' already exists.')
         else:
             make_dir(dir_results)
-            print('Running vsearch on: ' + fq_path)
+            linfo('Running vsearch on: ' + fq_path)
             run_vsearch(vsearch,
                         ident=ident,
                         q_file=blast_results_fa_path,
@@ -881,7 +856,7 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
                         out_file=out_f,
                         minlen=min_acc_len)
 
-            print('\tExtracting unique vsearch hits using Seqtk.\n')
+            linfo('Extracting unique vsearch hits using Seqtk.')
             keep_unique_lines_in_file(out_f)
             seqtk_extract_reads(seqtk, fq_path, out_f_fastq, out_f)
             osremove(out_f)
@@ -897,12 +872,12 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
         pe_fastq_files[pe]['vsearch_results_path'] = out_fs_fastq
 
         if ope(dir_results):
-            print('Vsearch results for sample ' + pe + ' already exist.')
+            linfo('Vsearch results for sample ' + pe + ' already exist.')
         else:
             make_dir(dir_results)
             pe_trim_files = zip(fq_paths, out_fs, out_fs_fastq)
             for x in pe_trim_files:
-                print('Running vsearch on: ' + x[0])
+                linfo('Running vsearch on: ' + x[0])
                 run_vsearch(vsearch,
                             ident=ident,
                             q_file=blast_results_fa_path,
@@ -910,7 +885,7 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
                             out_file=x[1],
                             minlen=min_acc_len)
 
-            print('\tExtracting unique vsearch hits from paired files '
+            linfo('Extracting unique vsearch hits from paired files '
                   'using Seqtk.')
 
             p1txt = out_fs[0]
@@ -934,8 +909,8 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
             osremove(p2txt)
             osremove(p12txt_temp)
 
-            print('\tExtracting unique vsearch hits from unpaired files '
-                  'using Seqtk.\n')
+            linfo('Extracting unique vsearch hits from unpaired files '
+                  'using Seqtk.')
 
             u1txt = out_fs[2]
             u2txt = out_fs[3]
@@ -957,21 +932,17 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
 
 
 def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
-               spades, dir_temp, threads, ram):  # noqa
-    # ToDo: Tests
-    if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
-        print()
-
+               spades, dir_temp, threads, ram, linfo=print):  # noqa
     for se in se_fastq_files:
         dir_results = opj(dir_spades_assemblies, se)
         fq_path = se_fastq_files[se]['vsearch_results_path']
         se_fastq_files[se]['spades_assembly'] = None
 
         if ope(dir_results):
-            print('SPAdes results for sample ' + se + ' already exist.')
+            linfo('SPAdes results for sample ' + se + ' already exist.')
         else:
             make_dir(dir_results)
-            print('Running SPAdes on: ' + se)
+            linfo('Running SPAdes on: ' + se)
             run_spades_se(spades,
                           out_dir=dir_results,
                           input_file=fq_path,
@@ -985,11 +956,10 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
             tr_str = ' transcripts.'
             if count == 1:
                 tr_str = ' transcript.'
-            print('\n\tSPAdes produced ' + str(count) + tr_str)
+            linfo('SPAdes produced ' + str(count) + tr_str)
             se_fastq_files[se]['spades_assembly'] = assmbl_path
         else:
-            print('\n\tSPAdes produced no transcripts.')
-        print()
+            linfo('SPAdes produced no transcripts.')
 
     for pe in pe_fastq_files:
         dir_results = opj(dir_spades_assemblies, pe)
@@ -997,10 +967,10 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
         pe_fastq_files[pe]['spades_assembly'] = None
 
         if ope(dir_results):
-            print('SPAdes results for sample ' + pe + ' already exist.')
+            linfo('SPAdes results for sample ' + pe + ' already exist.')
         else:
             make_dir(dir_results)
-            print('Running SPAdes on: ' + pe)
+            linfo('Running SPAdes on: ' + pe)
 
             if osstat(fq_paths[0]).st_size > 0 and \
                osstat(fq_paths[1]).st_size > 0:
@@ -1029,17 +999,15 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
             tr_str = ' transcripts.'
             if count == 1:
                 tr_str = ' transcript.'
-            print('\n\tSPAdes produced ' + str(count) + tr_str)
+            linfo('SPAdes produced ' + str(count) + tr_str)
             pe_fastq_files[pe]['spades_assembly'] = assmbl_path
         else:
-            print('\n\tSPAdes produced no transcripts.')
-        print()
+            linfo('SPAdes produced no transcripts.')
 
 
-def makeblastdb_assemblies(assemblies, dir_prj_blast_assmbl, makeblastdb):  # noqa
-    # ToDo: Tests
+def makeblastdb_assemblies(assemblies, dir_prj_blast_assmbl, makeblastdb, linfo=print):  # noqa
     if len(assemblies) > 0:
-        print('Building BLAST databases for assemblies:\n')
+        linfo('Building BLAST databases for assemblies:')
     for a in assemblies:
         assmbl_name = a['name']
 
@@ -1049,26 +1017,22 @@ def makeblastdb_assemblies(assemblies, dir_prj_blast_assmbl, makeblastdb):  # no
         a['blast_db_path'] = assmbl_blast_db_file
 
         if ope(assmbl_blast_db_dir):
-            print('\tBLAST database for ' + assmbl_name + ' already exists.')
+            linfo('BLAST database for ' + assmbl_name + ' already exists.')
         else:
-            print('\t' + assmbl_name)
+            linfo(assmbl_name)
             make_dir(assmbl_blast_db_dir)
             make_blast_db(exec_file=makeblastdb,
                           in_file=a['path'],
                           out_file=assmbl_blast_db_file,
                           title=assmbl_name)
 
-    if len(assemblies) > 0:
-        print()
-
 
 def run_tblastn_on_assemblies(assemblies, aa_queries_file, tblastn,
                               dir_prj_assmbl_blast_results, blast_2_evalue,
                               blast_2_max_target_seqs, blast_2_culling_limit,
-                              blast_2_qcov_hsp_perc, threads, genetic_code):  # noqa
-    # ToDo: Tests
+                              blast_2_qcov_hsp_perc, threads, genetic_code, linfo=print):  # noqa
     if len(assemblies) > 0:
-        print('Running BLAST on assemblies:\n')
+        linfo('Running BLAST on assemblies:')
 
     for a in assemblies:
 
@@ -1078,11 +1042,10 @@ def run_tblastn_on_assemblies(assemblies, aa_queries_file, tblastn,
         __ = opj(dir_prj_assmbl_blast_results, assmbl_name + '.tsv')
 
         if ope(__):
-            print('\tBLAST results for assembly ' + assmbl_name +
+            linfo('BLAST results for assembly ' + assmbl_name +
                   ' already exist.')
         else:
-
-            print('\tRunning tblastn on: ' + assmbl_name)
+            linfo('Running tblastn on: ' + assmbl_name)
 
             run_blast(exec_file=tblastn,
                       task='tblastn',
@@ -1099,17 +1062,13 @@ def run_tblastn_on_assemblies(assemblies, aa_queries_file, tblastn,
 
         a['blast_hits_aa'] = parse_blast_results_file(__, BLST_RES_COLS_2)
 
-    if len(assemblies) > 0:
-        print()
-
 
 def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
                         dir_temp, prepend_assmbl, min_target_orf_len,
                         max_target_orf_len, allow_non_aug, allow_no_strt_cod,
-                        allow_no_stop_cod, tax):  # noqa
-    # ToDo: Tests
+                        allow_no_stop_cod, tax, linfo=print):  # noqa
     if len(assemblies) > 0:
-        print('Analyzing BLAST hits for assemblies:\n')
+        linfo('Analyzing BLAST hits for assemblies:')
 
     for a in assemblies:
 
@@ -1160,8 +1119,7 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
         if __.strip() == '':
             continue
 
-        print('\t' + assmbl_name)
-        print('\t' + '-' * 80)
+        linfo(assmbl_name)
 
         __ = trim_desc_to_first_space_in_fasta_text(__)
 
@@ -1243,31 +1201,22 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
                         orf_seq[0:3] != 'ATG':
 
                     good_orf = False
-                    # print('allow_non_aug', allow_non_aug, orf_seq[0:3])
 
                 elif allow_no_strt_cod is False and \
                         orf_seq[0:3] not in start_codons:
 
                     good_orf = False
-                    # print('allow_no_strt_cod', allow_no_strt_cod,
-                    #       orf_seq[0:3])
 
                 elif allow_no_stop_cod is False and \
                         orf_seq[-3:] not in stop_codons:
 
                     good_orf = False
-                    # print('allow_no_stop_cod', allow_no_stop_cod,
-                    #       orf_seq[-3:0])
 
                 elif len(orf_seq) < min_target_orf_len:
                     good_orf = False
-                    # print('min_target_orf_len', min_target_orf_len,
-                    #       len(orf_seq))
 
                 elif len(orf_seq) > max_target_orf_len:
                     good_orf = False
-                    # print('max_target_orf_len', max_target_orf_len,
-                    #       len(orf_seq))
                 ##############################################################
 
                 if good_orf is True:
@@ -1298,8 +1247,7 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
 
         # --------------------------------------------------------------------
 
-        print('\t                     Transcripts: ' +
-              str(len(transcripts_nt)))
+        linfo('Transcripts: ' + str(len(transcripts_nt)))
 
         if len(transcripts_nt) > 0:
             write_fasta_file(transcripts_nt, transcripts_nt_fasta_file)
@@ -1307,7 +1255,7 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
         else:
             a['transcripts_nt_fasta_file'] = None
 
-        print('\tTranscripts with acceptable ORFs: ' +
+        linfo('Transcripts with acceptable ORFs: ' +
               str(len(transcripts_nt_orf)))
 
         if len(transcripts_nt_orf) > 0:
@@ -1328,17 +1276,12 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
             json.dump(all_kakapo_results, f, sort_keys=True, indent=4)
         # --------------------------------------------------------------------
 
-        print('\t' + '-' * 80 + '\n\n')
 
-        # --------------------------------------------------------------------
-
-
-def run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj):  # noqa
-    # ToDo: Tests
+def run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj, linfo=print):  # noqa
     delay = 1
 
     if len(assemblies) > 0:
-        print('\nRunning InterProScan on translated transcripts:\n')
+        linfo('Running InterProScan on translated transcripts:')
 
     for a in assemblies:
 
@@ -1355,7 +1298,7 @@ def run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj):  # noqa
         json_dump_file_path = opj(dir_prj_ips, assmbl_name + '_ann_ips.json')
 
         if ope(json_dump_file_path):
-            print('\tInterProScan results for assembly ' + assmbl_name +
+            linfo('InterProScan results for assembly ' + assmbl_name +
                   ' have already been downloaded.')
             continue
 
@@ -1368,14 +1311,13 @@ def run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj):  # noqa
                 jobs = pickle.load(f)
 
         else:
-            print()
             jobs = job_runner(email=email, dir_cache=dir_cache_prj, seqs=seqs)
 
             with open(__, 'wb') as f:
                 pickle.dump(jobs, f, protocol=PICKLE_PROTOCOL)
 
-        print('\n\tDownloading InterProScan results for transcripts in ' +
-              assmbl_name + '\n')
+        linfo('Downloading InterProScan results for transcripts in ' +
+              assmbl_name)
 
         all_ips_results = {}
 
@@ -1404,10 +1346,9 @@ def run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj):  # noqa
 
 
 def gff_from_json(assemblies, dir_prj_ips, dir_prj_transcripts_combined,
-                  prj_name):  # noqa
-    # ToDo: Tests
+                  prj_name, linfo=print):  # noqa
     if len(assemblies) > 0:
-        print('\nProducing GFF3 files:\n')
+        linfo('Producing GFF3 files:')
 
     all_fas_paths = []
     all_gff_paths = []
@@ -1447,7 +1388,7 @@ def gff_from_json(assemblies, dir_prj_ips, dir_prj_transcripts_combined,
             json.dump(json_dict, f, sort_keys=True, indent=4)
 
         if ope(json_path):
-            print('\t' + assmbl_name)
+            linfo(assmbl_name)
             gff_from_kakapo_ips5_json_file(json_path, gff_path)
 
             osremove(json_path)
@@ -1459,8 +1400,8 @@ def gff_from_json(assemblies, dir_prj_ips, dir_prj_transcripts_combined,
     combine_text_files(all_gff_paths, combined_gff_path)
 
 
-def dnld_cds_for_ncbi_prot_acc(prot_acc_user, nt_prot_ncbi_file, tax):  # noqa
-    print('Downloading CDS for user provided NCBI protein accessions.')
+def dnld_cds_for_ncbi_prot_acc(prot_acc_user, nt_prot_ncbi_file, tax, linfo=print):  # noqa
+    linfo('Downloading CDS for user provided NCBI protein accessions.')
     cds_acc_dict = cds_acc_for_prot_acc(prot_acc_user)
 
     cds_accessions = []

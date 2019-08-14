@@ -74,7 +74,8 @@ def get(url, params=None, response_format='json'):
     try:
         response.raise_for_status()
     except HTTPError as e:
-        print(e)
+        pass
+        # print(e)
 
     return response
 
@@ -92,7 +93,8 @@ def post(url, data, response_format):
     try:
         response.raise_for_status()
     except HTTPError as e:
-        print(e)
+        pass
+        # print(e)
 
     return response
 

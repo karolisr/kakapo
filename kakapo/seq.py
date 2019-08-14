@@ -75,8 +75,6 @@ def translate(seq, trans_table):  # noqa
         trans = 'M'
         idx = 1
 
-    trans = ''
-
     for t in seq_codons[idx:len_s]:
         aa = 'X'
         if t in tbl:
@@ -350,7 +348,8 @@ class SeqRecord(object):
             try:
                 self._version = int(value)
             except ValueException:
-                print('Version should be an integer.')
+                pass
+                # print('Version should be an integer.')
 
     # description (definition)
     @property
@@ -436,7 +435,8 @@ class SeqRecord(object):
             try:
                 self._taxid = int(value)
             except ValueException:
-                print('taxid should be an integer.')
+                pass
+                # print('taxid should be an integer.')
 
     # organism
     @property

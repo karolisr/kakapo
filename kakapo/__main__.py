@@ -10,10 +10,18 @@ from __future__ import nested_scopes
 from __future__ import print_function
 from __future__ import with_statement
 
-import argparse
 import inspect
 import os
 import sys
+
+##############################################################################
+SCRIPT_FILE_PATH = inspect.getfile(inspect.currentframe())
+SCRIPT_DIR_PATH = os.path.dirname(os.path.abspath(SCRIPT_FILE_PATH))
+KAKAPO_DIR_PATH = os.path.sep.join(SCRIPT_DIR_PATH.split(os.path.sep)[0:-1])
+sys.path.insert(0, KAKAPO_DIR_PATH)
+##############################################################################
+
+import argparse
 
 from os.path import basename
 from os.path import exists as ope
@@ -24,12 +32,16 @@ from sys import exit
 
 from ncbi_taxonomy_local import taxonomy
 
+from kakapo import __version__, __script_name__
 from kakapo import dependencies as deps
+from kakapo.config import CONYELL, CONSDFL
 from kakapo.config import DIR_CFG, DIR_DEP, DIR_TAX
 from kakapo.config import OS_STR, PY_V_STR
 from kakapo.config import THREADS, RAM
 from kakapo.config_file_parse import config_file_parse
 from kakapo.helpers import make_dir
+from kakapo.helpers import time_stamp
+from kakapo.logging_k import prepare_logger
 from kakapo.workflow import combine_aa_fasta
 from kakapo.workflow import descending_tax_ids
 from kakapo.workflow import dnld_cds_for_ncbi_prot_acc
@@ -56,84 +68,119 @@ from kakapo.workflow import user_aa_fasta
 from kakapo.workflow import user_fastq_files
 from kakapo.workflow import user_protein_accessions
 
-##############################################################################
-SCRIPT_FILE_PATH = inspect.getfile(inspect.currentframe())
-SCRIPT_DIR_PATH = os.path.dirname(os.path.abspath(SCRIPT_FILE_PATH))
-KAKAPO_DIR_PATH = os.path.sep.join(SCRIPT_DIR_PATH.split(os.path.sep)[0:-1])
-sys.path.insert(0, KAKAPO_DIR_PATH)
-##############################################################################
-
 # Command line arguments -----------------------------------------------------
+USAGE = '{} --cfg path/to/configuration_file.ini'.format(__script_name__)
 
-# CLEAN_CONFIG_DIR = False
-# CONFIG_FILE_PATH = 'tests/data/kakapo.ini'
+PARSER = argparse.ArgumentParser(
+    prog=__script_name__,
+    formatter_class=argparse.RawTextHelpFormatter,
+    usage=USAGE,
+    description=None,
+    epilog=None,
+    prefix_chars='-',
+    add_help=False)
 
-PARSER = argparse.ArgumentParser()
+PARSER.add_argument(
+    '--cfg',
+    type=str,
+    required=False,
+    metavar='path',
+    dest='CONFIG_FILE_PATH',
+    help='Path to a {} project configuration file.'.format(__script_name__))
 
-ARGS_GROUP_INPUT = PARSER.add_mutually_exclusive_group(required=True)
+PARSER.add_argument(
+    '--force-deps',
+    action='store_true',
+    required=False,
+    dest='CLEAN_CONFIG_DIR',
+    help='Force the use of {}-installed dependencies,\neven if they are '
+         'already available on the system.'.format(__script_name__))
 
-ARGS_GROUP_INPUT.add_argument(
+PARSER.add_argument(
     '--clean-config-dir',
     action='store_true',
     required=False,
     dest='CLEAN_CONFIG_DIR',
-    help='remove all downloaded configuration files and software \
-          dependencies.')
+    help='Remove all downloaded software dependencies and\n'
+         'NCBI taxonomy data.')
 
-ARGS_GROUP_INPUT.add_argument(
-    '--config-file',
-    type=str,
+PARSER.add_argument(
+    '-v', '--version',
+    action='store_true',
     required=False,
-    dest='CONFIG_FILE_PATH',
-    help='path to configuration (.ini) file.')
+    dest='PRINT_VERSION',
+    help='Print {} version.'.format(__script_name__))
+
+PARSER.add_argument(
+    '-h', '--help',
+    action='store_true',
+    required=False,
+    dest='PRINT_HELP',
+    help='Print {} help information.'.format(__script_name__))
 
 ARGS = PARSER.parse_args()
 
 CLEAN_CONFIG_DIR = ARGS.CLEAN_CONFIG_DIR
 CONFIG_FILE_PATH = ARGS.CONFIG_FILE_PATH
+PRINT_VERSION = ARGS.PRINT_VERSION
+PRINT_HELP = ARGS.PRINT_HELP
+
+script_info = ('\n' +
+               '{s} version: {v}\n'.format(s=__script_name__.title(),
+                                           v=__version__) +
+               'Python version: {pv}\n'.format(pv=PY_V_STR) +
+               'Operating system: {os}\n'.format(os=OS_STR) +
+               'System info: {cpus} CPUs, {ram} GB RAM\n'.format(
+                   cpus=THREADS, ram='{0:.2f}'.format(RAM)))
+
+if PRINT_HELP is True:
+    print(script_info)
+    PARSER.print_help()
+    exit(0)
+
+if PRINT_VERSION is True:
+    print(__script_name__ + ' v' + __version__)
+    exit(0)
+
+if CLEAN_CONFIG_DIR is True and ope(DIR_CFG):
+    print('Removing configuration directory: ' + DIR_CFG)
+    rmtree(DIR_CFG)
+    exit(0)
+elif CLEAN_CONFIG_DIR is True:
+    print('Configuration directory does not exist. Nothing to do.')
+    exit(0)
 
 if CLEAN_CONFIG_DIR is False and CONFIG_FILE_PATH is not None:
     if not ope(CONFIG_FILE_PATH):
         print('Configuration file ' + CONFIG_FILE_PATH + ' does not exist.')
         exit(0)
+else:
+    print(script_info)
+    print(CONYELL +
+          'Configuration file was not provided. Nothing to do.' +
+          CONSDFL)
+    print()
+    print('-' * 80)
+    PARSER.print_help()
+    print('-' * 80)
+    print()
+    exit(0)
+
+print(script_info)
+
+if ope(DIR_CFG):
+    print('Found configuration directory: ' + DIR_CFG)
+else:
+    print('Creating configuration directory: ' + DIR_CFG)
+    make_dir(DIR_CFG)
 
 # ----------------------------------------------------------------------------
 
 
 def main():
     """Run the script."""
-    print('\nPython version: {pv}'.format(pv=PY_V_STR))
-    print('Operating system: {os}'.format(os=OS_STR))
-    print('System info: {cpus} CPUs, {ram} GB RAM\n'.format(
-        cpus=THREADS, ram='{0:.2f}'.format(RAM)))
-
-    # Remove configuration directory, if requested ---------------------------
-    if CLEAN_CONFIG_DIR and ope(DIR_CFG):
-        print('Removing configuration directory:\n\t\t' + DIR_CFG + '\n')
-        rmtree(DIR_CFG)
-        exit(0)
-    elif CLEAN_CONFIG_DIR:
-        print('Configuration directory does not exist. Nothing to do.\n')
-        exit(0)
-
-    # Create config directory with all the subdirectories --------------------
-    if ope(DIR_CFG):
-        print('Found configuration directory:\n\t\t' + DIR_CFG + '\n')
-    else:
-        print('Creating configuration directory:\n\t\t' + DIR_CFG + '\n')
-        make_dir(DIR_CFG)
-
-    # Check for dependencies -------------------------------------------------
-    print('Checking for dependencies:\n')
-    make_dir(DIR_DEP)
-    seqtk = deps.dep_check_seqtk()
-    trimmomatic, adapters = deps.dep_check_trimmomatic()
-    fasterq_dump = deps.dep_check_sra_toolkit()
-    makeblastdb, __, tblastn = deps.dep_check_blast()
-    vsearch = deps.dep_check_vsearch()
-    spades = deps.dep_check_spades()
-
     # Initialize NCBI taxonomy database --------------------------------------
+    print('Loading NCBI taxonomy data.')
     tax = taxonomy(DIR_TAX)
 
     # Parse configuration file -----------------------------------------------
@@ -170,24 +217,12 @@ def main():
     pfam_acc = __['pfam_acc']
     prot_acc_user = __['prot_acc']
 
-    # Genetic code information and translation tables ------------------------
-
-    print('\nLoading genetic code information and translation tables for ' +
-          tax_group_name + '\n')
-
-    gc = tax.genetic_code_for_taxid(tax_group)
-    # gc_mito = tax.mito_genetic_code_for_taxid(tax_group)
-    # gc_plastid = tax.plastid_genetic_code()
-    gc_tt = tax.trans_table_for_genetic_code_id(gc)
-    # gc_mito_tt = tax.trans_table_for_genetic_code_id(gc_mito)
-    # gc_plastid_tt = tax.trans_table_for_genetic_code_id(gc_plastid)
-
     # Create output directory with all the subdirectories --------------------
     if dir_out is not None:
         if ope(dir_out):
-            print('Found output directory:\n\t\t' + dir_out + '\n')
+            print('Found output directory: ' + dir_out)
         else:
-            print('Creating output directory:\n\t\t' + dir_out + '\n')
+            print('Creating output directory: ' + dir_out)
             make_dir(dir_out)
 
     __ = prepare_output_directories(dir_out, prj_name)
@@ -198,6 +233,7 @@ def main():
     dir_cache_fq_minlen = __['dir_cache_fq_minlen']
     dir_cache_prj = __['dir_cache_prj']
     # dir_prj = __['dir_prj']
+    dir_prj_logs = __['dir_prj_logs']
     dir_prj_queries = __['dir_prj_queries']
     dir_fq_data = __['dir_fq_data']
     dir_fq_trim_data = __['dir_fq_trim_data']
@@ -212,52 +248,81 @@ def main():
     dir_prj_ips = __['dir_prj_ips']
     dir_prj_transcripts_combined = __['dir_prj_transcripts_combined']
 
+    # Prepare logger ---------------------------------------------------------
+    prj_log_file = opj(dir_prj_logs, prj_name + '_' + time_stamp() + '.log')
+    log = prepare_logger(console=True, file=prj_log_file)
+    linfo = log.info
+
+    # Check for dependencies -------------------------------------------------
+    linfo('Checking for dependencies')
+    make_dir(DIR_DEP)
+    seqtk = deps.dep_check_seqtk()
+    trimmomatic, adapters = deps.dep_check_trimmomatic()
+    fasterq_dump = deps.dep_check_sra_toolkit()
+    makeblastdb, __, tblastn = deps.dep_check_blast()
+    vsearch = deps.dep_check_vsearch()
+    spades = deps.dep_check_spades()
+
+    # Genetic code information and translation tables ------------------------
+
+    linfo('Loading genetic code information and translation tables for ' +
+          tax_group_name)
+
+    gc = tax.genetic_code_for_taxid(tax_group)
+    # gc_mito = tax.mito_genetic_code_for_taxid(tax_group)
+    # gc_plastid = tax.plastid_genetic_code()
+    gc_tt = tax.trans_table_for_genetic_code_id(gc)
+    # gc_mito_tt = tax.trans_table_for_genetic_code_id(gc_mito)
+    # gc_plastid_tt = tax.trans_table_for_genetic_code_id(gc_plastid)
+
     # Housekeeping done. Start the analyses. ---------------------------------
 
     # Resolve descending taxonomy nodes --------------------------------------
-    tax_ids = descending_tax_ids(tax_ids_user, tax)
+    tax_ids = descending_tax_ids(tax_ids_user, tax, linfo)
 
     # Pfam uniprot accessions ------------------------------------------------
     pfam_uniprot_acc = pfam_uniprot_accessions(pfam_acc, tax_ids,
-                                               dir_cache_pfam_acc)
+                                               dir_cache_pfam_acc, linfo)
 
     # Download Pfam uniprot sequences if needed ------------------------------
     aa_uniprot_file = opj(dir_prj_queries, 'aa_uniprot.fasta')
-    dnld_pfam_uniprot_seqs(pfam_uniprot_acc, aa_uniprot_file, dir_cache_prj)
+    dnld_pfam_uniprot_seqs(pfam_uniprot_acc, aa_uniprot_file, dir_cache_prj,
+                           linfo)
 
     # User provided protein accessions ---------------------------------------
-    prot_acc_user = user_protein_accessions(prot_acc_user)
+    prot_acc_user = user_protein_accessions(prot_acc_user, linfo)
 
     # Download from NCBI if needed -------------------------------------------
     aa_prot_ncbi_file = opj(dir_prj_queries, 'aa_prot_ncbi.fasta')
-    dnld_prot_seqs(prot_acc_user, aa_prot_ncbi_file, dir_cache_prj)
+    dnld_prot_seqs(prot_acc_user, aa_prot_ncbi_file, dir_cache_prj, linfo)
 
     # User provided protein sequences ----------------------------------------
     aa_prot_user_file = opj(dir_prj_queries, 'aa_prot_user.fasta')
-    user_aa_fasta(user_queries, aa_prot_user_file)
+    user_aa_fasta(user_queries, aa_prot_user_file, linfo)
 
     # Combine all AA queries -------------------------------------------------
     aa_queries_file = opj(dir_prj_queries, 'aa_all.fasta')
     combine_aa_fasta([aa_uniprot_file,
                       aa_prot_ncbi_file,
-                      aa_prot_user_file], aa_queries_file)
+                      aa_prot_user_file], aa_queries_file, linfo)
 
     # Filter AA queries ------------------------------------------------------
-    filter_queries(aa_queries_file, min_query_length, max_query_length)
+    filter_queries(aa_queries_file, min_query_length, max_query_length, linfo)
 
     # Download SRA run metadata if needed ------------------------------------
-    sra_runs_info, sras_acceptable = dnld_sra_info(sras, dir_cache_prj)
+    sra_runs_info, sras_acceptable = dnld_sra_info(sras, dir_cache_prj, linfo)
 
     # Download SRA run FASTQ files if needed ---------------------------------
     x, y, z = dnld_sra_fastq_files(sras_acceptable, sra_runs_info, dir_fq_data,
-                                   fasterq_dump, THREADS, dir_temp)
+                                   fasterq_dump, THREADS, dir_temp, linfo)
 
     se_fastq_files_sra = x
     pe_fastq_files_sra = y
     sra_runs_info = z
 
     # User provided FASTQ files ----------------------------------------------
-    se_fastq_files_usr, pe_fastq_files_usr = user_fastq_files(fq_se, fq_pe)
+    se_fastq_files_usr, pe_fastq_files_usr = user_fastq_files(fq_se, fq_pe,
+                                                              linfo)
 
     # Collate FASTQ file info ------------------------------------------------
     se_fastq_files = se_fastq_files_sra.copy()
@@ -267,7 +332,7 @@ def main():
 
     # Minimum acceptable read length -----------------------------------------
     min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
-                        dir_cache_fq_minlen, vsearch)
+                        dir_cache_fq_minlen, vsearch, linfo)
 
     # File name patterns -----------------------------------------------------
 
@@ -299,15 +364,16 @@ def main():
 
     # Run Trimmomatic --------------------------------------------------------
     run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
-                    trimmomatic, adapters, pe_trim_fq_file_patterns, THREADS)
+                    trimmomatic, adapters, pe_trim_fq_file_patterns, THREADS,
+                    linfo)
 
     # Convert trimmed FASTQ files to FASTA -----------------------------------
     trimmed_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
-                     pe_trim_fa_file_patterns)
+                     pe_trim_fa_file_patterns, linfo)
 
     # Run makeblastdb on reads -----------------------------------------------
     makeblastdb_fq(se_fastq_files, pe_fastq_files, dir_blast_fa_trim,
-                   makeblastdb, pe_blast_db_file_patterns)
+                   makeblastdb, pe_blast_db_file_patterns, linfo)
 
     # Run tblastn on reads ---------------------------------------------------
     run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
@@ -315,16 +381,16 @@ def main():
                          blast_1_culling_limit, blast_1_qcov_hsp_perc,
                          dir_prj_blast_results_fa_trim,
                          pe_blast_results_file_patterns, THREADS, gc, seqtk,
-                         vsearch)
+                         vsearch, linfo)
 
     # Run vsearch on reads ---------------------------------------------------
     run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
                          dir_prj_vsearch_results_fa_trim,
-                         pe_vsearch_results_file_patterns, seqtk)
+                         pe_vsearch_results_file_patterns, seqtk, linfo)
 
     # Run SPAdes -------------------------------------------------------------
     run_spades(se_fastq_files, pe_fastq_files, dir_prj_spades_assemblies,
-               spades, dir_temp, THREADS, RAM)
+               spades, dir_temp, THREADS, RAM, linfo)
 
     # Collate SPAdes and user provided assemblies ----------------------------
     assemblies = []
@@ -358,45 +424,45 @@ def main():
         assemblies.append(a)
 
     # Run makeblastdb on assemblies  -----------------------------------------
-    if len(se_fastq_files) == 0 and len(pe_fastq_files) == 0:
-        print()
-    makeblastdb_assemblies(assemblies, dir_prj_blast_assmbl, makeblastdb)
+    makeblastdb_assemblies(assemblies, dir_prj_blast_assmbl, makeblastdb,
+                           linfo)
 
     # Run tblastn on assemblies ----------------------------------------------
     run_tblastn_on_assemblies(assemblies, aa_queries_file, tblastn,
                               dir_prj_assmbl_blast_results, blast_2_evalue,
                               blast_2_max_target_seqs, blast_2_culling_limit,
-                              blast_2_qcov_hsp_perc, THREADS, gc)
+                              blast_2_qcov_hsp_perc, THREADS, gc, linfo)
 
     # Prepare BLAST hits for analysis: find ORFs, translate ------------------
     find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
                         dir_temp, prepend_assmbl, min_target_orf_len,
                         max_target_orf_len, allow_non_aug, allow_no_strt_cod,
-                        allow_no_stop_cod, tax)
+                        allow_no_stop_cod, tax, linfo)
 
     # Download CDS for NCBI protein queries ----------------------------------
     nt_prot_ncbi_file = opj(dir_prj_transcripts_combined, prj_name +
                             '_ncbi_query_cds.fasta')
     if len(prot_acc_user) > 0:
-        dnld_cds_for_ncbi_prot_acc(prot_acc_user, nt_prot_ncbi_file, tax)
+        dnld_cds_for_ncbi_prot_acc(prot_acc_user, nt_prot_ncbi_file, tax,
+                                   linfo)
 
     # GFF3 files from kakapo results JSON files ------------------------------
     gff_from_json(assemblies, dir_prj_ips, dir_prj_transcripts_combined,
-                  prj_name)
+                  prj_name, linfo)
 
     # Run InterProScan 5 -----------------------------------------------------
     if inter_pro_scan is True:
-        run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj)
+        run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj,
+                           linfo)
 
     # GFF3 files from kakapo and InterProScan 5 results JSON files -----------
     if inter_pro_scan is True:
         gff_from_json(assemblies, dir_prj_ips, dir_prj_transcripts_combined,
-                      prj_name)
+                      prj_name, linfo)
 
 ##############################################################################
 
     rmtree(dir_temp)
-    print()
 
 ##############################################################################
 

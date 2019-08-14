@@ -16,7 +16,6 @@ def trimmomatic_se(trimmomatic, adapters, in_file, out_file, stats_file,
            'TRAILING:20',
            'MINLEN:' + str(minlen)]
 
-    # print(' '.join(cmd))
     call(cmd)
 
 
@@ -36,5 +35,4 @@ def trimmomatic_pe(trimmomatic, adapters, in_file_1, in_file_2,
            'TRAILING:20',
            'MINLEN:' + str(minlen)]
 
-    # print(' '.join(cmd))
     call(cmd)

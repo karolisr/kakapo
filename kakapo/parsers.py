@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 """Parsers."""
 
-from kakapo.py_v_diffs import unicode
-from io import StringIO
+from kakapo.py_v_diffs import StringIO
 from xml.etree import ElementTree
 from xmltodict import parse as parse_xml
 
 
 def parse_esummary_xml_text(esummary_xml_text):  # noqa
-    tree = ElementTree.parse(StringIO(unicode(esummary_xml_text)))
+    tree = ElementTree.parse(StringIO(esummary_xml_text))
     root = tree.getroot()
 
     return_value = list()
@@ -47,8 +46,7 @@ def parse_gbseq_xml_text(gbseq_xml_text):
         organism, seq, strandedness, taxid, topology, version
     :rtype: dict
     """
-
-    tree = ElementTree.parse(StringIO(unicode(gbseq_xml_text)))
+    tree = ElementTree.parse(StringIO(gbseq_xml_text))
     root = tree.getroot()
 
     return_value = list()

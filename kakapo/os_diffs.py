@@ -32,7 +32,7 @@ def check_os():
         os_id = 'windows'
         os_str = 'Windows'
 
-        print('Windows is not supported yet.')
+        # print('Windows is not supported yet.')
         sys.exit(1)
 
     elif sys.platform.startswith('linux'):
@@ -44,12 +44,12 @@ def check_os():
         supported_dists = DEBIAN_DISTS + REDHAT_DISTS
 
         if dist_id not in supported_dists:
-            print('{dist_name} is not supported yet.'.format(
-                dist_name=dist_name))
+            # print('{dist_name} is not supported yet.'.format(
+            #     dist_name=dist_name))
             sys.exit(1)
 
     else:
-        print('{p} is not supported yet.'.format(p=sys.platform))
+        # print('{p} is not supported yet.'.format(p=sys.platform))
         sys.exit(1)
 
     return os_id, os_str, dist_id

@@ -68,25 +68,25 @@ def dep_check_seqtk(): # noqa
             seqtk = os.path.join(dir_bin, 'seqtk')
             call(seqtk)
         except Exception:
-            print('\tSeqtk was not found on this system, trying to download.')
+            # print('\tSeqtk was not found on this system, trying to download.')
             download_file(url, dnld_path)
             zip_ref = zipfile.ZipFile(dnld_path, 'r')
             zip_ref.extractall(DIR_DEP)
             zip_ref.close()
             try:
-                print('\tCompiling Seqtk.')
+                # print('\tCompiling Seqtk.')
                 call('make', cwd=dir_bin)
                 seqtk = os.path.join(dir_bin, 'seqtk')
                 call(seqtk)
             except Exception:
-                print('\t\tSomething went wrong while trying to compile '
-                      'Seqtk.')
-                print('\t\tTry downloading and installing it manually from:')
-                print('\t\thttps://github.com/lh3/seqtk')
+                # print('\t\tSomething went wrong while trying to compile '
+                #       'Seqtk.')
+                # print('\t\tTry downloading and installing it manually from:')
+                # print('\t\thttps://github.com/lh3/seqtk')
                 sys.exit(1)
 
-    print('\tSeqtk is available:')
-    print('\t\t' + seqtk + '\n')
+    # print('\tSeqtk is available:')
+    # print('\t\t' + seqtk + '\n')
 
     return seqtk
 
@@ -144,8 +144,8 @@ def _write_trimmomatic_adapters_file():
                 'AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC')
 
     if not os.path.exists(path_adapters):
-        print('\tWriting Trimmomatic adapter files:\n\t\t' +
-              path_adapters + '\n')
+        # print('\tWriting Trimmomatic adapter files:\n\t\t' +
+        #       path_adapters + '\n')
         with open(path_adapters, mode='w') as f:
             f.write(adapters)
 
@@ -166,11 +166,11 @@ def dep_check_trimmomatic(): # noqa
         zip_ref.close()
 
     if not os.path.exists(trimmomatic):
-        print('\tCould not download Trimmomatic.')
+        # print('\tCould not download Trimmomatic.')
         sys.exit(1)
 
-    print('\tTrimmomatic is available:')
-    print('\t\t' + trimmomatic + '\n')
+    # print('\tTrimmomatic is available:')
+    # print('\t\t' + trimmomatic + '\n')
     path_adapters = _write_trimmomatic_adapters_file()
 
     return trimmomatic, path_adapters
@@ -208,8 +208,8 @@ def dep_check_sra_toolkit(): # noqa
             fasterq_dump = os.path.join(dir_bin, 'bin', 'fasterq-dump')
             call(fasterq_dump)
         except Exception:
-            print('\tSRA Toolkit was not found on this system, trying to '
-                  'download.')
+            # print('\tSRA Toolkit was not found on this system, trying to '
+            #       'download.')
             download_file(url, dnld_path)
             tar_ref = tarfile.open(dnld_path, 'r:gz')
             tar_ref.extractall(DIR_DEP)
@@ -220,11 +220,11 @@ def dep_check_sra_toolkit(): # noqa
             fasterq_dump = os.path.join(dir_bin, 'bin', 'fasterq-dump')
 
             if not os.path.exists(fasterq_dump):
-                print('\tCould not download SRA Toolkit.')
+                # print('\tCould not download SRA Toolkit.')
                 sys.exit(1)
 
-    print('\tSRA Toolkit is available:')
-    print('\t\t' + fasterq_dump + '\n')
+    # print('\tSRA Toolkit is available:')
+    # print('\t\t' + fasterq_dump + '\n')
 
     return fasterq_dump
 
@@ -261,7 +261,7 @@ def dep_check_blast(): # noqa
             tblastn = os.path.join(dir_bin, 'bin', 'tblastn')
             call(makeblastdb)
         except Exception:
-            print('\tBLAST+ was not found on this system, trying to download.')
+            # print('\tBLAST+ was not found on this system, trying to download.')
             download_file(url, dnld_path)
             tar_ref = tarfile.open(dnld_path, 'r:gz')
             tar_ref.extractall(DIR_DEP)
@@ -275,13 +275,13 @@ def dep_check_blast(): # noqa
             if not os.path.exists(makeblastdb) or \
                not os.path.exists(blastn) or \
                not os.path.exists(tblastn):
-                print('\tCould not download BLAST+.')
+                # print('\tCould not download BLAST+.')
                 sys.exit(1)
 
-    print('\tBLAST+ is available:')
-    print('\t\t' + makeblastdb)
-    print('\t\t' + blastn)
-    print('\t\t' + tblastn + '\n')
+    # print('\tBLAST+ is available:')
+    # print('\t\t' + makeblastdb)
+    # print('\t\t' + blastn)
+    # print('\t\t' + tblastn + '\n')
 
     return (makeblastdb, blastn, tblastn)
 
@@ -308,28 +308,28 @@ def dep_check_vsearch(): # noqa
             vsearch = os.path.join(dir_bin, 'bin', 'vsearch')
             call(vsearch)
         except Exception:
-            print('\tVsearch was not found on this system, trying to '
-                  'download.')
+            # print('\tVsearch was not found on this system, trying to '
+            #       'download.')
             download_file(url, dnld_path)
             tar_ref = tarfile.open(dnld_path, 'r:gz')
             tar_ref.extractall(DIR_DEP)
             tar_ref.close()
             try:
-                print('\tCompiling Vsearch.')
+                # print('\tCompiling Vsearch.')
                 call('./autogen.sh', cwd=dir_bin)
                 call('./configure', cwd=dir_bin)
                 call('make', cwd=dir_bin)
                 vsearch = os.path.join(dir_bin, 'bin', 'vsearch')
                 call(vsearch)
             except Exception:
-                print('\t\tSomething went wrong while trying to compile '
-                      'Vsearch.')
-                print('\t\tTry downloading and installing it manually from:')
-                print('\t\thttps://github.com/torognes/vsearch')
+                # print('\t\tSomething went wrong while trying to compile '
+                #       'Vsearch.')
+                # print('\t\tTry downloading and installing it manually from:')
+                # print('\t\thttps://github.com/torognes/vsearch')
                 sys.exit(1)
 
-    print('\tVsearch is available:')
-    print('\t\t' + vsearch + '\n')
+    # print('\tVsearch is available:')
+    # print('\t\t' + vsearch + '\n')
 
     return vsearch
 
@@ -362,7 +362,7 @@ def dep_check_spades(): # noqa
             spades = os.path.join(dir_bin, 'bin', 'spades.py')
             call(spades)
         except Exception:
-            print('\tSPAdes was not found on this system, trying to download.')
+            # print('\tSPAdes was not found on this system, trying to download.')
             download_file(url, dnld_path)
             tar_ref = tarfile.open(dnld_path, 'r:gz')
             tar_ref.extractall(DIR_DEP)
@@ -372,11 +372,11 @@ def dep_check_spades(): # noqa
                 spades = os.path.join(dir_bin, 'bin', 'spades.py')
                 call(spades)
             except Exception:
-                print('\tCould not download SPAdes.')
+                # print('\tCould not download SPAdes.')
                 sys.exit(1)
 
-    print('\tSPAdes is available:')
-    print('\t\t' + spades + '\n')
+    # print('\tSPAdes is available:')
+    # print('\t\t' + spades + '\n')
 
     return spades
 
