@@ -27,11 +27,10 @@ from sys import exit
 from time import sleep
 
 from kakapo.bioio import filter_fasta_text_by_length
-from kakapo.bioio import parse_fasta_text
-from kakapo.bioio import read_fasta_file, read_fasta_file_dict
+from kakapo.bioio import read_fasta
 from kakapo.bioio import standardize_fasta_text
 from kakapo.bioio import trim_desc_to_first_space_in_fasta_text
-from kakapo.bioio import write_fasta_file
+from kakapo.bioio import write_fasta
 from kakapo.blast import BLST_RES_COLS_1, BLST_RES_COLS_2
 from kakapo.blast import collate_blast_results
 from kakapo.blast import make_blast_db, run_blast
@@ -54,6 +53,7 @@ from kakapo.helpers import combine_text_files
 from kakapo.helpers import keep_unique_lines_in_file
 from kakapo.helpers import make_dir
 from kakapo.orf import find_orf_for_blast_hit
+from kakapo.py_v_diffs import StringIO
 from kakapo.seq import reverse_complement, translate
 from kakapo.seqtk import seqtk_fq_to_fa, seqtk_extract_reads
 from kakapo.shell import call
@@ -257,7 +257,7 @@ def dnld_prot_seqs(prot_acc_user, aa_prot_ncbi_file, dir_cache_prj,
             linfo('Downloading protein sequences from NCBI')
             __ = dnld_ncbi_seqs(prot_acc_user, 'protein')
 
-            write_fasta_file(__, aa_prot_ncbi_file)
+            write_fasta(__, aa_prot_ncbi_file)
 
     else:
         if ope(aa_prot_ncbi_file):
@@ -955,7 +955,7 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
 
         assmbl_path = opj(dir_results, 'transcripts.fasta')
         if ope(assmbl_path):
-            count = len(read_fasta_file(assmbl_path))
+            count = len(read_fasta(assmbl_path))
             tr_str = ' transcripts'
             if count == 1:
                 tr_str = ' transcript'
@@ -998,7 +998,7 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
 
         assmbl_path = opj(dir_results, 'transcripts.fasta')
         if ope(assmbl_path):
-            count = len(read_fasta_file(assmbl_path))
+            count = len(read_fasta(assmbl_path))
             tr_str = ' transcripts'
             if count == 1:
                 tr_str = ' transcript'
@@ -1092,9 +1092,9 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
         transcripts_aa_orf_fasta_file = opj(
             dir_prj_transcripts, assmbl_name + '_transcripts_aa_orf.fasta')
 
-        transcripts_nt = []
-        transcripts_nt_orf = []
-        transcripts_aa_orf = []
+        transcripts_nt = {}
+        transcripts_nt_orf = {}
+        transcripts_aa_orf = {}
 
         a['annotations'] = {}
 
@@ -1128,7 +1128,7 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
 
         __ = trim_desc_to_first_space_in_fasta_text(__)
 
-        parsed_fasta = parse_fasta_text(__)
+        parsed_fasta = read_fasta(StringIO(__))
         ######################################################################
 
         all_kakapo_results = {}
@@ -1229,16 +1229,15 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
                     a['annotations'][target_name]['orf_begin'] = ann_orf_b
                     a['annotations'][target_name]['orf_end'] = ann_orf_e
 
-                    transcripts_nt_orf.append({'name': target_name,
-                                               'seq': orf_seq})
+                    transcripts_nt_orf[target_name] = orf_seq
 
                     transl_seq = translate(orf_seq,
                                            gc_tt.table_ambiguous,
                                            start_codons)
-                    transcripts_aa_orf.append({'name': target_name,
-                                               'seq': transl_seq})
 
-            transcripts_nt.append({'name': target_name, 'seq': target_seq})
+                    transcripts_aa_orf[target_name] = transl_seq
+
+            transcripts_nt[target_name] = target_seq
 
             a['annotations'][target_name]['frame'] = abs(hit_frame)
             a['annotations'][target_name]['blast_hit_begin'] = ann_hit_b
@@ -1257,7 +1256,7 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
         linfo('Transcripts: ' + str(len(transcripts_nt)))
 
         if len(transcripts_nt) > 0:
-            write_fasta_file(transcripts_nt, transcripts_nt_fasta_file)
+            write_fasta(transcripts_nt, transcripts_nt_fasta_file)
             a['transcripts_nt_fasta_file'] = transcripts_nt_fasta_file
         else:
             a['transcripts_nt_fasta_file'] = None
@@ -1266,13 +1265,13 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
               str(len(transcripts_nt_orf)))
 
         if len(transcripts_nt_orf) > 0:
-            write_fasta_file(transcripts_nt_orf, transcripts_nt_orf_fasta_file)
+            write_fasta(transcripts_nt_orf, transcripts_nt_orf_fasta_file)
             a['transcripts_nt_orf_fasta_file'] = transcripts_nt_orf_fasta_file
         else:
             a['transcripts_nt_orf_fasta_file'] = None
 
         if len(transcripts_aa_orf) > 0:
-            write_fasta_file(transcripts_aa_orf, transcripts_aa_orf_fasta_file)
+            write_fasta(transcripts_aa_orf, transcripts_aa_orf_fasta_file)
             a['transcripts_aa_orf_fasta_file'] = transcripts_aa_orf_fasta_file
         else:
             a['transcripts_aa_orf_fasta_file'] = None
@@ -1310,7 +1309,7 @@ def run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj,
                   ' have already been downloaded')
             continue
 
-        seqs = read_fasta_file_dict(aa_file)
+        seqs = read_fasta(aa_file)
 
         __ = opj(dir_cache_prj, assmbl_name + '_ips_jobs')
 

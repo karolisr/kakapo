@@ -34,6 +34,7 @@ _py_v_hex, _ = python_version()
 if _py_v_hex >= 0x03000000:
     from configparser import ConfigParser as _CP # noqa
     from io import StringIO # noqa
+    from functools import singledispatch # noqa
 
     maketrans = str.maketrans
 
@@ -42,19 +43,21 @@ if _py_v_hex >= 0x03000000:
     bytes = bytes
     basestring = (str, bytes)
 
-    handle_types = [io.IOBase]
+    file = io.IOBase
+    HANDLE_TYPES = (file, io.IOBase, StringIO)
 
 elif _py_v_hex < 0x03000000:
     from string import maketrans # noqa
     from ConfigParser import SafeConfigParser as _CP # noqa
     from StringIO import StringIO # noqa
+    from singledispatch import singledispatch # noqa
 
     unicode = unicode
     bytes = str
     str = unicode
     basestring = basestring
 
-    handle_types = [file, io.IOBase] # noqa
+    HANDLE_TYPES = (file, io.IOBase, StringIO) # noqa
 
 
 class ConfigParser(_CP):

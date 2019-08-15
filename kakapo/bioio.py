@@ -9,161 +9,106 @@ from __future__ import print_function
 from __future__ import with_statement
 
 import re
+from functools import reduce
+from itertools import groupby, islice
+from operator import add
 from collections import OrderedDict
 
-from kakapo.py_v_diffs import handle_types
+from kakapo.py_v_diffs import HANDLE_TYPES, StringIO
 
 
-def write_fasta_file(records, file_path_or_handle):  # noqa
+def read_fasta(f, handle_types=HANDLE_TYPES):
+    """Read FASTA"""
     handle = False
 
-    for h in handle_types:
-        if issubclass(type(file_path_or_handle), h):
-            handle = True
-            break
+    if isinstance(f, handle_types):
+        handle = True
 
-    if not handle:
-        file_path_or_handle = open(file_path_or_handle, 'w')
+    if handle is False:
+        f = open(f, 'r')
 
-    for rec in records:
+    grp = tuple(tuple(g) for k, g in groupby(
+                map(lambda x: x.strip(), f), lambda x: x[0] == '>'))
 
-        description = None
-        seq = None
+    names = map(lambda x: x.strip('>'),
+                map(lambda x: reduce(add, x),
+                    islice(grp, 0, None, 2)))
 
-        if hasattr(rec, 'description'):
-            description = rec.description
-        elif hasattr(rec, 'name'):
-            description = rec.name
-        elif isinstance(rec, dict):
-            if 'description' in rec:
-                description = rec['description']
-            elif 'definition' in rec:
-                description = rec['definition']
-            elif 'name' in rec:
-                description = rec['name']
-        else:
-            raise Exception('No name, definition, or description attributes'
-                            'or keys in record.')
+    seqs = map(lambda x: x.upper(),
+               map(lambda x: reduce(add, x),
+                   islice(grp, 1, None, 2)))
 
-        if hasattr(rec, 'accession'):
-            description = rec.accession + '|' + description
-        elif isinstance(rec, dict):
-            if 'accession' in rec:
-                description = rec['accession'] + '|' + description
+    fasta_dict = {k: v for (k, v) in zip(names, seqs)}
 
-        if hasattr(rec, 'seq'):
-            seq = rec.seq.seq
-        elif isinstance(rec, dict):
-            if 'seq' in rec:
-                seq = rec['seq']
-                if hasattr(seq, 'seq'):
-                    seq = seq.seq
-        else:
-            raise Exception('No "seq" attribute or key in record.')
+    if handle is False:
+        f.close()
 
-        fasta_entry = '>' + description + '\n' + seq
-        file_path_or_handle.write(fasta_entry + '\n')
-
-    if not handle:
-        file_path_or_handle.close()
+    return fasta_dict
 
 
-def read_fasta_file(file_path_or_handle):  # noqa
+def dict_to_fasta(d):  # noqa
+    if len(d) == 0:
+        return ''
+    return reduce(add, ['>' + k + '\n' + v + '\n' for (k, v) in d.items()])
+
+
+def _no_spaces(name, sep='_'):
+    return sep.join(re.findall(r'([^\s]+)', name))
+
+
+def write_fasta(data, f, handle_types=HANDLE_TYPES):
+    """Write FASTA"""
+    def rec_name(r):
+        org = r['organism']
+        dfn = r['definition'].replace(org, '').strip(' []')
+        x = r['accession'] + '.' + r['version'] + '|' + \
+            dfn.title() + '|' + org
+        return x
+
+    def rec_seq(r):
+        return r['seq'].upper()
+
     handle = False
 
-    for h in handle_types:
-        if issubclass(type(file_path_or_handle), h):
-            handle = True
-            break
+    if isinstance(f, handle_types):
+        handle = True
 
-    if not handle:
-        file_path_or_handle = open(file_path_or_handle, 'r')
+    if handle is False:
+        f = open(f, 'w')
 
-    seq_names = list()
-    seqs = list()
-    seq_name = None
-    seq = ''
-    for ln in file_path_or_handle:
-        ln = ln.strip('\n')
-        if ln.startswith('>'):
-            if seq_name is not None:
-                seqs.append(seq)
-                seq = ''
-            seq_name = ln.strip('>')
-            seq_names.append(seq_name)
-        else:
-            seq = seq + ln
+    if type(data) in (dict, OrderedDict):
+        text = dict_to_fasta(data)
 
-    seqs.append(seq)
+    elif type(data) in (list, tuple):
+        names = map(_no_spaces, map(rec_name, data))
+        seqs = map(rec_seq, data)
+        fasta_dict = {k: v for (k, v) in zip(names, seqs)}
+        text = dict_to_fasta(fasta_dict)
 
-    if not handle:
-        file_path_or_handle.close()
+    f.write(text)
 
-    return_list = list()
-    seq_list = list(zip(seq_names, seqs))
-    for s in seq_list:
-        rec = {'description': s[0], 'seq': s[1].upper()}
-        return_list.append(rec)
-
-    return return_list
-
-
-def parse_fasta_text(text):  # noqa
-    desc_lines = re.findall('\>.*', text)
-    lines = text.split('\n')
-    data = OrderedDict()
-    for l in lines:
-        if l in desc_lines:
-            desc = l.strip('>')
-            data[desc] = ''
-        else:
-            data[desc] = data[desc] + l.upper()
-
-    return data
-
-
-def read_fasta_file_dict(in_file):  # noqa
-    with open(in_file, 'r') as f:
-        fasta_text = f.read()
-    parsed_fasta = parse_fasta_text(fasta_text)
-    return parsed_fasta
+    if handle is False:
+        f.close()
 
 
 def standardize_fasta_text(text):  # noqa
-    parsed_fasta = parse_fasta_text(text)
-    t = ''
-    for k in parsed_fasta:
-        desc = k.replace(' ', '_')
-        desc = '>' + desc
-        seq = parsed_fasta[k]
-        t = t + desc + '\n' + seq + '\n'
-    return t
+    parsed_fasta = read_fasta(StringIO(text))
+    names = map(_no_spaces, parsed_fasta)
+    seqs = parsed_fasta.values()
+    fasta_dict = {k: v for (k, v) in zip(names, seqs)}
+    return dict_to_fasta(fasta_dict)
 
 
 def trim_desc_to_first_space_in_fasta_text(text):  # noqa
-    parsed_fasta = parse_fasta_text(text)
-    t = ''
-    for k in parsed_fasta:
-        desc = k.split(' ')[0]
-        desc = '>' + desc
-        seq = parsed_fasta[k]
-        t = t + desc + '\n' + seq + '\n'
-    return t
+    parsed_fasta = read_fasta(StringIO(text))
+    names = map(lambda x: x.split(' ')[0], parsed_fasta)
+    seqs = parsed_fasta.values()
+    fasta_dict = {k: v for (k, v) in zip(names, seqs)}
+    return dict_to_fasta(fasta_dict)
 
 
-def filter_fasta_text_by_length(fasta_text, min_len, max_len):  # noqa
-    parsed_fasta = parse_fasta_text(fasta_text)
-
-    filtered_text = ''
-
-    for k in parsed_fasta:
-        desc = '>' + k
-        seq = parsed_fasta[k]
-        if len(seq) < min_len:
-            continue
-        if len(seq) > max_len:
-            continue
-
-        filtered_text = filtered_text + desc + '\n' + seq + '\n'
-
-    return filtered_text
+def filter_fasta_text_by_length(text, min_len, max_len):  # noqa
+    x = tuple(read_fasta(StringIO(text)).items())
+    seqs = filter(lambda y: min_len <= len(y[1]) <= max_len, x)
+    fasta_dict = {k: v for (k, v) in seqs}
+    return dict_to_fasta(fasta_dict)
