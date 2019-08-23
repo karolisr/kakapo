@@ -89,6 +89,44 @@ def gff_orf_blast_hit(json_dict):  # noqa
     return gff
 
 
+def gff_orf_bad_blast_hit(json_dict):  # noqa
+    gff = ''
+
+    for rec_key in json_dict:
+
+        rec = json_dict[rec_key][0]
+        ann = rec['kakapo_annotations']
+
+        # ORF bad annotation -------------------------------------------------
+        if 'orfs_bad' not in ann or \
+           'frame' not in ann:
+            continue
+
+        frame = ann['frame']
+        orfs_bad = ann['orfs_bad']
+
+        for i, bad in enumerate(orfs_bad):
+
+            orf_begin = bad['orf_begin']
+            orf_end = bad['orf_end']
+            entry_orf = gff_template()
+            entry_orf['seqid'] = rec_key
+            entry_orf['source'] = 'KAKAPO'
+            entry_orf['type'] = 'ORF BAD'
+            entry_orf['start'] = str(orf_begin + 1)
+            entry_orf['end'] = str(orf_end)
+            entry_orf['score'] = '.'
+            entry_orf['strand'] = '+'
+            entry_orf['phase'] = str(0)
+            name = 'name=ORF BAD {} frame {}'.format(i, frame)
+            entry_orf['attributes'] = name
+            gff = gff + gff_text(entry_orf)
+
+        # --------------------------------------------------------------------
+
+    return gff
+
+
 def gff_pfam(json_dict):  # noqa
     gff = ''
 
@@ -269,6 +307,7 @@ def gff_from_kakapo_ips5_json_file(json_path, gff_path=None):  # noqa
     # gff = '##gff-version 3\n'
 
     gff = (gff_orf_blast_hit(json_dict) +
+           gff_orf_bad_blast_hit(json_dict) +
            gff_pfam(json_dict) +
            gff_phobius(json_dict) +
            gff_panther(json_dict))
