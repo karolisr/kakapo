@@ -5,5 +5,5 @@ python:
 install:
   - pip install -r requirements.txt
   - pip install robotframework
-script: python
+script: python -V
 # script: python -m robot.run --name kakapo --outputdir tests/output tests
