@@ -15,6 +15,7 @@ import json
 import pickle
 import re
 
+from functools import partial
 from os import remove as osremove
 from os import stat as osstat
 from os.path import basename
@@ -36,6 +37,7 @@ from kakapo.blast import collate_blast_results
 from kakapo.blast import make_blast_db, run_blast
 from kakapo.blast import parse_blast_results_file
 from kakapo.config import PICKLE_PROTOCOL
+from kakapo.data.start_codon_context import contexts as atg_contexts
 from kakapo.ebi_domain_search import pfam_entry
 from kakapo.ebi_domain_search import pfam_seqs
 from kakapo.ebi_domain_search import prot_ids_for_tax_ids
@@ -1071,7 +1073,8 @@ def run_tblastn_on_assemblies(assemblies, aa_queries_file, tblastn,
 def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
                         dir_temp, prepend_assmbl, min_target_orf_len,
                         max_target_orf_len, allow_non_aug, allow_no_strt_cod,
-                        allow_no_stop_cod, tax, linfo=print):  # noqa
+                        allow_no_stop_cod, tax, tax_group, tax_ids_user,
+                        linfo=print):  # noqa
     if len(assemblies) > 0:
         linfo('Analyzing BLAST hits for assemblies')
 
@@ -1167,15 +1170,40 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
 
             stop_codons = gc_tt.stop_codons_ambiguous
 
+            ##################################################################
+            if tax_id is not None:
+                tax_ids_for_orf = (tax_id, )
+            else:
+                tax_ids_for_orf = tax_ids_user
+
+            cntx_txids_avail = tuple(
+                sorted(set(map(lambda x: int(x.split('_')[0]),
+                               atg_contexts.keys()))))
+
+            cntx_taxid = set()
+            for txid in tax_ids_for_orf:
+                tax_path = partial(tax.path_between_taxids, txid)
+                path_len = tuple(map(len,
+                                     tuple(map(tax_path, cntx_txids_avail))))
+                cntx_taxid.add(cntx_txids_avail[path_len.index(min(path_len))])
+            cntx_taxid = tuple(cntx_taxid)[0]
+
+            cntx_l_key = str(cntx_taxid) + '_L'
+            cntx_r_key = str(cntx_taxid) + '_R'
+
+            cntx_l = atg_contexts[cntx_l_key]
+            cntx_r = atg_contexts[cntx_r_key]
+            ##################################################################
+
             orf = find_orf_for_blast_hit(
                 seq=target_seq,
                 frame=hit_frame,
                 hit_start=hit_start,
                 hit_end=hit_end,
-                hit_length_adjust=0.75,
                 stop_codons=stop_codons,
                 start_codons=start_codons,
-                include_terminal_codon=True)
+                context_l=cntx_l,
+                context_r=cntx_r)
 
             if hit_frame > 0:
                 ann_hit_b = hit_start
@@ -1188,43 +1216,46 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
 
             a['annotations'][target_name] = {}
 
-            if orf is not None:
+            good_orf = orf[0]
+            if good_orf is not None:
+
+                print(' :: ' + target_name)
 
                 if hit_frame > 0:
-                    orf_seq = target_seq[orf[0]:orf[1]]
-                    ann_orf_b = orf[0]
-                    ann_orf_e = orf[1]
+                    ann_orf_b = good_orf[0]
+                    ann_orf_e = good_orf[1] + 3
+                    orf_seq = target_seq[ann_orf_b:ann_orf_e]
                 else:
-                    ann_orf_b = len(target_seq) - orf[1]
-                    ann_orf_e = len(target_seq) - orf[0]
+                    ann_orf_b = len(target_seq) - good_orf[1]
+                    ann_orf_e = len(target_seq) - good_orf[0] + 3
                     orf_seq = target_seq[ann_orf_b:ann_orf_e]
 
                 ##############################################################
-                good_orf = True
+                valid_orf = True
 
                 if allow_non_aug is False and \
                         orf_seq[0:3] != 'ATG':
 
-                    good_orf = False
+                    valid_orf = False
 
                 elif allow_no_strt_cod is False and \
                         orf_seq[0:3] not in start_codons:
 
-                    good_orf = False
+                    valid_orf = False
 
                 elif allow_no_stop_cod is False and \
                         orf_seq[-3:] not in stop_codons:
 
-                    good_orf = False
+                    valid_orf = False
 
                 elif len(orf_seq) < min_target_orf_len:
-                    good_orf = False
+                    valid_orf = False
 
                 elif len(orf_seq) > max_target_orf_len:
-                    good_orf = False
+                    valid_orf = False
                 ##############################################################
 
-                if good_orf is True:
+                if valid_orf is True:
 
                     a['annotations'][target_name]['orf_begin'] = ann_orf_b
                     a['annotations'][target_name]['orf_end'] = ann_orf_e
@@ -1236,6 +1267,27 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
                                            start_codons)
 
                     transcripts_aa_orf[target_name] = transl_seq
+
+            bad_orfs = orf[1]
+            if len(bad_orfs) > 0:
+                a['annotations'][target_name]['orfs_bad'] = list()
+                orfs_bad_list = a['annotations'][target_name]['orfs_bad']
+
+            for bad_orf in bad_orfs:
+
+                if hit_frame > 0:
+                    ann_orf_b = bad_orf[0]
+                    ann_orf_e = bad_orf[1] + 3
+                    orf_seq = target_seq[ann_orf_b:ann_orf_e]
+                else:
+                    ann_orf_b = len(target_seq) - bad_orf[1]
+                    ann_orf_e = len(target_seq) - bad_orf[0] + 3
+                    orf_seq = target_seq[ann_orf_b:ann_orf_e]
+
+                orf_bad_dict = dict()
+                orf_bad_dict['orf_begin'] = ann_orf_b
+                orf_bad_dict['orf_end'] = ann_orf_e
+                orfs_bad_list.append(orf_bad_dict)
 
             transcripts_nt[target_name] = target_seq
 

@@ -16,6 +16,7 @@ import hashlib
 import os
 
 from datetime import datetime
+from operator import itemgetter
 
 
 def debug_print(msg=''): # noqa
@@ -101,3 +102,14 @@ def sys_ram():  # noqa
 
 def time_stamp():  # noqa
     return datetime.now().strftime(format='%Y%m%d%H%M%S')
+
+
+def overlap(a, b):  # noqa
+    ab = tuple(sorted((a, b), key=itemgetter(0)))
+    if ab[0][1] <= ab[1][0]:
+        overlap = 0
+    else:
+        overlap = ab[0][1] - ab[1][0]
+        if ab[1][1] < ab[0][1]:
+            overlap -= ab[0][1] - ab[1][1]
+    return overlap

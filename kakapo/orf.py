@@ -9,178 +9,288 @@ from __future__ import nested_scopes
 from __future__ import print_function
 from __future__ import with_statement
 
+from functools import partial, reduce
+from itertools import accumulate, chain, compress, dropwhile, groupby, starmap
+from operator import add, contains, itemgetter, mul, ne, not_, sub
+from statistics import stdev
+
+from kakapo.helpers import overlap
+from kakapo.py_v_diffs import maketrans
 from kakapo.seq import reverse_complement
 
-
-def find_stop_codon_free_zones(seq, forward_frame, min_len, stop_codons):  # noqa
-    assert forward_frame > 0 and forward_frame < 4
-
-    seq = seq.upper()
-
-    offset = forward_frame - 1
-    # Adjust sequence so it is in the requested frame
-    in_frame = seq[offset:len(seq)]
-    # Split sequence into codons
-    codons = [(in_frame[i:i + 3]) for i in range(0, len(in_frame), 3)]
-    codons = [x for x in codons if len(x) == 3]
-    # Identify stop codon positions in codons
-    idx_stop = [i for i, x in enumerate(codons) if x in stop_codons]
-    idx_stop = [-1] + idx_stop + [len(codons)]
-    # Determine interval sizes between stop codons
-    il = [(idx_stop[i + 1] - idx_stop[i]) for i in range(len(idx_stop) - 1)]
-    il = [idx_stop[0]] + il
-    # Indexes of reverse-sorted interval sizes between stop codons
-    idx_int = []
-    for l in sorted(il, reverse=True):
-        idx = il.index(l)
-        # index() finds the first occurence of a value in the list. Replacing
-        # the found value prevents it from being considered again.
-        il[idx] = ''
-        idx_int.append(idx)
-
-    # Stop codon-free zone coordinates sorted by their size from largest to
-    # smallest
-    zones = []
-    for idx_zone_begin in idx_int:
-        idx_zone_end = idx_zone_begin + 2
-        zone = idx_stop[idx_zone_begin:idx_zone_end]
-        if len(zone) != 2:
-            continue
-        # Convert back to nucleotide coordinates
-        zone_nt = [(zone[0] * 3) + offset + 3, (zone[1] * 3) + offset]
-        if zone_nt[1] - zone_nt[0] < min_len:
-            continue
-        zones.append(zone_nt)
-
-    return zones
+CONTEXT_NT_CODES = maketrans('ACGTU', '01233')
 
 
-def find_start_codons(seq, start_codons):
-    """Argument seq is assumed to be in frame."""
-    assert type(start_codons) in (list, tuple, set)
-
-    seq = seq.upper()
-
-    # Split sequence into codons
-    codons = [(seq[i:i + 3]) for i in range(0, len(seq), 3)]
-
-    # Identify start codon positions in codons
-    idx_start = [i for i, x in enumerate(codons) if x in start_codons]
-    # Convert back to nucleotide coordinates
-    idx_start_nt = [i * 3 for i in idx_start]
-
-    return idx_start_nt
+def get_codons(seq):
+    """
+    Split seq into codons.
+    """
+    reduce_add = partial(reduce, add)
+    return tuple(map(reduce_add, zip(*[iter(seq)] * 3)))
 
 
-def find_orfs(seq, frame, min_len, stop_codons, start_codons=None,
-              include_terminal_codon=True):  # noqa
-    assert frame > -4 and frame != 0 and frame < 4
-    assert start_codons is None or type(start_codons) in (list, tuple, set)
-
-    seq = seq.upper()
-
-    if frame < 0:
-        seq = reverse_complement(seq)
-
-    zones = find_stop_codon_free_zones(seq, abs(frame), min_len, stop_codons)
-
-    if start_codons is not None:
-        for zone in zones:
-            seq_in_zone = seq[zone[0]:zone[1]]
-            idx_start_nt = find_start_codons(seq_in_zone, start_codons)
-            if len(idx_start_nt) > 0:
-                # Considers only the earliest start codon: idx_start_nt[0]
-                # Effectively this returns the longest ORF for the zone
-                zone[0] = zone[0] + idx_start_nt[0]
-
-    # Include stop codon?
-    if include_terminal_codon is True:
-        zones_with_terminal_codon = []
-        for zone in zones:
-            beg = zone[0]
-            end = zone[1]
-            end_with_term = end + 3
-            if len(seq) >= end_with_term:
-                end = end_with_term
-            zones_with_terminal_codon.append([beg, end])
-
-        zones = zones_with_terminal_codon
-
-    if frame < 0:
-        zones = [[len(seq) - x[1], len(seq) - x[0]] for x in zones]
-
-    return zones
+def separate_stop_codons(codons, stop_codons):  # noqa
+    test = partial(contains, stop_codons)
+    return tuple(tuple(v) for k, v in groupby(codons, test))
 
 
-def find_longest_orfs(seq, frame, min_len, stop_codons, start_codons=None,
-                      include_terminal_codon=True, ret_max=1):  # noqa
-
-    orfs = find_orfs(seq, frame, min_len, stop_codons, start_codons,
-                     include_terminal_codon)
-
-    if len(orfs) == 0:
-        return None
-
-    lengths = [x[1] - x[0] for x in orfs]
-
-    # Indexes of reverse-sorted interval sizes between stop codons
-    idx_len = []
-    for l in sorted(lengths, reverse=True):
-        idx = lengths.index(l)
-        # index() finds the first occurence of a value in the list. Replacing
-        # the found value prevents it from being considered again.
-        lengths[idx] = ''
-        idx_len.append(idx)
-
-    orfs_sorted = [orfs[o] for o in idx_len]
-
-    return orfs_sorted[0:ret_max]
+def keep_orf_codons(sep_codons, start_codons):  # noqa
+    test = partial(lambda *x: not_(contains(*x)), start_codons)
+    return tuple(map(lambda x: tuple(dropwhile(test, x)), sep_codons))
 
 
-def find_orf_for_blast_hit(seq, frame, hit_start, hit_end, hit_length_adjust,
-                           stop_codons, start_codons=None,
-                           include_terminal_codon=True):  # noqa
+def get_orf_coords(seq, start_codons, stop_codons):  # noqa
+    sep_codons = separate_stop_codons(get_codons(seq), stop_codons)
 
-    # If BLAST hit start occurs before the first start codon and the ORF
-    # without start codon starts before the BLAST hit, return the ORF without
-    # start codon.
+    orf_len = tuple(map(len, keep_orf_codons(sep_codons, start_codons)))
+    orf_idx = tuple(map(partial(ne, 0), orf_len))
 
-    # min_len = hit_end - hit_start - int(hit_reduce)
+    orf_end = tuple(compress(accumulate(map(len, sep_codons)), orf_idx))
+    orf_beg = starmap(sub, zip(orf_end, compress(orf_len, orf_idx)))
+
+    return tuple(zip(map(partial(mul, 3), orf_beg),
+                     map(partial(mul, 3), orf_end)))
+
+
+def get_orf_coords_for_forward_frame(seq, start_codons, stop_codons,
+                                     min_len=100, frame=1):  # noqa
+    assert type(frame) is int
+    assert frame >= 1
+    if len(seq) < min_len:
+        return tuple()
+    offset = frame - 1
+    orf_coords = get_orf_coords(seq[offset:], start_codons, stop_codons)
+    adjust = partial(add, offset)
+    coords = tuple(map(lambda x: tuple(map(adjust, x)), orf_coords))
+    coords_filtered = tuple(filter(lambda x: x[1] - x[0] >= min_len, coords))
+    if len(coords_filtered) > 0:
+        used_start_codons = tuple(map(lambda x: x[0] // 3, coords))
+        seq = reduce(add, ['...' if i in used_start_codons else x
+                           for i, x in enumerate(get_codons(seq))])
+        new_start = min(tuple(chain.from_iterable(coords_filtered))) + 4
+        coords_filtered += get_orf_coords_for_forward_frame(
+            seq, start_codons, stop_codons, min_len, frame=new_start)
+    return coords_filtered
+
+
+def get_orf_coords_for_frames(seq, start_codons, stop_codons, min_len=100,
+                              frames=(-3, -2, -1, 1, 2, 3)):  # noqa
+
+    valid_frames = {-3, -2, -1, 1, 2, 3}
+    assert valid_frames | set(frames) == valid_frames
+
+    sl = len(seq)
+    results = []
+
+    for frame in frames:
+        s = seq
+        if frame < 0:
+            s = reverse_complement(seq)
+        coords = get_orf_coords_for_forward_frame(s, start_codons, stop_codons,
+                                                  min_len, abs(frame))
+        if frame < 0:
+            coords = map(lambda x: (sl - x[1], sl - x[0]), coords)
+
+        result = dict()
+        result['frame'] = frame
+        result['orf_coords'] = coords
+
+        results.append(result)
+
+    return results
+
+
+def geometric_mean(x):  # noqa
+    x = tuple(x)
+    y = reduce(mul, map(lambda i: 1 + i, x), 1)
+    return (y ** (1 / len(x))) - 1
+
+
+def start_codon_score_partial(seq, context):  # noqa
+    size = min(len(seq), len(context))
+    if size == 0:
+        return 0
+    stdev_gm = partial(stdev, xbar=geometric_mean(map(max, context)))
+    weights = tuple(map(stdev_gm, context))
+    seq_encoded = seq.translate(CONTEXT_NT_CODES)
+    data = tuple(zip(map(int, seq_encoded), context, weights))
+    max_score = geometric_mean(map(lambda x: max(x[1]) * x[2], data))
+    score = geometric_mean(starmap(lambda x, y, z: y[x] * z, data))
+    return score / max_score
+
+
+def start_codon_score(seq, idx, context_l, context_r):  # noqa
+    seq_l = seq[0:idx:][::-1]
+    seq_r = seq[idx + 3:]
+    q_l = start_codon_score_partial(seq_l, context_l)
+    q_r = start_codon_score_partial(seq_r, context_r)
+    if q_l == 0 or q_r == 0:
+        return max(q_l, q_r)
+    return (q_l * q_r) ** 0.5
+
+
+def find_orf_for_blast_hit(seq, frame, hit_start, hit_end,
+                           start_codons, stop_codons,
+                           context_l, context_r):  # noqa
+
+    assert type(frame) is int
+
+    seq_len = len(seq)
     hit_len = hit_end - hit_start
-    min_len = hit_len * hit_length_adjust
+    min_len = hit_len * 0.85
 
-    if start_codons is None:
-        sc_to_consider = [None]
-    else:
-        sc_to_consider = [['ATG']]
-        start_codons = list(set(start_codons).difference(['ATG']))
-        if len(start_codons) == 0:
-            sc_to_consider.append(None)
+    results = get_orf_coords_for_frames(seq, start_codons, stop_codons,
+                                        min_len, frames=(frame,))
+    orfs = list()
+    seq_local = seq
+
+    if frame < 0:
+        seq_local = reverse_complement(seq)
+
+    for r in results:
+
+        assert frame == r['frame']
+        orf_coords = r['orf_coords']
+
+        for loc in orf_coords:
+
+            orf_beg = loc[0]
+            orf_end = loc[1]
+
+            if frame < 0:
+                orf_beg = seq_len - loc[1]
+                orf_end = seq_len - loc[0]
+
+            sc_score = start_codon_score(seq_local, orf_beg,
+                                         context_l, context_r)
+
+            context_beg = max(orf_beg - 10, 0)
+            context_end = orf_beg
+            context = seq_local[context_beg:context_end]
+            orf = seq_local[orf_beg:orf_end]
+
+            orfs.append({'orf_coords': (loc[0], loc[1]),
+                         'sc_score': sc_score,
+                         'context': context,
+                         'orf_seq': orf,
+                         'frame': frame})
+
+    orfs = sorted(orfs, key=itemgetter('sc_score'), reverse=True)
+
+    good_orf = None
+    bad_orfs = list()
+
+    for orf in orfs:
+        orf_start = orf['orf_coords'][0]
+        orf_end = orf['orf_coords'][1]
+        sc_score = orf['sc_score']
+        context = orf['context']
+        orf_seq = orf['orf_seq']
+        frame = orf['frame']
+
+        orf_len = orf_end - orf_start
+        ovrlp = overlap((hit_start, hit_end), (orf_start, orf_end))
+        ovrlp = ovrlp / max(orf_len, hit_len)
+
+        if good_orf is None and ovrlp >= 0.80:
+
+            print('{:3d}'.format(frame),
+                  '{:3d}'.format(len(orfs)),
+                  '{:.4f}'.format(sc_score),
+                  context.rjust(10),
+                  orf_seq[0:3],
+                  orf_seq[3:13],
+                  orf_seq[13:53],
+                  end='')
+
+            good_orf = (orf_start, orf_end)
         else:
-            sc_to_consider.append(start_codons)
-            sc_to_consider.append(None)
+            bad_orfs.append((orf_start, orf_end))
 
-    orf = None
-    for sc in sc_to_consider:
-        orfs = find_longest_orfs(seq, frame, min_len, stop_codons, sc,
-                                 include_terminal_codon=include_terminal_codon,
-                                 ret_max=100)
+    return good_orf, bad_orfs
 
-        if orfs is None:
-            continue
 
-        for orf_to_consider in orfs:
+# if __name__ == '__main__':
 
-            orf_start = orf_to_consider[0]
-            orf_end = orf_to_consider[1]
+#     # from kakapo.data.start_codon_context import contexts
 
-            adj = (hit_len - min_len) / 2
+#     # context_l = contexts['71240_L']
+#     # context_r = contexts['71240_R']
 
-            if orf_start <= (hit_start + adj) and orf_end >= (hit_end - adj):
-                orf = orf_to_consider
-                break
+#     # print()
 
-        if orf is not None:
-            break
+#     # cntx = (('GGGGCGTCGTATGCTCCGGCGGC'),  # min
+#     #         ('AAAAAAAAAAATGGCTACTACTT'),  # max
+#     #         ('AAGTAGCATAATGAAGTTGGTAA'),
+#     #         ('CATCACCACCATGGGAATGTCTT'),
+#     #         ('CAAGAAAAATATGATTATCATTA'),
+#     #         ('AGAGAGATTCATGGCTTCCTTCA'),
+#     #         ('GTGTCTGATGATGAAATTCTTCA'),
+#     #         ('ATCAAAGAGTATGGAGCAGTTAA'),
+#     #         ('GTTTTTAATCATGGATTCGACCC'),
+#     #         ('ATGTATGTTTATGTGTGTGATGA'))
 
-    return orf
+#     # idx = 10
+#     # scores = map(lambda x:
+#     #              (x, start_codon_score(x, idx, context_l, context_r)), cntx)
+#     # scores_sorted = sorted(scores, key=itemgetter(1), reverse=True)
+#     # for row in scores_sorted:
+#     #     print(row[0][0:idx], row[0][idx:idx + 3], row[0][idx + 3:], row[1])
+
+#     # Output for Dicot context tables
+#     # AAAAAAAAAA ATG GCTACTACTT 0.9873978242424901
+#     # GTTTTTAATC ATG GATTCGACCC 0.773632539225221
+#     # CATCACCACC ATG GGAATGTCTT 0.728750526701568
+#     # AGAGAGATTC ATG GCTTCCTTCA 0.7252860244056911
+#     # ATCAAAGAGT ATG GAGCAGTTAA 0.7224272426679093
+#     # CAAGAAAAAT ATG ATTATCATTA 0.6563008719425
+#     # AAGTAGCATA ATG AAGTTGGTAA 0.6198800275759498
+#     # GTGTCTGATG ATG AAATTCTTCA 0.5417082975187391
+#     # ATGTATGTTT ATG TGTGTGATGA 0.47114422524821586
+#     # GGGGCGTCGT ATG CTCCGGCGGC 0.28096710993186846
+
+#     # cntx_good = (('AAAAGGAAAAATGGGGCACATAA'),
+#     #              ('AAGTAGCATAATGAAGTTGGTAA'),
+#     #              ('AATTTTTGGAATGCAGTTAACTC'),
+#     #              ('AGAGAGATTCATGGCTTCCTTCA'),
+#     #              ('AGAGAGATTCATGGCTTTCTTCA'),
+#     #              ('AGGCAGCAAAATGAAGTTGCAGC'),
+#     #              ('AGGTAGCAGTATGAAATTGGTAG'),
+#     #              ('ATCAAAGAGTATGGAGCAGTTAA'),
+#     #              ('ATGTATGTTTATGTGTGTGATGA'),
+#     #              ('CAAGAAAAATATGATTATCATTA'),
+#     #              ('CAAGTTCTACATGCATGGCCTTT'),
+#     #              ('CATCACCACCATGGGAATGTCTT'),
+#     #              ('CTAAGTCTTTATGGAGAAGTTCA'),
+#     #              ('GTGTCTGATGATGAAATTCTTCA'),
+#     #              ('TAAATTCTACATGCATGGACTTT'),
+#     #              ('TGCAAGAAAAATGATTATCATTC'),
+#     #              ('TTCTACATGCATGGACTTTGGCC'),
+#     #              ('TTGGAGAAGCATGAACAACATTA'),
+#     #              ('TTTATTTGACATGCAGCTAAGTC'))
+
+#     # cntx_bad = (('AACTTACTGTATGAGTGATGAAA'),
+#     #             ('AATGAACAAGATGTGGTTGATAG'),
+#     #             ('AGCACCACAAATGAACAAGATGT'),
+#     #             ('ATGCTTTATAATGTTATGCTTTG'),
+#     #             ('ATGTATGTTTATGTGTCTGATGA'),
+#     #             ('CACCATGGGAATGTCTTCTCAGG'),
+#     #             ('CATTATCTTTATGTGCCTTGCTG'),
+#     #             ('CCACAACAGCATGATTGGCATTC'),
+#     #             ('CGGGTCTTTGATGCTGGTACTTC'),
+#     #             ('CTTCTTCTCTATGAAGCTCTACT'),
+#     #             ('CTTTTTGCTTATGTGTCCAGGTT'),
+#     #             ('GAAGTTGGTAATGCCCCTTCTTT'),
+#     #             ('GTTTTTAATCATGGATTCGACCC'),
+#     #             ('TATGTGTCTGATGATGAAATTCT'),
+#     #             ('TATGTGTGTGATGATAAAATTCT'),
+#     #             ('TTTCTTATGTATGTTTATGTGTC'),
+#     #             ('TTTCTTATGTATGTTTATGTGTG'))
+
+#     # idx = 10
+#     # scores = map(lambda x:
+#     #              (x, start_codon_score(x, idx, context_l, context_r)),
+#     #              cntx_good)
+#     # scores_sorted = sorted(scores, key=itemgetter(1), reverse=True)
+#     # for row in scores_sorted:
+#     #     print(row[0][0:idx], row[0][idx:idx + 3], row[0][idx + 3:], row[1])

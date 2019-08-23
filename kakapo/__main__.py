@@ -434,7 +434,7 @@ def main():
     find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
                         dir_temp, prepend_assmbl, min_target_orf_len,
                         max_target_orf_len, allow_non_aug, allow_no_strt_cod,
-                        allow_no_stop_cod, tax, linfo)
+                        allow_no_stop_cod, tax, tax_group, tax_ids_user, linfo)
 
     # Download CDS for NCBI protein queries ----------------------------------
     nt_prot_ncbi_file = opj(dir_prj_transcripts_combined, prj_name +
