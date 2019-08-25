@@ -10,40 +10,55 @@ from __future__ import with_statement
 
 import re
 from functools import reduce
-from itertools import groupby, islice
 from operator import add
 from collections import OrderedDict
 
 from kakapo.py_v_diffs import HANDLE_TYPES, StringIO
 
 
-def read_fasta(f, handle_types=HANDLE_TYPES):
-    """Read FASTA"""
+def read_fasta(f, return_type='dict', upper=True):
+    """Read FASTA file."""
+    assert return_type in ('dict', 'list', 'tuple')
+
+    if upper is False:
+        def process_seq(seq):
+            return seq
+    else:
+        def process_seq(seq):
+            return seq.upper()
+
     handle = False
-
-    if isinstance(f, handle_types):
+    if isinstance(f, HANDLE_TYPES):
         handle = True
-
     if handle is False:
         f = open(f, 'r')
 
-    grp = tuple(tuple(g) for k, g in groupby(
-                map(lambda x: x.strip(), f), lambda x: x[0] == '>'))
-
-    names = map(lambda x: x.strip('>'),
-                map(lambda x: reduce(add, x),
-                    islice(grp, 0, None, 2)))
-
-    seqs = map(lambda x: x.upper(),
-               map(lambda x: reduce(add, x),
-                   islice(grp, 1, None, 2)))
-
-    fasta_dict = {k: v for (k, v) in zip(names, seqs)}
+    lines = f.read().splitlines()
 
     if handle is False:
         f.close()
 
-    return fasta_dict
+    records = list()
+    for line in lines:
+        if line.startswith('>'):
+            seq_lines = list()
+            records.append([line[1:], seq_lines])
+        else:
+            seq_lines.append(line)
+
+    for rec in records:
+        rec[1] = process_seq(''.join(rec[1]))
+
+    if return_type == 'dict':
+        return_object = dict()
+        for rec in records:
+            return_object[rec[0]] = rec[1]
+    elif return_type == 'tuple':
+        return_object = tuple(records)
+    else:
+        return_object = records
+
+    return return_object
 
 
 def dict_to_fasta(d):  # noqa
