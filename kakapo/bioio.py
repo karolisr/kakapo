@@ -16,7 +16,7 @@ from collections import OrderedDict
 from kakapo.py_v_diffs import HANDLE_TYPES, StringIO
 
 
-def read_fasta(f, return_type='dict', upper=True):
+def read_fasta(f, return_type='dict', upper=True, def_to_first_space=False):
     """Read FASTA file."""
     assert return_type in ('dict', 'list', 'tuple')
 
@@ -26,6 +26,13 @@ def read_fasta(f, return_type='dict', upper=True):
     else:
         def process_seq(seq):
             return seq.upper()
+
+    if def_to_first_space is False:
+        def process_defn(defn):
+            return defn[1:]
+    else:
+        def process_defn(defn):
+            return defn[1:].split(sep=None, maxsplit=1)[0]
 
     handle = False
     if isinstance(f, HANDLE_TYPES):
@@ -42,7 +49,7 @@ def read_fasta(f, return_type='dict', upper=True):
     for line in lines:
         if line.startswith('>'):
             seq_lines = list()
-            records.append([line[1:], seq_lines])
+            records.append([process_defn(line), seq_lines])
         else:
             seq_lines.append(line)
 
