@@ -185,38 +185,38 @@ def main():
     tax = taxonomy(DIR_TAX)
 
     # Parse configuration file -----------------------------------------------
-    __ = config_file_parse(CONFIG_FILE_PATH, tax)
+    _ = config_file_parse(CONFIG_FILE_PATH, tax)
 
-    prj_name = __['project_name']
-    email = __['email']
-    dir_out = __['output_directory']
-    inter_pro_scan = __['inter_pro_scan']
-    prepend_assmbl = __['prepend_assmbl']
-    min_target_orf_len = __['min_target_orf_len']
-    max_target_orf_len = __['max_target_orf_len']
-    allow_non_aug = __['allow_non_aug']
-    allow_no_strt_cod = __['allow_no_strt_cod']
-    allow_no_stop_cod = __['allow_no_stop_cod']
-    sras = __['sras']
-    fq_pe = __['fq_pe']
-    fq_se = __['fq_se']
-    user_assemblies = __['assmbl']
-    min_query_length = __['min_query_length']
-    max_query_length = __['max_query_length']
-    user_queries = __['user_queries']
-    blast_1_culling_limit = __['blast_1_culling_limit']
-    blast_1_evalue = __['blast_1_evalue']
-    blast_1_max_target_seqs = __['blast_1_max_target_seqs']
-    blast_1_qcov_hsp_perc = __['blast_1_qcov_hsp_perc']
-    blast_2_culling_limit = __['blast_2_culling_limit']
-    blast_2_evalue = __['blast_2_evalue']
-    blast_2_max_target_seqs = __['blast_2_max_target_seqs']
-    blast_2_qcov_hsp_perc = __['blast_2_qcov_hsp_perc']
-    tax_group = __['tax_group']
-    tax_group_name = __['tax_group_name']
-    tax_ids_user = __['tax_ids']
-    pfam_acc = __['pfam_acc']
-    prot_acc_user = __['prot_acc']
+    prj_name = _['project_name']
+    email = _['email']
+    dir_out = _['output_directory']
+    inter_pro_scan = _['inter_pro_scan']
+    prepend_assmbl = _['prepend_assmbl']
+    min_target_orf_len = _['min_target_orf_len']
+    max_target_orf_len = _['max_target_orf_len']
+    allow_non_aug = _['allow_non_aug']
+    allow_no_strt_cod = _['allow_no_strt_cod']
+    allow_no_stop_cod = _['allow_no_stop_cod']
+    sras = _['sras']
+    fq_pe = _['fq_pe']
+    fq_se = _['fq_se']
+    user_assemblies = _['assmbl']
+    min_query_length = _['min_query_length']
+    max_query_length = _['max_query_length']
+    user_queries = _['user_queries']
+    blast_1_culling_limit = _['blast_1_culling_limit']
+    blast_1_evalue = _['blast_1_evalue']
+    blast_1_max_target_seqs = _['blast_1_max_target_seqs']
+    blast_1_qcov_hsp_perc = _['blast_1_qcov_hsp_perc']
+    blast_2_culling_limit = _['blast_2_culling_limit']
+    blast_2_evalue = _['blast_2_evalue']
+    blast_2_max_target_seqs = _['blast_2_max_target_seqs']
+    blast_2_qcov_hsp_perc = _['blast_2_qcov_hsp_perc']
+    tax_group = _['tax_group']
+    tax_group_name = _['tax_group_name']
+    tax_ids_user = _['tax_ids']
+    pfam_acc = _['pfam_acc']
+    prot_acc_user = _['prot_acc']
 
     # Create output directory with all the subdirectories --------------------
     if dir_out is not None:
@@ -226,26 +226,26 @@ def main():
             linfo('Creating output directory: ' + dir_out)
             make_dir(dir_out)
 
-    __ = prepare_output_directories(dir_out, prj_name)
+    _ = prepare_output_directories(dir_out, prj_name)
 
-    dir_temp = __['dir_temp']
-    dir_cache_pfam_acc = __['dir_cache_pfam_acc']
-    dir_cache_fq_minlen = __['dir_cache_fq_minlen']
-    dir_cache_prj = __['dir_cache_prj']
-    dir_prj_logs = __['dir_prj_logs']
-    dir_prj_queries = __['dir_prj_queries']
-    dir_fq_data = __['dir_fq_data']
-    dir_fq_trim_data = __['dir_fq_trim_data']
-    dir_fa_trim_data = __['dir_fa_trim_data']
-    dir_blast_fa_trim = __['dir_blast_fa_trim']
-    dir_prj_blast_results_fa_trim = __['dir_prj_blast_results_fa_trim']
-    dir_prj_vsearch_results_fa_trim = __['dir_prj_vsearch_results_fa_trim']
-    dir_prj_spades_assemblies = __['dir_prj_spades_assemblies']
-    dir_prj_blast_assmbl = __['dir_prj_blast_assmbl']
-    dir_prj_assmbl_blast_results = __['dir_prj_assmbl_blast_results']
-    dir_prj_transcripts = __['dir_prj_transcripts']
-    dir_prj_ips = __['dir_prj_ips']
-    dir_prj_transcripts_combined = __['dir_prj_transcripts_combined']
+    dir_temp = _['dir_temp']
+    dir_cache_pfam_acc = _['dir_cache_pfam_acc']
+    dir_cache_fq_minlen = _['dir_cache_fq_minlen']
+    dir_cache_prj = _['dir_cache_prj']
+    dir_prj_logs = _['dir_prj_logs']
+    dir_prj_queries = _['dir_prj_queries']
+    dir_fq_data = _['dir_fq_data']
+    dir_fq_trim_data = _['dir_fq_trim_data']
+    dir_fa_trim_data = _['dir_fa_trim_data']
+    dir_blast_fa_trim = _['dir_blast_fa_trim']
+    dir_prj_blast_results_fa_trim = _['dir_prj_blast_results_fa_trim']
+    dir_prj_vsearch_results_fa_trim = _['dir_prj_vsearch_results_fa_trim']
+    dir_prj_spades_assemblies = _['dir_prj_spades_assemblies']
+    dir_prj_blast_assmbl = _['dir_prj_blast_assmbl']
+    dir_prj_assmbl_blast_results = _['dir_prj_assmbl_blast_results']
+    dir_prj_transcripts = _['dir_prj_transcripts']
+    dir_prj_ips = _['dir_prj_ips']
+    dir_prj_transcripts_combined = _['dir_prj_transcripts_combined']
 
     # Prepare logger ---------------------------------------------------------
     prj_log_file = opj(dir_prj_logs, prj_name + '_' + prj_log_file_suffix)
@@ -260,7 +260,7 @@ def main():
     seqtk = deps.dep_check_seqtk(linfo)
     trimmomatic, adapters = deps.dep_check_trimmomatic(linfo)
     fasterq_dump = deps.dep_check_sra_toolkit(linfo)
-    makeblastdb, __, tblastn = deps.dep_check_blast(linfo)
+    makeblastdb, _, tblastn = deps.dep_check_blast(linfo)
     vsearch = deps.dep_check_vsearch(linfo)
     spades = deps.dep_check_spades(linfo)
 
@@ -332,7 +332,6 @@ def main():
                         dir_cache_fq_minlen, vsearch, linfo)
 
     # File name patterns -----------------------------------------------------
-
     pe_trim_pair_1_sfx = '_paired_1'
     pe_trim_pair_2_sfx = '_paired_2'
     pe_trim_unpr_1_sfx = '_unpaired_1'
