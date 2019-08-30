@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 find . -type f -name ".DS_Store" -delete
 find . -type f -name "*.py[co]" -delete
