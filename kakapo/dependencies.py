@@ -13,6 +13,7 @@ from __future__ import with_statement
 
 import os
 import sys
+import stat
 import tarfile
 import zipfile
 import re
@@ -47,6 +48,26 @@ def blast_dir_name(path): # noqa
 def spades_dir_name(path): # noqa
     ld = list_of_dirs(path=path)
     pattern = 'SPAdes'
+    dl = [d for d in ld if pattern in d]
+    if len(dl) > 0:
+        return dl[0]
+    else:
+        return ''
+
+
+def bowtie2_dir_name(path): # noqa
+    ld = list_of_dirs(path=path)
+    pattern = 'bowtie2'
+    dl = [d for d in ld if pattern in d]
+    if len(dl) > 0:
+        return dl[0]
+    else:
+        return ''
+
+
+def kraken2_dir_name(path): # noqa
+    ld = list_of_dirs(path=path)
+    pattern = 'kraken2'
     dl = [d for d in ld if pattern in d]
     if len(dl) > 0:
         return dl[0]
@@ -277,7 +298,7 @@ def dep_check_blast(logger=print): # noqa
     logger('blastn is available: ' + blastn)
     logger('tblastn is available: ' + tblastn)
 
-    return (makeblastdb, blastn, tblastn)
+    return makeblastdb, blastn, tblastn
 
 
 def get_version_blast(any_blast_bin):  # noqa
@@ -374,6 +395,135 @@ def dep_check_spades(logger=print): # noqa
 def get_version_spades(spades):  # noqa
     out, _ = call([spades, '--version'])
     v = re.findall(r'^SPAdes\sv([\d\.]*)', out.decode(), flags=re.MULTILINE)
+    if len(v) > 0:
+        v = v[0]
+    return v
+
+
+# Bowtie 2
+def dep_check_bowtie2(logger=print): # noqa
+    if OS_ID == 'mac':
+        url = ('https://sourceforge.net/projects/bowtie-bio/files/bowtie2/'
+               '2.3.5.1/bowtie2-2.3.5.1-macos-x86_64.zip/download')
+    elif OS_ID == 'linux':
+        url = ('https://sourceforge.net/projects/bowtie-bio/files/bowtie2/'
+               '2.3.5.1/bowtie2-2.3.5.1-linux-x86_64.zip/download')
+
+    dnld_path = os.path.join(DIR_DEP, 'bowtie2.zip')
+
+    try:
+        bowtie2 = 'bowtie2'
+        bowtie2_build = 'bowtie2-build'
+        call(bowtie2)
+        call(bowtie2_build)
+    except Exception:
+        try:
+            dir_bin = os.path.join(DIR_DEP, bowtie2_dir_name(path=DIR_DEP))
+            bowtie2 = os.path.join(dir_bin, 'bowtie2')
+            bowtie2_build = os.path.join(dir_bin, 'bowtie2-build')
+            call(bowtie2)
+            call(bowtie2_build)
+        except Exception:
+            logger('Bowtie 2 was not found on this system, trying to '
+                   'download.')
+            download_file(url, dnld_path)
+            zip_ref = zipfile.ZipFile(dnld_path, 'r')
+            zip_ref.extractall(DIR_DEP)
+            zip_ref.close()
+
+            dir_bin = os.path.join(DIR_DEP, bowtie2_dir_name(path=DIR_DEP))
+            bowtie2 = os.path.join(dir_bin, 'bowtie2')
+            bowtie2_build = os.path.join(dir_bin, 'bowtie2-build')
+
+            bowtie2_execs = ('',
+                             '-align-l',
+                             '-align-l-debug',
+                             '-align-s',
+                             '-align-s-debug',
+                             '-build',
+                             '-build-l',
+                             '-build-l-debug',
+                             '-build-s',
+                             '-build-s-debug',
+                             '-inspect',
+                             '-inspect-l',
+                             '-inspect-l-debug',
+                             '-inspect-s',
+                             '-inspect-s-debug')
+
+            for bt2exe in bowtie2_execs:
+                os.chmod(bowtie2 + bt2exe, stat.S_IRWXU | stat.S_IRGRP |
+                         stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+
+            if not os.path.exists(bowtie2):
+                logger('Could not download Bowtie 2.')
+                sys.exit(1)
+
+    logger('Bowtie 2 is available: ' + bowtie2)
+
+    return bowtie2, bowtie2_build
+
+
+def get_version_bowtie2(bowtie2):  # noqa
+    out, _ = call([bowtie2, '--version'])
+    v = re.findall(r'^.*?version\s([\d\.]*)', out.decode(), flags=re.MULTILINE)
+    if len(v) > 0:
+        v = v[0]
+    return v
+
+
+# Kraken 2
+def dep_check_kraken2(logger=print): # noqa
+    url = ('https://github.com/DerrickWood/kraken2/archive/v2.0.8-beta.tar.gz')
+
+    dnld_path = os.path.join(DIR_DEP, 'kraken2.tar.gz')
+
+    try:
+        kraken2 = 'kraken2'
+        kraken2_build = 'kraken2-build'
+        call(kraken2)
+        call(kraken2_build)
+    except Exception:
+        try:
+            dir_bin = os.path.join(DIR_DEP, kraken2_dir_name(path=DIR_DEP))
+            kraken2 = os.path.join(dir_bin, 'kraken2')
+            kraken2_build = os.path.join(dir_bin, 'kraken2-build')
+            call(kraken2)
+            call(kraken2_build)
+        except Exception:
+            logger('Kraken 2 was not found on this system, trying to '
+                   'download.')
+            download_file(url, dnld_path)
+            tar_ref = tarfile.open(dnld_path, 'r:gz')
+            tar_ref.extractall(DIR_DEP)
+            tar_ref.close()
+
+            dir_bin = os.path.join(DIR_DEP, kraken2_dir_name(path=DIR_DEP))
+            kraken2 = os.path.join(dir_bin, 'kraken2')
+            kraken2_build = os.path.join(dir_bin, 'kraken2-build')
+
+            try:
+                logger('Compiling Kraken 2')
+                call(['./install_kraken2.sh', '.'], cwd=dir_bin)
+            except Exception:
+                logger('Something went wrong while trying to compile'
+                       'Kraken 2.')
+                logger('Try downloading and installing it manually from: '
+                       'https://github.com/DerrickWood/kraken2')
+
+            if not os.path.exists(kraken2):
+                logger('Could not download Kraken 2.')
+                sys.exit(1)
+
+    logger('Kraken 2 is available: ' + kraken2)
+
+    return kraken2, kraken2_build
+
+
+def get_version_kraken2(kraken2):  # noqa
+    out, _ = call([kraken2, '--version'])
+    v = re.findall(r'^.*?version\s([\d\.\-A-Za-z]*)', out.decode(),
+                   flags=re.MULTILINE)
     if len(v) > 0:
         v = v[0]
     return v
