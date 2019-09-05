@@ -14,9 +14,13 @@ from __future__ import with_statement
 import fileinput
 import hashlib
 import os
+from ftplib import FTP
+from urllib.parse import urlparse
 
 from datetime import datetime
 from operator import itemgetter
+
+from kakapo.http_k import download_file as download_file_http
 
 
 def debug_print(msg=''): # noqa
@@ -113,3 +117,21 @@ def overlap(a, b):  # noqa
         if ab[1][1] < ab[0][1]:
             overlap -= ab[0][1] - ab[1][1]
     return overlap
+
+
+def download_file(url, local_path, protocol='http'):  # noqa
+    assert protocol in ('http', 'ftp')
+
+    if protocol == 'http':
+        download_file_http(url, local_path)
+    elif protocol == 'ftp':
+        url_parsed = urlparse(url)
+        netloc = url_parsed.netloc
+        path = url_parsed.path
+
+        with FTP(netloc) as ftp:
+            ftp.login()
+            with open(local_path, 'wb') as f:
+                ftp.retrbinary(cmd='RETR ' + path,
+                               callback=lambda x: f.write(x),
+                               blocksize=8192 * 32)
