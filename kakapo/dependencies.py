@@ -461,7 +461,8 @@ def dep_check_bowtie2(logger=print): # noqa
                 logger('Could not download Bowtie 2.')
                 sys.exit(1)
 
-    logger('Bowtie 2 is available: ' + bowtie2)
+    logger('bowtie2 is available: ' + bowtie2)
+    logger('bowtie2-build is available: ' + bowtie2_build)
 
     return bowtie2, bowtie2_build
 
@@ -517,7 +518,8 @@ def dep_check_kraken2(logger=print): # noqa
                 logger('Could not download Kraken 2.')
                 sys.exit(1)
 
-    logger('Kraken 2 is available: ' + kraken2)
+    logger('kraken2 is available: ' + kraken2)
+    logger('kraken2-build is available: ' + kraken2_build)
 
     return kraken2, kraken2_build
 
