@@ -48,13 +48,21 @@ def make_dir(path):  # noqa
     return path
 
 
-def list_of_dirs(path):  # noqa
-    ld = [x for x in os.listdir(path) if os.path.isdir(os.path.join(path, x))]
+def list_of_dirs(path, linfo=print):  # noqa
+    try:
+        ld = [x for x in os.listdir(path) if os.path.isdir(
+            os.path.join(path, x))]
+    except FileNotFoundError:
+        linfo('Directory "{}" does not exist.'.format(path))
     return ld
 
 
-def list_of_files(path):  # noqa
-    lf = [x for x in os.listdir(path) if os.path.isfile(os.path.join(path, x))]
+def list_of_files(path, linfo=print):  # noqa
+    try:
+        lf = [x for x in os.listdir(path) if os.path.isfile(
+            os.path.join(path, x))]
+    except FileNotFoundError:
+        linfo('Directory "{}" does not exist.'.format(path))
     return lf
 
 
