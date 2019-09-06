@@ -533,6 +533,8 @@ def get_version_kraken2(kraken2):  # noqa
 
 def download_kraken2_dbs(dbs_path):  # noqa
 
+    kraken2_dbs = dict()
+
     base_kraken2_url = 'ftp://ftp.ccb.jhu.edu/pub/data/kraken2_dbs/'
 
     # ------------------------------------------------------------------------
@@ -541,7 +543,8 @@ def download_kraken2_dbs(dbs_path):  # noqa
     url = base_kraken2_url + base + '.tgz'
     tgz = os.path.join(dbs_path, base + '.tgz')
     p_orig = os.path.join(dbs_path, base)
-    p_new = os.path.join(dbs_path, '16S_Silva')
+    db_name = '16S_Silva'
+    p_new = os.path.join(dbs_path, db_name)
 
     if not os.path.exists(p_new):
         download_file(url=url, local_path=tgz, protocol='ftp')
@@ -550,6 +553,8 @@ def download_kraken2_dbs(dbs_path):  # noqa
         tar_ref.close()
         os.remove(tgz)
         move(p_orig, p_new)
+
+    kraken2_dbs['16S'] = db_name
 
     # ------------------------------------------------------------------------
 
@@ -557,7 +562,8 @@ def download_kraken2_dbs(dbs_path):  # noqa
     url = base_kraken2_url + base + '.tgz'
     tgz = os.path.join(dbs_path, base + '.tgz')
     p_orig = os.path.join(dbs_path, base)
-    p_new = os.path.join(dbs_path, 'minikraken2_v2')
+    db_name = 'minikraken2_v2'
+    p_new = os.path.join(dbs_path, db_name)
 
     if not os.path.exists(p_new):
         download_file(url=url, local_path=tgz, protocol='ftp')
@@ -566,6 +572,8 @@ def download_kraken2_dbs(dbs_path):  # noqa
         tar_ref.close()
         os.remove(tgz)
         move(p_orig, p_new)
+
+    kraken2_dbs['minikraken'] = db_name
 
     # ------------------------------------------------------------------------
 
@@ -584,6 +592,8 @@ def download_kraken2_dbs(dbs_path):  # noqa
         tar_ref.close()
         os.remove(tgz)
 
+    kraken2_dbs['mt_pt'] = base
+
     # ------------------------------------------------------------------------
 
     base_dropbox_url = 'https://www.dropbox.com/s/'
@@ -600,6 +610,8 @@ def download_kraken2_dbs(dbs_path):  # noqa
         tar_ref.extractall(dbs_path)
         tar_ref.close()
         os.remove(tgz)
+
+    kraken2_dbs['mt'] = base
 
     # ------------------------------------------------------------------------
 
@@ -618,6 +630,8 @@ def download_kraken2_dbs(dbs_path):  # noqa
         tar_ref.close()
         os.remove(tgz)
 
+    kraken2_dbs['pt'] = base
+
     # ------------------------------------------------------------------------
 
     base_dropbox_url = 'https://www.dropbox.com/s/'
@@ -635,4 +649,8 @@ def download_kraken2_dbs(dbs_path):  # noqa
         tar_ref.close()
         os.remove(tgz)
 
+    kraken2_dbs['viral'] = base
+
     # ------------------------------------------------------------------------
+
+    return kraken2_dbs
