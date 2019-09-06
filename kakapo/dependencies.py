@@ -12,15 +12,17 @@ from __future__ import print_function
 from __future__ import with_statement
 
 import os
-import sys
+import re
 import stat
+import sys
 import tarfile
 import zipfile
-import re
+
+from shutil import move
 
 from kakapo.config import DIR_DEP, DIR_CFG, OS_ID, DIST_ID
-from kakapo.helpers import list_of_dirs
 from kakapo.helpers import download_file
+from kakapo.helpers import list_of_dirs
 from kakapo.os_diffs import DEBIAN_DISTS, REDHAT_DISTS
 from kakapo.shell import call
 
@@ -474,7 +476,7 @@ def get_version_bowtie2(bowtie2):  # noqa
 
 # Kraken 2
 def dep_check_kraken2(logger=print): # noqa
-    url = ('https://github.com/DerrickWood/kraken2/archive/v2.0.8-beta.tar.gz')
+    url = ('https://github.com/karolisr/kraken2/archive/master.tar.gz')
 
     dnld_path = os.path.join(DIR_DEP, 'kraken2.tar.gz')
 
@@ -486,8 +488,8 @@ def dep_check_kraken2(logger=print): # noqa
     except Exception:
         try:
             dir_bin = os.path.join(DIR_DEP, kraken2_dir_name(path=DIR_DEP))
-            kraken2 = os.path.join(dir_bin, 'kraken2')
-            kraken2_build = os.path.join(dir_bin, 'kraken2-build')
+            kraken2 = os.path.join(dir_bin, 'bin', 'kraken2')
+            kraken2_build = os.path.join(dir_bin, 'bin', 'kraken2-build')
             call(kraken2)
             call(kraken2_build)
         except Exception:
@@ -499,12 +501,12 @@ def dep_check_kraken2(logger=print): # noqa
             tar_ref.close()
 
             dir_bin = os.path.join(DIR_DEP, kraken2_dir_name(path=DIR_DEP))
-            kraken2 = os.path.join(dir_bin, 'kraken2')
-            kraken2_build = os.path.join(dir_bin, 'kraken2-build')
+            kraken2 = os.path.join(dir_bin, 'bin', 'kraken2')
+            kraken2_build = os.path.join(dir_bin, 'bin', 'kraken2-build')
 
             try:
                 logger('Compiling Kraken 2')
-                call(['./install_kraken2.sh', '.'], cwd=dir_bin)
+                call(['./install_kraken2.sh', 'bin'], cwd=dir_bin)
             except Exception:
                 logger('Something went wrong while trying to compile'
                        'Kraken 2.')
@@ -527,3 +529,110 @@ def get_version_kraken2(kraken2):  # noqa
     if len(v) > 0:
         v = v[0]
     return v
+
+
+def download_kraken2_dbs(dbs_path):  # noqa
+
+    base_kraken2_url = 'ftp://ftp.ccb.jhu.edu/pub/data/kraken2_dbs/'
+
+    # ------------------------------------------------------------------------
+
+    base = '16S_Silva_20190418'
+    url = base_kraken2_url + base + '.tgz'
+    tgz = os.path.join(dbs_path, base + '.tgz')
+    p_orig = os.path.join(dbs_path, base)
+    p_new = os.path.join(dbs_path, '16S_Silva')
+
+    if not os.path.exists(p_new):
+        download_file(url=url, local_path=tgz, protocol='ftp')
+        tar_ref = tarfile.open(tgz, 'r:gz')
+        tar_ref.extractall(dbs_path)
+        tar_ref.close()
+        os.remove(tgz)
+        move(p_orig, p_new)
+
+    # ------------------------------------------------------------------------
+
+    base = 'minikraken2_v2_8GB_201904_UPDATE'
+    url = base_kraken2_url + base + '.tgz'
+    tgz = os.path.join(dbs_path, base + '.tgz')
+    p_orig = os.path.join(dbs_path, base)
+    p_new = os.path.join(dbs_path, 'minikraken2_v2')
+
+    if not os.path.exists(p_new):
+        download_file(url=url, local_path=tgz, protocol='ftp')
+        tar_ref = tarfile.open(tgz, 'r:gz')
+        tar_ref.extractall(dbs_path)
+        tar_ref.close()
+        os.remove(tgz)
+        move(p_orig, p_new)
+
+    # ------------------------------------------------------------------------
+
+    base_dropbox_url = 'https://www.dropbox.com/s/'
+
+    base = 'mitochondrion_and_plastid'
+    garb = 'vkbp7iys6s76tvf/'
+    url = base_dropbox_url + garb + base + '.tar.gz?dl=1'
+    tgz = os.path.join(dbs_path, base + '.tar.gz')
+    p = os.path.join(dbs_path, base)
+
+    if not os.path.exists(p):
+        download_file(url=url, local_path=tgz, protocol='http')
+        tar_ref = tarfile.open(tgz, 'r:gz')
+        tar_ref.extractall(dbs_path)
+        tar_ref.close()
+        os.remove(tgz)
+
+    # ------------------------------------------------------------------------
+
+    base_dropbox_url = 'https://www.dropbox.com/s/'
+
+    base = 'mitochondrion'
+    garb = '6liwneb26uvjuec/'
+    url = base_dropbox_url + garb + base + '.tar.gz?dl=1'
+    tgz = os.path.join(dbs_path, base + '.tar.gz')
+    p = os.path.join(dbs_path, base)
+
+    if not os.path.exists(p):
+        download_file(url=url, local_path=tgz, protocol='http')
+        tar_ref = tarfile.open(tgz, 'r:gz')
+        tar_ref.extractall(dbs_path)
+        tar_ref.close()
+        os.remove(tgz)
+
+    # ------------------------------------------------------------------------
+
+    base_dropbox_url = 'https://www.dropbox.com/s/'
+
+    base = 'plastid'
+    garb = 's9vdg4mxrfy1szn/'
+    url = base_dropbox_url + garb + base + '.tar.gz?dl=1'
+    tgz = os.path.join(dbs_path, base + '.tar.gz')
+    p = os.path.join(dbs_path, base)
+
+    if not os.path.exists(p):
+        download_file(url=url, local_path=tgz, protocol='http')
+        tar_ref = tarfile.open(tgz, 'r:gz')
+        tar_ref.extractall(dbs_path)
+        tar_ref.close()
+        os.remove(tgz)
+
+    # ------------------------------------------------------------------------
+
+    base_dropbox_url = 'https://www.dropbox.com/s/'
+
+    base = 'viral'
+    garb = '7xz31c7vw088n27/'
+    url = base_dropbox_url + garb + base + '.tar.gz?dl=1'
+    tgz = os.path.join(dbs_path, base + '.tar.gz')
+    p = os.path.join(dbs_path, base)
+
+    if not os.path.exists(p):
+        download_file(url=url, local_path=tgz, protocol='http')
+        tar_ref = tarfile.open(tgz, 'r:gz')
+        tar_ref.extractall(dbs_path)
+        tar_ref.close()
+        os.remove(tgz)
+
+    # ------------------------------------------------------------------------
