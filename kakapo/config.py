@@ -41,6 +41,7 @@ DIR_USR = os.path.expanduser('~')
 DIR_CFG = os.path.join(DIR_USR, '.config', __script_name__)
 DIR_DEP = os.path.join(DIR_CFG, 'dependencies')
 DIR_TAX = os.path.join(DIR_CFG, 'ncbi-taxonomy')
+DIR_KRK = os.path.join(DIR_CFG, 'kraken2_dbs')
 
 # Script Info ----------------------------------------------------------------
 SCRIPT_INFO = ('\n' +
