@@ -311,6 +311,7 @@ def cds_acc_for_prot_acc(prot_accessions):  # noqa
 
 
 def sra_run_info(acc_list):  # noqa
+    assert type(acc_list) in (tuple, list, set)
     ret_list = []
     page_size = 75
     tot_acc = len(acc_list)
