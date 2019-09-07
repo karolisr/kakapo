@@ -77,6 +77,16 @@ def kraken2_dir_name(path): # noqa
         return ''
 
 
+def rcorrector_dir_name(path): # noqa
+    ld = list_of_dirs(path=path)
+    pattern = 'Rcorrector'
+    dl = [d for d in ld if pattern in d]
+    if len(dl) > 0:
+        return dl[0]
+    else:
+        return ''
+
+
 # Seqtk
 def dep_check_seqtk(logger=print): # noqa
     url = 'https://github.com/lh3/seqtk/archive/master.zip'
@@ -509,7 +519,7 @@ def dep_check_kraken2(logger=print): # noqa
                 logger('Compiling Kraken 2')
                 call(['./install_kraken2.sh', 'bin'], cwd=dir_bin)
             except Exception:
-                logger('Something went wrong while trying to compile'
+                logger('Something went wrong while trying to compile '
                        'Kraken 2.')
                 logger('Try downloading and installing it manually from: '
                        'https://github.com/DerrickWood/kraken2')
@@ -656,3 +666,47 @@ def download_kraken2_dbs(dbs_path):  # noqa
     # ------------------------------------------------------------------------
 
     return kraken2_dbs
+
+
+# Rcorrector
+def dep_check_rcorrector(logger=print): # noqa
+    url = 'https://github.com/mourisl/Rcorrector/archive/v1.0.4.tar.gz'
+    dnld_path = os.path.join(DIR_DEP, 'rcorrector.tar.gz')
+
+    try:
+        rcorrector = 'run_rcorrector.pl'
+        call(rcorrector)
+    except Exception:
+        try:
+            dir_bin = os.path.join(DIR_DEP, rcorrector_dir_name(path=DIR_DEP))
+            rcorrector = os.path.join(dir_bin, 'run_rcorrector.pl')
+            call(rcorrector)
+        except Exception:
+            logger('Rcorrector was not found on this system, trying to '
+                   'download.')
+            download_file(url, dnld_path)
+            tar_ref = tarfile.open(dnld_path, 'r:gz')
+            tar_ref.extractall(DIR_DEP)
+            tar_ref.close()
+            dir_bin = os.path.join(DIR_DEP, rcorrector_dir_name(path=DIR_DEP))
+            try:
+                logger('Compiling Rcorrector.')
+                call('make', cwd=dir_bin)
+                rcorrector = os.path.join(dir_bin, 'run_rcorrector.pl')
+                os.chmod(rcorrector, stat.S_IRWXU | stat.S_IRGRP |
+                         stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+                call(rcorrector)
+            except Exception:
+                logger('Something went wrong while trying to compile '
+                       'Rcorrector.')
+                logger('Try downloading and installing it manually from: '
+                       'https://github.com/mourisl/Rcorrector')
+                sys.exit(1)
+
+    logger('Rcorrector is available: ' + rcorrector)
+
+    return rcorrector
+
+
+def get_version_rcorrector(kraken2):  # noqa
+    return 'undetermined'
