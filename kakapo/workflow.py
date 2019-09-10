@@ -24,8 +24,10 @@ from os.path import exists as ope
 from os.path import join as opj
 from os.path import splitext
 from shutil import copyfile
+from shutil import rmtree
 from sys import exit
 from time import sleep
+from copy import deepcopy
 
 from kakapo.bioio import filter_fasta_text_by_length
 from kakapo.bioio import read_fasta
@@ -36,6 +38,7 @@ from kakapo.blast import BLST_RES_COLS_1, BLST_RES_COLS_2
 from kakapo.blast import collate_blast_results
 from kakapo.blast import make_blast_db, run_blast
 from kakapo.blast import parse_blast_results_file
+from kakapo.bowtie2 import build_bt2_index, run_bowtie2_se, run_bowtie2_pe
 from kakapo.config import PICKLE_PROTOCOL
 from kakapo.data.start_codon_context import contexts as atg_contexts
 from kakapo.ebi_domain_search import pfam_entry
@@ -47,6 +50,8 @@ from kakapo.ebi_proteins import fasta_by_accession_list
 from kakapo.entrez import cds_acc_for_prot_acc
 from kakapo.entrez import dnld_cds_nt_fasta as dnld_ncbi_cds_nt_fasta
 from kakapo.entrez import dnld_seqs as dnld_ncbi_seqs
+from kakapo.entrez import dnld_seqs_fasta_format
+from kakapo.entrez import esearch
 from kakapo.entrez import sra_run_info
 from kakapo.entrez import summary as entrez_summary
 from kakapo.entrez import taxids_for_acc
@@ -54,12 +59,18 @@ from kakapo.gff3 import gff_from_kakapo_ips5_json_file
 from kakapo.helpers import combine_text_files
 from kakapo.helpers import keep_unique_lines_in_file
 from kakapo.helpers import make_dir
+from kakapo.helpers import plain_or_gzip
+from kakapo.helpers import splitext_gz
+from kakapo.kraken import run_kraken_filters
 from kakapo.orf import find_orf_for_blast_hit
 from kakapo.py_v_diffs import StringIO
+from kakapo.rcorrector import filter_unc_se, filter_unc_pe
+from kakapo.rcorrector import run_rcorrector_se, run_rcorrector_pe
 from kakapo.seq import reverse_complement, translate
 from kakapo.seqtk import seqtk_fq_to_fa, seqtk_extract_reads
 from kakapo.shell import call
 from kakapo.spades import run_spades_se, run_spades_pe
+from kakapo.translation_tables import TranslationTable
 from kakapo.trimmomatic import trimmomatic_se, trimmomatic_pe
 from kakapo.vsearch import run_cluster_fast, run_vsearch
 
@@ -81,6 +92,9 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
     dir_cache_prj = opj(dir_cache, 'projects', prj_name)
     make_dir(dir_cache_prj)
 
+    dir_cache_refseqs = opj(dir_cache, 'ref-seqs')
+    make_dir(dir_cache_refseqs)
+
     dir_prj = opj(dir_out, '02-project-specific', prj_name)
     make_dir(dir_prj)
 
@@ -90,11 +104,11 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
     dir_prj_queries = opj(dir_prj, '01-queries')
     make_dir(dir_prj_queries)
 
-    dir_prj_blast_results_fa_trim = opj(dir_prj, '02-trimmed-fa-blast-results')
+    dir_prj_blast_results_fa_trim = opj(dir_prj, '02-filtered-fa-blast-results')
     make_dir(dir_prj_blast_results_fa_trim)
 
     dir_prj_vsearch_results_fa_trim = opj(dir_prj,
-                                          '03-trimmed-fa-vsearch-results')
+                                          '03-filtered-fa-vsearch-results')
     make_dir(dir_prj_vsearch_results_fa_trim)
 
     dir_prj_spades_assemblies = opj(dir_prj, '04-spades-assemblies')
@@ -120,13 +134,19 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
     dir_fq_data = opj(dir_global, '01-sra-fq-data')
     make_dir(dir_fq_data)
 
-    dir_fq_trim_data = opj(dir_global, '02-trimmed-fq-data')
+    dir_fq_cor_data = opj(dir_global, '02-corrected-fq-data')
+    make_dir(dir_fq_cor_data)
+
+    dir_fq_trim_data = opj(dir_global, '03-trimmed-fq-data')
     make_dir(dir_fq_trim_data)
 
-    dir_fa_trim_data = opj(dir_global, '03-trimmed-fa-data')
+    dir_fq_filter_data = opj(dir_global, '04-filtered-fq-data')
+    make_dir(dir_fq_filter_data)
+
+    dir_fa_trim_data = opj(dir_global, '05-fa-data')
     make_dir(dir_fa_trim_data)
 
-    dir_blast_fa_trim = opj(dir_global, '04-trimmed-fa-blast-db-data')
+    dir_blast_fa_trim = opj(dir_global, '06-fa-blast-db-data')
     make_dir(dir_blast_fa_trim)
 
     ret_dict = {'dir_blast_fa_trim': dir_blast_fa_trim,
@@ -134,9 +154,12 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
                 'dir_cache_fq_minlen': dir_cache_fq_minlen,
                 'dir_cache_pfam_acc': dir_cache_pfam_acc,
                 'dir_cache_prj': dir_cache_prj,
+                'dir_cache_refseqs': dir_cache_refseqs,
                 'dir_fa_trim_data': dir_fa_trim_data,
+                'dir_fq_cor_data': dir_fq_cor_data,
                 'dir_fq_data': dir_fq_data,
                 'dir_fq_trim_data': dir_fq_trim_data,
+                'dir_fq_filter_data': dir_fq_filter_data,
                 'dir_prj': dir_prj,
                 'dir_prj_logs': dir_prj_logs,
                 'dir_prj_assmbl_blast_results': dir_prj_assmbl_blast_results,
@@ -153,20 +176,39 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
 
     return ret_dict
 
-def descending_tax_ids(tax_ids_user, taxonomy, linfo=print):  # noqa
-    if len(tax_ids_user) > 0:
-        linfo('Resolving descending nodes for TaxIds')
-    tax_ids = []
-    for tx in tax_ids_user:
-        tx_name = taxonomy.scientific_name_for_taxid(taxid=tx)
-        linfo(str(tx) + ': ' + tx_name)
-        tax_ids_for_tx = taxonomy.all_descending_taxids(taxid=tx)
-        if tax_ids_for_tx is None:
-            tax_ids_for_tx = [tx]
-        tax_ids = tax_ids + tax_ids_for_tx
-    tax_ids = [int(x) for x in tax_ids]
-    tax_ids = list(set(tax_ids))
 
+def dnld_refseqs_for_taxid(taxid, filter_term, rank, taxonomy,
+                           dir_cache_refseqs, db='nuccore', linfo=print):  # noqa
+    tax_term = taxonomy.higher_rank_for_taxid(taxid, rank=rank)
+    term = '"RefSeq"[Keyword] AND "{}"[Primary Organism] AND "{}"[filter]'.format(tax_term, filter_term)
+    accs = set(esearch(term=term, db=db)['ids'])
+    cache_path = opj(dir_cache_refseqs, filter_term + '_' + tax_term + '.fasta')
+    parsed_fasta_cache = {}
+    if ope(cache_path):
+        parsed_fasta_cache = read_fasta(cache_path, def_to_first_space=True)
+        for acc in parsed_fasta_cache:
+            if acc in accs:
+                accs.remove(acc)
+    if len(accs) > 0:
+        fasta_list = dnld_seqs_fasta_format(term=list(accs), db=db)
+        parsed_fasta = read_fasta(StringIO('\n'.join(fasta_list)))
+        parsed_fasta.update(parsed_fasta_cache)
+    else:
+        parsed_fasta = parsed_fasta_cache
+    write_fasta(parsed_fasta, cache_path)
+    return cache_path
+
+
+def descending_tax_ids(tax_ids_user, taxonomy, linfo=print):  # noqa
+    # if len(tax_ids_user) > 0:
+    #     linfo('Resolving descending nodes for TaxIds')
+    shared = taxonomy.shared_taxid_for_taxids(tax_ids_user)
+    if shared is None:
+        return None
+    tax_ids = taxonomy.all_descending_taxids(taxid=shared)
+    if tax_ids is None:
+        tax_ids = [shared]
+    tax_ids = [int(x) for x in tax_ids]
     return tax_ids
 
 
@@ -368,9 +410,9 @@ def dnld_sra_info(sras, dir_cache_prj, linfo=print):  # noqa
 
             else:
                 sra_info_str = ('SRA run {sra} {source} '
-                                '{strategy} {layout}-end library. '
+                                '{layout}-end library. '
                                 'Sourced from {species} '
-                                '(Tax ID: {txid}). '
+                                '(TaxID: {txid}). '
                                 'Sequenced using {platform} platform on '
                                 '{model}.').format(
                                     sra=sra,
@@ -419,7 +461,7 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
         sra_lib_layout = sra_run_info['LibraryLayout'].lower()
         sra_lib_layout_k = sra_run_info['KakapoLibraryLayout'].lower()
         sample_base_name = sra_run_info['KakapoSampleBaseName']
-        sra_taxid = sra_run_info['TaxID']
+        sra_taxid = int(sra_run_info['TaxID'])
         avg_len = int(sra_run_info['avgLength'])
 
         sra_dnld_needed = False
@@ -446,18 +488,44 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
             if not ope(pe_file_1) or not ope(pe_file_2):
                 sra_dnld_needed = True
 
-        if sra_dnld_needed:
-            linfo('Downloading FASTQ reads for ' + sample_base_name)
-            cmd = [fasterq_dump,
-                   '--threads', str(threads),
-                   '--split-3',
-                   '--outdir', dir_fq_data,
-                   '--temp', dir_temp, sra]
-            call(cmd)
-
-        else:
+        if not sra_dnld_needed:
             linfo('FASTQ reads for the SRA run ' + sample_base_name +
                   ' are available locally')
+
+        retry_count = 0
+        while sra_dnld_needed:
+
+            if retry_count > 50:
+                linfo('Download failed. Exiting.')
+                rmtree(dir_temp)
+                exit(1)
+
+            elif retry_count > 0:
+                linfo('Download failed. Retrying.')
+                sleep(2)
+
+            retry_count += 1
+
+            linfo('Downloading FASTQ reads for ' + sample_base_name)
+
+            cmd = [fasterq_dump,
+                   '--threads', str(threads * 4),
+                   '--split-3',
+                   '--bufsize', '819200',
+                   '--outdir', dir_fq_data,
+                   '--temp', dir_temp, sra]
+
+            call(cmd)
+
+            if sra_lib_layout == 'single' or sra_lib_layout_k == 'single':
+                if not ope(se_file):
+                    continue
+
+            elif sra_lib_layout == 'paired':
+                if not ope(pe_file_1) or not ope(pe_file_2):
+                    continue
+
+            sra_dnld_needed = False
 
     return se_fastq_files, pe_fastq_files, sra_runs_info
 
@@ -469,22 +537,38 @@ def user_fastq_files(fq_se, fq_pe, linfo=print): # noqa
     se_fastq_files = {}
     pe_fastq_files = {}
 
+    fq_type_1_regex = r'(.*)_L\d\d\d(_R.)_\d\d\d(.*)'
+
     for se in fq_se:
-        sample_base_name = splitext(basename(se))[0]
-        se_fastq_files[sample_base_name] = {'path': se}
+        tax_id = se[0]
+        path = se[1]
+        base = basename(path)
+        fq_type_1_match = re.findall(fq_type_1_regex, base)
+        if len(fq_type_1_match) > 0 and len(fq_type_1_match[0]) == 3:
+            base = ''.join(fq_type_1_match[0])
+        sample_base_name = splitext(base)[0].split('_R')[0]
+        se_fastq_files[sample_base_name] = {'path': path}
         se_fastq_files[sample_base_name]['src'] = 'usr'
         se_fastq_files[sample_base_name]['avg_len'] = None
-        se_fastq_files[sample_base_name]['tax_id'] = None
-        linfo(sample_base_name + ': ' + se)
+        se_fastq_files[sample_base_name]['tax_id'] = tax_id
+        linfo(sample_base_name + ': ' + path)
 
     for pe in fq_pe:
-        sample_base_name = basename(commonprefix(pe))
-        sample_base_name = sample_base_name.rstrip('_- R')
-        pe_fastq_files[sample_base_name] = {'path': pe}
+        tax_id = pe[0]
+        path = pe[1]
+        base = basename(path[0])
+        fq_type_1_match = re.findall(fq_type_1_regex, base)
+        if len(fq_type_1_match) > 0 and len(fq_type_1_match[0]) == 3:
+            base = ''.join(fq_type_1_match[0])
+            base = splitext(base)[0].split('_R')[0]
+        else:
+            base = basename(commonprefix(path)).rstrip('_- R')
+        sample_base_name = base
+        pe_fastq_files[sample_base_name] = {'path': path}
         pe_fastq_files[sample_base_name]['src'] = 'usr'
         pe_fastq_files[sample_base_name]['avg_len'] = None
-        pe_fastq_files[sample_base_name]['tax_id'] = None
-        linfo(sample_base_name + ': ' + pe[0] + ', ' + pe[1])
+        pe_fastq_files[sample_base_name]['tax_id'] = tax_id
+        linfo(sample_base_name + ': ' + path[0] + ', ' + path[1])
 
     return se_fastq_files, pe_fastq_files
 
@@ -492,7 +576,7 @@ def user_fastq_files(fq_se, fq_pe, linfo=print): # noqa
 def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
                         dir_cache_fq_minlen, vsearch, linfo=print): # noqa
     # lowest allowable
-    low = 30
+    low = 35
 
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
         linfo('Calculating minimum acceptable read length')
@@ -513,7 +597,7 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
         src = se_fastq_files[se]['src']
         avg_len = se_fastq_files[se]['avg_len']
         if src == 'sra':
-            ml = max(avg_len // 2, low)
+            ml = max(avg_len // 3, low)
             se_fastq_files[se]['min_acc_len'] = ml
             linfo(str(ml) + ' nt: ' + se)
             continue
@@ -526,7 +610,7 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
         src = pe_fastq_files[pe]['src']
         avg_len = pe_fastq_files[pe]['avg_len']
         if src == 'sra':
-            ml = max(avg_len // 2, low)
+            ml = max(avg_len // 3, low)
             pe_fastq_files[pe]['min_acc_len'] = ml
             linfo(str(ml) + ' nt: ' + pe)
             continue
@@ -552,7 +636,7 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
             ml = re.findall(r'>=\s+(\d+)', stats)
 
             if len(ml) != 0:
-                ml = max(int(ml[0]) // 2, low)
+                ml = max(int(ml[0]) // 3, low)
             else:
                 ml = None
 
@@ -574,18 +658,112 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
             pickle.dump(pickled, f, protocol=PICKLE_PROTOCOL)
 
 
+def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
+                   threads, dir_temp, linfo=print):  # noqa
+    for se in se_fastq_files:
+        dir_fq_cor_data_sample = opj(dir_fq_cor_data, se)
+        fq_path = se_fastq_files[se]['path']
+        r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(fq_path)
+        log_f = opj(dir_fq_cor_data_sample, se + '.txt')
+        out_f = opj(dir_fq_cor_data_sample, se + '.fastq' + ext)
+        se_fastq_files[se]['cor_path_fq'] = out_f
+
+        if ope(dir_fq_cor_data_sample):
+            linfo('Corrected FASTQ file for sample ' + se + ' already exists')
+        else:
+            make_dir(dir_fq_cor_data_sample)
+            linfo('Running Rcorrector in SE mode: ' + se)
+            run_rcorrector_se(rcorrector=rcorrector,
+                              in_file=fq_path,
+                              out_dir=dir_fq_cor_data_sample,
+                              threads=threads,
+                              dir_temp=dir_temp)
+
+            fq_base_path = opj(dir_fq_cor_data_sample, basename(fq_path))
+            fq_cor_path = splitext_gz(fq_base_path)[0] + '.cor.fq' + ext
+
+            filter_unc_se(in_file=fq_cor_path, out_file=out_f, log_file=log_f)
+
+            osremove(fq_cor_path)
+
+    for pe in pe_fastq_files:
+        dir_fq_cor_data_sample = opj(dir_fq_cor_data, pe)
+        fq_path_1 = pe_fastq_files[pe]['path'][0]
+        fq_path_2 = pe_fastq_files[pe]['path'][1]
+        fq_path_3 = None
+        out_f_3 = None
+        r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(fq_path_1)
+        log_f = opj(dir_fq_cor_data_sample, pe + '.txt')
+        out_f_1 = opj(dir_fq_cor_data_sample, pe + '_R1.fastq' + ext)
+        out_f_2 = opj(dir_fq_cor_data_sample, pe + '_R2.fastq' + ext)
+        pe_fastq_files[pe]['cor_path_fq'] = [out_f_1, out_f_2]
+
+        if len(pe_fastq_files[pe]['path']) == 3:
+            fq_path_3 = pe_fastq_files[pe]['path'][2]
+            out_f_3 = opj(dir_fq_cor_data_sample, pe + '_R3.fastq' + ext)
+            pe_fastq_files[pe]['cor_path_fq'].append(out_f_3)
+
+        if ope(dir_fq_cor_data_sample):
+            linfo('Corrected FASTQ files for sample ' + pe + ' already exist')
+        else:
+            make_dir(dir_fq_cor_data_sample)
+            linfo('Running Rcorrector in PE mode: ' + pe)
+            run_rcorrector_pe(rcorrector=rcorrector,
+                              in_file_1=fq_path_1,
+                              in_file_2=fq_path_2,
+                              out_dir=dir_fq_cor_data_sample,
+                              threads=threads,
+                              dir_temp=dir_temp)
+
+            fq_base_path_1 = opj(dir_fq_cor_data_sample, basename(fq_path_1))
+            fq_cor_path_1 = splitext_gz(fq_base_path_1)[0] + '.cor.fq' + ext
+            fq_base_path_2 = opj(dir_fq_cor_data_sample, basename(fq_path_2))
+            fq_cor_path_2 = splitext_gz(fq_base_path_2)[0] + '.cor.fq' + ext
+
+            filter_unc_pe(in_file_1=fq_cor_path_1,
+                          in_file_2=fq_cor_path_2,
+                          out_file_1=out_f_1,
+                          out_file_2=out_f_2,
+                          log_file=log_f)
+
+            osremove(fq_cor_path_1)
+            osremove(fq_cor_path_2)
+
+            if fq_path_3 is not None:
+
+                linfo('Running Rcorrector in SE mode: ' + pe +
+                      ' (Paired-read SRA run contains unpaired reads.)')
+
+                run_rcorrector_se(rcorrector=rcorrector,
+                                  in_file=fq_path_3,
+                                  out_dir=dir_fq_cor_data_sample,
+                                  threads=threads,
+                                  dir_temp=dir_temp)
+
+                fq_base_path_3 = opj(dir_fq_cor_data_sample,
+                                     basename(fq_path_3))
+                fq_cor_path_3 = splitext_gz(fq_base_path_3)[0] + '.cor.fq'
+                log_f_3 = opj(dir_fq_cor_data_sample, pe + '_unpaired.txt')
+
+                filter_unc_se(in_file=fq_cor_path_3, out_file=out_f_3,
+                              log_file=log_f_3)
+
+                osremove(fq_cor_path_3)
+
+
 def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
-                    trimmomatic, adapters, fpatt, threads, linfo=print): # noqa
+                    trimmomatic, adapters, fpatt, threads, linfo=print):  # noqa
     for se in se_fastq_files:
         dir_fq_trim_data_sample = opj(dir_fq_trim_data, se)
-        fq_path = se_fastq_files[se]['path']
+        fq_path = se_fastq_files[se]['cor_path_fq']
+        r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(fq_path)
         min_acc_len = se_fastq_files[se]['min_acc_len']
         stats_f = opj(dir_fq_trim_data_sample, se + '.txt')
-        out_f = opj(dir_fq_trim_data_sample, se + '.fastq')
+        out_f = opj(dir_fq_trim_data_sample, se + '.fastq' + ext)
         se_fastq_files[se]['trim_path_fq'] = out_f
 
         if ope(dir_fq_trim_data_sample):
-            linfo('Trimmed FASTQ files for sample ' + se + ' already exist')
+            linfo('Trimmed FASTQ file for sample ' + se + ' already exists')
         else:
             make_dir(dir_fq_trim_data_sample)
             linfo('Running Trimmomatic in SE mode: ' + se)
@@ -600,15 +778,17 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
 
     for pe in pe_fastq_files:
         dir_fq_trim_data_sample = opj(dir_fq_trim_data, pe)
-        fq_path_1 = pe_fastq_files[pe]['path'][0]
-        fq_path_2 = pe_fastq_files[pe]['path'][1]
+        fq_path_1 = pe_fastq_files[pe]['cor_path_fq'][0]
+        fq_path_2 = pe_fastq_files[pe]['cor_path_fq'][1]
         fq_path_3 = None
-        if len(pe_fastq_files[pe]['path']) == 3:
-            fq_path_3 = pe_fastq_files[pe]['path'][2]
+        r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(fq_path_1)
+        if len(pe_fastq_files[pe]['cor_path_fq']) == 3:
+            fq_path_3 = pe_fastq_files[pe]['cor_path_fq'][2]
         min_acc_len = pe_fastq_files[pe]['min_acc_len']
         stats_f = opj(dir_fq_trim_data_sample, pe + '.txt')
         out_fs = [x.replace('@D@', dir_fq_trim_data_sample) for x in fpatt]
         out_fs = [x.replace('@N@', pe) for x in out_fs]
+        out_fs = [x + ext for x in out_fs]
         pe_fastq_files[pe]['trim_path_fq'] = out_fs
 
         if ope(dir_fq_trim_data_sample):
@@ -631,7 +811,7 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
 
             if fq_path_3 is not None:
 
-                out_f = opj(dir_fq_trim_data_sample, 'unpaired.fastq')
+                out_f = opj(dir_fq_trim_data_sample, 'unpaired.fastq' + ext)
                 stats_f = opj(dir_fq_trim_data_sample, pe + '_unpaired.txt')
 
                 linfo('Running Trimmomatic in SE mode: ' + pe +
@@ -646,9 +826,10 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
                     threads=threads,
                     minlen=min_acc_len)
 
-                _ = opj(dir_fq_trim_data_sample, 'temp.fastq')
-                f_temp = open(_, 'a')
-                with fileinput.input(files=[out_fs[2], out_f]) as f:
+                _ = opj(dir_fq_trim_data_sample, 'temp.fastq' + ext)
+                f_temp = fqopen(_, a_mode)
+                fi = fileinput.FileInput(openhook=fileinput.hook_compressed)
+                with fi.input(files=[out_fs[2], out_f]) as f:
                     for line in f:
                         f_temp.write(line)
                 f_temp.close()
@@ -659,16 +840,177 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
                 osremove(_)
 
 
-def trimmed_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
-                     fpatt, linfo=print): # noqa
+def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
+                confidence, kraken2, threads, dir_temp, fpatt, linfo=print):  # noqa
+
+    nuclear = ''
+    for nuc in order:
+        if nuc[1] == 'nuclear':
+            nuclear = nuc[0]
+            break
+
+    for se in se_fastq_files:
+        fq_path = se_fastq_files[se]['trim_path_fq']
+        dir_fq_filter_data_sample = opj(dir_fq_filter_data, se, nuclear)
+        out_f = opj(dir_fq_filter_data_sample, se + '.fastq')
+        se_fastq_files[se]['filter_path_fq'] = out_f
+        if ope(dir_fq_filter_data_sample):
+            linfo('Kraken2 filtered FASTQ file for sample ' + se +
+                  ' already exists')
+        else:
+            make_dir(dir_fq_filter_data_sample)
+            linfo('Running Kraken2 in SE mode: ' + se)
+            run_kraken_filters(
+                order=order,
+                dbs=dbs,
+                base_name=se,
+                in_files=fq_path,
+                dir_out=dir_fq_filter_data_sample,
+                confidence=confidence,
+                kraken2=kraken2,
+                threads=threads,
+                dir_temp=dir_temp,
+                linfo=linfo)
+
+    for pe in pe_fastq_files:
+        fq_path = pe_fastq_files[pe]['trim_path_fq']
+        dir_fq_filter_data_sample = opj(dir_fq_filter_data, pe, nuclear)
+        out_fs = [x.replace('@D@', dir_fq_filter_data_sample) for x in fpatt]
+        out_fs = [x.replace('@N@', pe) for x in out_fs]
+        pe_fastq_files[pe]['filter_path_fq'] = out_fs
+        if ope(dir_fq_filter_data_sample):
+            linfo('Kraken2 filtered FASTQ files for sample ' + pe +
+                  ' already exist')
+        else:
+            make_dir(dir_fq_filter_data_sample)
+            linfo('Running Kraken2 in PE mode: ' + pe)
+            run_kraken_filters(
+                order=order,
+                dbs=dbs,
+                base_name=pe,
+                in_files=fq_path,
+                dir_out=dir_fq_filter_data_sample,
+                confidence=confidence,
+                kraken2=kraken2,
+                threads=threads,
+                dir_temp=dir_temp,
+                linfo=linfo)
+
+
+def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
+               bowtie2, bowtie2_build, threads, dir_temp, filter_dir, dbs,
+               fpatt, rank, taxonomy, dir_cache_refseqs, linfo=print):  # noqa
+
+    new_se_fastq_files = dict()
+    new_pe_fastq_files = dict()
+
+    for db in dbs:
+
+        for se in se_fastq_files:
+            dir_fq_bt_data_sample = opj(dir_fq_filter_data, se, filter_dir, db)
+            dir_fq_filter_data_sample = opj(dir_fq_filter_data, se, filter_dir)
+            in_f = opj(dir_fq_filter_data_sample, se + '.fastq')
+            new_se = se + '_' + db
+            out_f = opj(dir_fq_bt_data_sample, new_se + '.fastq')
+            sam_f = opj(dir_fq_bt_data_sample, new_se + '.sam')
+            new_se_fastq_files[new_se] = deepcopy(se_fastq_files[se])
+            new_se_fastq_files[new_se]['path'] = None
+            new_se_fastq_files[new_se]['cor_path_fq'] = None
+            new_se_fastq_files[new_se]['trim_path_fq'] = None
+            taxid = new_se_fastq_files[new_se]['tax_id']
+            gc = new_se_fastq_files[new_se]['gc_id']
+            if db == 'mitochondrion':
+                gc = taxonomy.mito_genetic_code_for_taxid(taxid)
+                new_se_fastq_files[new_se]['gc_id'] = gc
+            elif db == 'chloroplast':
+                gc = taxonomy.plastid_genetic_code()
+                new_se_fastq_files[new_se]['gc_id'] = gc
+            new_se_fastq_files[new_se]['gc_tt'] = TranslationTable(gc)
+            new_se_fastq_files[new_se]['filter_path_fq'] = out_f
+            if ope(dir_fq_bt_data_sample):
+                linfo('Bowtie2 filtered FASTQ file for sample ' + new_se +
+                      ' already exists')
+            else:
+                linfo('Running Bowtie2 in SE mode: ' + new_se)
+                make_dir(dir_fq_bt_data_sample)
+                db_fasta_path = dnld_refseqs_for_taxid(
+                    taxid, db, rank, taxonomy, dir_cache_refseqs,
+                    db='nuccore', linfo=linfo)
+                bt2_idx_path = db_fasta_path.replace('.fasta', '')
+                build_bt2_index(bowtie2_build, [db_fasta_path], bt2_idx_path,
+                                threads)
+
+                run_bowtie2_se(bowtie2=bowtie2,
+                               input_file=in_f,
+                               output_file=out_f,
+                               sam_output_file=sam_f,
+                               index=bt2_idx_path,
+                               threads=threads,
+                               dir_temp=dir_temp)
+
+        for pe in pe_fastq_files:
+            dir_fq_bt_data_sample = opj(dir_fq_filter_data, pe, filter_dir, db)
+            dir_fq_filter_data_sample = opj(dir_fq_filter_data, pe, filter_dir)
+            in_fs = [x.replace('@D@', dir_fq_filter_data_sample) for x in fpatt]
+            in_fs = [x.replace('@N@', pe) for x in in_fs]
+            new_pe = pe + '_' + db
+            out_fs = [x.replace('@D@', dir_fq_bt_data_sample) for x in fpatt]
+            out_fs = [x.replace('@N@', new_pe) for x in out_fs]
+            sam_f = opj(dir_fq_bt_data_sample, new_pe + '.sam')
+            new_pe_fastq_files[new_pe] = deepcopy(pe_fastq_files[pe])
+            new_pe_fastq_files[new_pe]['path'] = None
+            new_pe_fastq_files[new_pe]['cor_path_fq'] = None
+            new_pe_fastq_files[new_pe]['trim_path_fq'] = None
+            taxid = new_pe_fastq_files[new_pe]['tax_id']
+            gc = new_pe_fastq_files[new_pe]['gc_id']
+            if db == 'mitochondrion':
+                gc = taxonomy.mito_genetic_code_for_taxid(taxid)
+                new_pe_fastq_files[new_pe]['gc_id'] = gc
+            elif db == 'chloroplast':
+                gc = taxonomy.plastid_genetic_code()
+                new_pe_fastq_files[new_pe]['gc_id'] = gc
+            new_pe_fastq_files[new_pe]['gc_tt'] = TranslationTable(gc)
+            new_pe_fastq_files[new_pe]['filter_path_fq'] = out_fs
+            if ope(dir_fq_bt_data_sample):
+                linfo('Bowtie2 filtered FASTQ files for sample ' + new_pe +
+                      ' already exist')
+            else:
+                linfo('Running Bowtie2 in PE mode: ' + new_pe)
+                make_dir(dir_fq_bt_data_sample)
+                db_fasta_path = dnld_refseqs_for_taxid(
+                    taxid, db, rank, taxonomy, dir_cache_refseqs,
+                    db='nuccore', linfo=linfo)
+                bt2_idx_path = db_fasta_path.replace('.fasta', '')
+                build_bt2_index(bowtie2_build, [db_fasta_path], bt2_idx_path,
+                                threads)
+
+                paired_out_pattern = out_fs[0].replace(
+                    '_paired_1.fastq', '_paired_%.fastq')
+
+                run_bowtie2_pe(bowtie2=bowtie2,
+                               input_files=in_fs,
+                               paired_out_pattern=paired_out_pattern,
+                               unpaired_out_1=out_fs[2],
+                               unpaired_out_2=out_fs[3],
+                               sam_output_file=sam_f,
+                               index=bt2_idx_path,
+                               threads=threads,
+                               dir_temp=dir_temp)
+
+    se_fastq_files.update(new_se_fastq_files)
+    pe_fastq_files.update(new_pe_fastq_files)
+
+
+def filtered_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
+                      fpatt, linfo=print): # noqa
     for se in se_fastq_files:
         dir_fa_trim_data_sample = opj(dir_fa_trim_data, se)
-        fq_path = se_fastq_files[se]['trim_path_fq']
+        fq_path = se_fastq_files[se]['filter_path_fq']
         out_f = opj(dir_fa_trim_data_sample, se + '.fasta')
-        se_fastq_files[se]['trim_path_fa'] = out_f
+        se_fastq_files[se]['filter_path_fa'] = out_f
 
         if ope(dir_fa_trim_data_sample):
-            linfo('Trimmed FASTA files for sample ' + se + ' already exist')
+            linfo('Filtered FASTA files for sample ' + se + ' already exist')
         else:
             make_dir(dir_fa_trim_data_sample)
             linfo('Converting FASTQ to FASTA using Seqtk: ' + fq_path)
@@ -676,13 +1018,13 @@ def trimmed_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
 
     for pe in pe_fastq_files:
         dir_fa_trim_data_sample = opj(dir_fa_trim_data, pe)
-        fq_paths = pe_fastq_files[pe]['trim_path_fq']
+        fq_paths = pe_fastq_files[pe]['filter_path_fq']
         out_fs = [x.replace('@D@', dir_fa_trim_data_sample) for x in fpatt]
         out_fs = [x.replace('@N@', pe) for x in out_fs]
-        pe_fastq_files[pe]['trim_path_fa'] = out_fs
+        pe_fastq_files[pe]['filter_path_fa'] = out_fs
 
         if ope(dir_fa_trim_data_sample):
-            linfo('Trimmed FASTA files for sample ' + pe + ' already exist')
+            linfo('Filtered FASTA files for sample ' + pe + ' already exist')
         else:
             make_dir(dir_fa_trim_data_sample)
             pe_trim_files = zip(fq_paths, out_fs)
@@ -695,7 +1037,7 @@ def makeblastdb_fq(se_fastq_files, pe_fastq_files, dir_blast_fa_trim,
                    makeblastdb, fpatt, linfo=print): # noqa
     for se in se_fastq_files:
         dir_blast_fa_trim_sample = opj(dir_blast_fa_trim, se)
-        fa_path = se_fastq_files[se]['trim_path_fa']
+        fa_path = se_fastq_files[se]['filter_path_fa']
         out_f = opj(dir_blast_fa_trim_sample, se)
         se_fastq_files[se]['blast_db_path'] = out_f
 
@@ -713,7 +1055,7 @@ def makeblastdb_fq(se_fastq_files, pe_fastq_files, dir_blast_fa_trim,
 
     for pe in pe_fastq_files:
         dir_blast_fa_trim_sample = opj(dir_blast_fa_trim, pe)
-        fa_paths = pe_fastq_files[pe]['trim_path_fa']
+        fa_paths = pe_fastq_files[pe]['filter_path_fa']
         out_fs = [x.replace('@D@', dir_blast_fa_trim_sample) for x in fpatt]
         out_fs = [x.replace('@N@', pe) for x in out_fs]
         pe_fastq_files[pe]['blast_db_path'] = out_fs
@@ -737,17 +1079,18 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                          tblastn, blast_1_evalue, blast_1_max_target_seqs,
                          blast_1_culling_limit, blast_1_qcov_hsp_perc,
                          dir_blast_results_fa_trim, fpatt, threads,
-                         genetic_code, seqtk, vsearch, linfo=print): # noqa
+                         seqtk, vsearch, linfo=print): # noqa
     ident = 0.85
 
     for se in se_fastq_files:
         dir_results = opj(dir_blast_results_fa_trim, se)
         blast_db_path = se_fastq_files[se]['blast_db_path']
-        fq_path = se_fastq_files[se]['trim_path_fq']
+        fq_path = se_fastq_files[se]['filter_path_fq']
         out_f = opj(dir_results, se + '.txt')
         out_f_fastq = out_f.replace('.txt', '.fastq')
         out_f_fasta = out_f.replace('.txt', '.fasta')
         se_fastq_files[se]['blast_results_path'] = out_f_fasta
+        genetic_code = se_fastq_files[se]['gc_id']
 
         if ope(dir_results):
             linfo('BLAST results for sample ' + se + ' already exists')
@@ -785,13 +1128,14 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
     for pe in pe_fastq_files:
         dir_results = opj(dir_blast_results_fa_trim, pe)
         blast_db_paths = pe_fastq_files[pe]['blast_db_path']
-        fq_paths = pe_fastq_files[pe]['trim_path_fq']
+        fq_paths = pe_fastq_files[pe]['filter_path_fq']
         out_fs = [x.replace('@D@', dir_results) for x in fpatt]
         out_fs = [x.replace('@N@', pe) for x in out_fs]
         out_fs_fastq = [x.replace('.txt', '.fastq') for x in out_fs]
         out_fs_fasta = [x.replace('.txt', '.fasta') for x in out_fs]
         out_f_fasta = opj(dir_results, pe + '.fasta')
         pe_fastq_files[pe]['blast_results_path'] = out_f_fasta
+        genetic_code = pe_fastq_files[pe]['gc_id']
 
         if ope(dir_results):
             linfo('BLAST results for sample ' + pe + ' already exist')
@@ -814,7 +1158,7 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                           db_genetic_code=genetic_code,
                           out_cols=BLST_RES_COLS_1)
 
-                linfo('\tExtracting unique BLAST hits using Seqtk')
+                linfo('Extracting unique BLAST hits using Seqtk')
 
                 keep_unique_lines_in_file(x[1])
 
@@ -844,7 +1188,7 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
         dir_results = opj(dir_vsearch_results_fa_trim, se)
         min_acc_len = se_fastq_files[se]['min_acc_len']
         blast_results_fa_path = se_fastq_files[se]['blast_results_path']
-        fq_path = se_fastq_files[se]['trim_path_fq']
+        fq_path = se_fastq_files[se]['filter_path_fq']
         out_f = opj(dir_results, se + '.txt')
         out_f_fastq = out_f.replace('.txt', '.fastq')
         se_fastq_files[se]['vsearch_results_path'] = out_f_fastq
@@ -870,7 +1214,7 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
         dir_results = opj(dir_vsearch_results_fa_trim, pe)
         min_acc_len = pe_fastq_files[pe]['min_acc_len']
         blast_results_fa_path = pe_fastq_files[pe]['blast_results_path']
-        fq_paths = pe_fastq_files[pe]['trim_path_fq']
+        fq_paths = pe_fastq_files[pe]['filter_path_fq']
         out_fs = [x.replace('@D@', dir_results) for x in fpatt]
         out_fs = [x.replace('@N@', pe) for x in out_fs]
         out_fs_fastq = [x.replace('.txt', '.fastq') for x in out_fs]
@@ -1036,7 +1380,7 @@ def makeblastdb_assemblies(assemblies, dir_prj_blast_assmbl, makeblastdb,
 def run_tblastn_on_assemblies(assemblies, aa_queries_file, tblastn,
                               dir_prj_assmbl_blast_results, blast_2_evalue,
                               blast_2_max_target_seqs, blast_2_culling_limit,
-                              blast_2_qcov_hsp_perc, threads, genetic_code,
+                              blast_2_qcov_hsp_perc, threads,
                               linfo=print):  # noqa
     if len(assemblies) > 0:
         linfo('Running BLAST on assemblies')
@@ -1045,6 +1389,7 @@ def run_tblastn_on_assemblies(assemblies, aa_queries_file, tblastn,
 
         assmbl_name = a['name']
         assmbl_blast_db_path = a['blast_db_path']
+        assmbl_genetic_code = a['gc_id']
 
         __ = opj(dir_prj_assmbl_blast_results, assmbl_name + '.tsv')
 
@@ -1064,13 +1409,13 @@ def run_tblastn_on_assemblies(assemblies, aa_queries_file, tblastn,
                       qcov_hsp_perc=blast_2_qcov_hsp_perc,
                       culling_limit=blast_2_culling_limit,
                       max_target_seqs=blast_2_max_target_seqs,
-                      db_genetic_code=genetic_code,
+                      db_genetic_code=assmbl_genetic_code,
                       out_cols=BLST_RES_COLS_2)
 
         a['blast_hits_aa'] = parse_blast_results_file(__, BLST_RES_COLS_2)
 
 
-def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
+def find_orfs_translate(assemblies, dir_prj_transcripts, seqtk,
                         dir_temp, prepend_assmbl, min_target_orf_len,
                         max_target_orf_len, allow_non_aug, allow_no_strt_cod,
                         allow_no_stop_cod, tax, tax_group, tax_ids_user,
@@ -1085,6 +1430,7 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, gc_tt, seqtk,
 
         parsed_hits = a['blast_hits_aa']
         a_path = a['path']
+        gc_tt = a['gc_tt']
 
         transcripts_nt_fasta_file = opj(
             dir_prj_transcripts, assmbl_name + '_transcripts_nt.fasta')

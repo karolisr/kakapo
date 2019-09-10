@@ -12,11 +12,13 @@ from __future__ import print_function
 from __future__ import with_statement
 
 import re
+from copy import copy
 from os.path import abspath
 from os.path import basename
 from os.path import dirname
 from os.path import expanduser
 from os.path import join
+from sys import exit
 
 from kakapo.py_v_diffs import ConfigParser
 from kakapo.helpers import list_of_files
@@ -24,7 +26,7 @@ from kakapo.helpers import replace_line_in_file
 from kakapo.ebi_domain_search import pfam_entry
 
 
-def _parse_taxa(taxa, tax_group, taxonomy, config_file_path):
+def _parse_taxa(taxa, tax_group, taxonomy, config_file_path, linfo=print):
     txids = list()
 
     for tax in taxa:
@@ -36,21 +38,21 @@ def _parse_taxa(taxa, tax_group, taxonomy, config_file_path):
                 name=tax, group_tax_id=tax_group)
 
             if txid is None:
-                # msg = 'NCBI taxonomy ID for ' + tax + ' could not be found.'
-                # print(msg)
-                replace_line_in_file(
-                    file_path=config_file_path,
-                    line_str=tax_orig,
-                    replace_str='; NCBI taxid not found: ' + tax)
+                msg = 'NCBI taxonomy ID for ' + tax + ' could not be found.'
+                linfo(msg)
+                # replace_line_in_file(
+                #     file_path=config_file_path,
+                #     line_str=tax_orig,
+                #     replace_str='; NCBI taxid not found: ' + tax)
 
             else:
                 txids.append(int(txid))
-                # msg = 'NCBI taxonomy ID for ' + tax + ' is ' + str(txid)
-                # print(msg)
-                replace_line_in_file(
-                    file_path=config_file_path,
-                    line_str=tax_orig,
-                    replace_str='; ' + tax + '\n' + str(txid))
+                msg = 'NCBI taxonomy ID for ' + tax + ' is ' + str(txid)
+                linfo(msg)
+                # replace_line_in_file(
+                #     file_path=config_file_path,
+                #     line_str=tax_orig,
+                #     replace_str='; ' + tax + '\n' + str(txid))
 
     return txids
 
@@ -81,7 +83,7 @@ def _parse_pfam(pfam_entries, config_file_path):
     return pfam_acc
 
 
-def config_file_parse(file_path, taxonomy):  # noqa
+def config_file_parse(file_path, taxonomy, linfo=print):  # noqa
     cfg = ConfigParser()
     cfg.optionxform = str
     cfg.read(file_path)
@@ -94,6 +96,7 @@ def config_file_parse(file_path, taxonomy):  # noqa
     inter_pro_scan = cfg.getboolean('General', 'run_inter_pro_scan')
     prepend_assmbl = cfg.getboolean('General',
                                     'prepend_assembly_name_to_sequence_name')
+    kraken_confidence = cfg.getfloat('General', 'kraken_2_confidence')
 
     # Target filters
     min_target_orf_len = cfg.getint('Target filters', 'min_target_orf_length')
@@ -104,39 +107,6 @@ def config_file_parse(file_path, taxonomy):  # noqa
                                        'allow_missing_start_codon')
     allow_no_stop_cod = cfg.getboolean('Target filters',
                                        'allow_missing_stop_codon')
-
-    # Target SRA accessions
-    sras = cfg.items('Target SRA accessions')
-    sras = [x[0] for x in sras]
-
-    # Target FASTQ files
-    fastq_temp = cfg.items('Target FASTQ files')
-
-    fq_pe = []
-    fq_se = []
-
-    for entry in fastq_temp:
-
-        key = entry[0]
-        val = entry[1]
-
-        if key.startswith('pe_'):
-            f_name = basename(val)
-            d_path = abspath(expanduser(dirname(val)))
-            pattern = re.escape(f_name).replace('\\*', '.')
-            files = list_of_files(d_path)
-            pe = [f for f in files if re.match(pattern, f) is not None]
-            pe.sort()
-            pe = [join(d_path, f) for f in pe]
-            fq_pe.append(pe)
-
-        elif key.startswith('se_'):
-            se = abspath(expanduser(val))
-            fq_se.append(se)
-
-    # Target assemblies: FASTA files (DNA)
-    assmbl = cfg.items('Target assemblies: FASTA files (DNA)')
-    assmbl = [abspath(expanduser(x[0])) for x in assmbl]
 
     # Query taxonomic group
     tax_group_raw = cfg.items('Query taxonomic group')
@@ -156,13 +126,84 @@ def config_file_parse(file_path, taxonomy):  # noqa
 
     tax_group = group_tax_ids[tax_group]
 
-    # Query taxa
-    taxa_temp = cfg.items('Query taxa')
-    taxa_temp = [x[0] for x in taxa_temp]
+    # Target SRA accessions
+    sras = cfg.items('Target SRA accessions')
+    sras = [x[0] for x in sras]
+
+    all_tax_ids = set()
+
+    # Target FASTQ files
+    fastq_temp = cfg.items('Target FASTQ files')
+
+    fq_pe = []
+    fq_se = []
+
+    for entry in fastq_temp:
+
+        key = entry[0]
+        val = entry[1]
+
+        val = val.split(':')
+        if len(val) == 1:
+            genus = basename(val[0]).split('_')[0]
+            val = [genus, val[0]]
+
+        taxa_temp = [val[0]]
+
+        tax_ids = _parse_taxa(taxa=taxa_temp,
+                              tax_group=tax_group,
+                              taxonomy=taxonomy,
+                              config_file_path=file_path,
+                              linfo=linfo)
+
+        if key.startswith('pe_'):
+            f_name = basename(val[1])
+            d_path = abspath(expanduser(dirname(val[1])))
+            pattern = re.escape(f_name).replace('\\*', '.')
+            try:
+                files = list_of_files(d_path, linfo=linfo)
+            except Exception:
+                exit(1)
+            pe = [f for f in files if re.match(pattern, f) is not None]
+            pe.sort()
+            pe = [join(d_path, f) for f in pe]
+            fq_pe.append([tax_ids[0], pe])
+
+        elif key.startswith('se_'):
+            se = abspath(expanduser(val[1]))
+            fq_se.append([tax_ids[0], se])
+
+        all_tax_ids.add(tax_ids[0])
+
+    # Target assemblies: FASTA files (DNA)
+    assmbl_temp = cfg.items('Target assemblies: FASTA files (DNA)')
+    assmbl_temp = [x[0].split(':') for x in assmbl_temp]
+
+    for i, val in enumerate(copy(assmbl_temp)):
+        if len(val) == 1:
+            genus = basename(val[0]).split('_')[0]
+            assmbl_temp[i] = [genus, val[0]]
+
+    taxa_temp = [x[0] for x in assmbl_temp]
+
     tax_ids = _parse_taxa(taxa=taxa_temp,
                           tax_group=tax_group,
                           taxonomy=taxonomy,
-                          config_file_path=file_path)
+                          config_file_path=file_path,
+                          linfo=linfo)
+
+    assmbl = [abspath(expanduser(x[1])) for x in assmbl_temp]
+    assmbl = list(zip(tax_ids, assmbl))
+
+    for tax_id in tax_ids:
+        all_tax_ids.add(tax_id)
+    all_tax_ids = tuple(sorted(all_tax_ids))
+
+    # Kraken2 filter order
+    krkn_sctn = 'Kraken2 filter order'
+    krkn_order = []
+    if cfg.has_section(krkn_sctn):
+        krkn_order = cfg.items(krkn_sctn)
 
     # Query filters
     min_query_length = cfg.getint('Query filters', 'min_query_length')
@@ -195,23 +236,10 @@ def config_file_parse(file_path, taxonomy):  # noqa
 
     # ------------------------------------------------------------------------
 
-    ret_dict = {'project_name': project_name,
-                'email': email,
-                'output_directory': output_directory,
-                'inter_pro_scan': inter_pro_scan,
-                'prepend_assmbl': prepend_assmbl,
-                'min_target_orf_len': min_target_orf_len,
-                'max_target_orf_len': max_target_orf_len,
-                'allow_non_aug': allow_non_aug,
+    ret_dict = {'allow_no_stop_cod': allow_no_stop_cod,
                 'allow_no_strt_cod': allow_no_strt_cod,
-                'allow_no_stop_cod': allow_no_stop_cod,
-                'sras': sras,
-                'fq_pe': fq_pe,
-                'fq_se': fq_se,
+                'allow_non_aug': allow_non_aug,
                 'assmbl': assmbl,
-                'min_query_length': min_query_length,
-                'max_query_length': max_query_length,
-                'user_queries': user_queries,
                 'blast_1_culling_limit': blast_1_culling_limit,
                 'blast_1_evalue': blast_1_evalue,
                 'blast_1_max_target_seqs': blast_1_max_target_seqs,
@@ -220,10 +248,25 @@ def config_file_parse(file_path, taxonomy):  # noqa
                 'blast_2_evalue': blast_2_evalue,
                 'blast_2_max_target_seqs': blast_2_max_target_seqs,
                 'blast_2_qcov_hsp_perc': blast_2_qcov_hsp_perc,
+                'email': email,
+                'fq_pe': fq_pe,
+                'fq_se': fq_se,
+                'inter_pro_scan': inter_pro_scan,
+                'kraken_confidence': kraken_confidence,
+                'krkn_order': krkn_order,
+                'max_query_length': max_query_length,
+                'max_target_orf_len': max_target_orf_len,
+                'min_query_length': min_query_length,
+                'min_target_orf_len': min_target_orf_len,
+                'output_directory': output_directory,
+                'pfam_acc': pfam_acc,
+                'prepend_assmbl': prepend_assmbl,
+                'project_name': project_name,
+                'prot_acc': prot_acc,
+                'sras': sras,
                 'tax_group': tax_group,
                 'tax_group_name': tax_group_name,
-                'tax_ids': tax_ids,
-                'pfam_acc': pfam_acc,
-                'prot_acc': prot_acc}
+                'tax_ids': all_tax_ids,
+                'user_queries': user_queries}
 
     return ret_dict

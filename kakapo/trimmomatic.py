@@ -16,6 +16,7 @@ def trimmomatic_se(trimmomatic, adapters, in_file, out_file, stats_file,
                    threads, minlen):  # noqa
 
     cmd = ['java', '-jar', trimmomatic, 'SE', '-threads', str(threads),
+           '-phred33',
            '-summary', stats_file, in_file, out_file,
            'ILLUMINACLIP:' + adapters + ':2:30:10',
            'SLIDINGWINDOW:4:20',
@@ -32,6 +33,7 @@ def trimmomatic_pe(trimmomatic, adapters, in_file_1, in_file_2,
                    stats_file, threads, minlen):  # noqa
 
     cmd = ['java', '-jar', trimmomatic, 'PE', '-threads', str(threads),
+           '-phred33',
            '-summary', stats_file,
            in_file_1, in_file_2,
            out_file_paired_1, out_file_unpaired_1,

@@ -36,11 +36,14 @@ CONGREE = '\033[0;92m'
 CONYELL = '\033[0;93m'
 CONSDFL = '\033[0m'
 
+MT_PT_KRKN_DB = 'mitochondrion_and_plastid'
+
 # Filesystem paths for configuration directory -------------------------------
 DIR_USR = os.path.expanduser('~')
 DIR_CFG = os.path.join(DIR_USR, '.config', __script_name__)
 DIR_DEP = os.path.join(DIR_CFG, 'dependencies')
 DIR_TAX = os.path.join(DIR_CFG, 'ncbi-taxonomy')
+DIR_KRK = os.path.join(DIR_CFG, 'kraken2_dbs')
 
 # Script Info ----------------------------------------------------------------
 SCRIPT_INFO = ('\n' +
