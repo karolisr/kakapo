@@ -274,6 +274,22 @@ def dnld_seqs_gb_format(term, db):  # noqa
     return efetch_results
 
 
+def dnld_seqs_fasta_format(term, db):  # noqa
+    epost_results = esearch_epost(term, db)
+    efetch_results = efetch_data(epost_results, lambda x: x.split('\n>'),
+                                 'fasta', 'text')
+
+    ret_list = []
+    for x in efetch_results:
+        x = x.strip('>\n')
+        x = '>' + x
+        ret_list.append(x)
+
+    ret_list = sorted(list(set(ret_list)))
+
+    return ret_list
+
+
 def dnld_cds_nt_fasta(term):  # noqa
     epost_results = esearch_epost(term, 'nuccore')
     efetch_results = efetch_data(epost_results, lambda x: x.split('\n>'),
