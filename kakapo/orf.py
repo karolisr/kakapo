@@ -18,7 +18,7 @@ from kakapo.helpers import overlap
 from kakapo.py_v_diffs import maketrans
 from kakapo.seq import reverse_complement
 
-CONTEXT_NT_CODES = maketrans('ACGTU', '01233')
+CONTEXT_NT_CODES = maketrans('ACGTUBDHKMNRSVWY', '0123344444444444')
 
 
 def get_codons(seq):
@@ -113,6 +113,7 @@ def start_codon_score_partial(seq, context):  # noqa
     stdev_gm = partial(stdev, xbar=geometric_mean(map(max, context)))
     weights = tuple(map(stdev_gm, context))
     seq_encoded = seq.translate(CONTEXT_NT_CODES)
+    context = [list(x) + [0] for x in context]
     data = tuple(zip(map(int, seq_encoded), context, weights))
     max_score = geometric_mean(map(lambda x: max(x[1]) * x[2], data))
     score = geometric_mean(starmap(lambda x, y, z: y[x] * z, data))
@@ -228,7 +229,8 @@ def find_orf_for_blast_hit(seq, frame, hit_start, hit_end,
 #     #         ('GTGTCTGATGATGAAATTCTTCA'),
 #     #         ('ATCAAAGAGTATGGAGCAGTTAA'),
 #     #         ('GTTTTTAATCATGGATTCGACCC'),
-#     #         ('ATGTATGTTTATGTGTGTGATGA'))
+#     #         ('ATGTATGTTTATGTGTGTGATGA'),
+#     #         ('NNNNNNNNNNATGNNNNNNNNNN'))
 
 #     # idx = 10
 #     # scores = map(lambda x:
