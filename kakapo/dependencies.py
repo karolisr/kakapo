@@ -17,7 +17,7 @@ import stat
 import sys
 import tarfile
 import zipfile
-
+from os.path import join as opj
 from shutil import move
 
 from kakapo.config import DIR_DEP, DIR_CFG, OS_ID, DIST_ID
@@ -90,15 +90,15 @@ def rcorrector_dir_name(path): # noqa
 # Seqtk
 def dep_check_seqtk(logger=print): # noqa
     url = 'https://github.com/lh3/seqtk/archive/master.zip'
-    dnld_path = os.path.join(DIR_DEP, 'seqtk.zip')
-    dir_bin = os.path.join(DIR_DEP, 'seqtk-master')
+    dnld_path = opj(DIR_DEP, 'seqtk.zip')
+    dir_bin = opj(DIR_DEP, 'seqtk-master')
 
     try:
         seqtk = 'seqtk'
         call(seqtk)
     except Exception:
         try:
-            seqtk = os.path.join(dir_bin, 'seqtk')
+            seqtk = opj(dir_bin, 'seqtk')
             call(seqtk)
         except Exception:
             logger('Seqtk was not found on this system, trying to download.')
@@ -109,7 +109,7 @@ def dep_check_seqtk(logger=print): # noqa
             try:
                 logger('Compiling Seqtk.')
                 call('make', cwd=dir_bin)
-                seqtk = os.path.join(dir_bin, 'seqtk')
+                seqtk = opj(dir_bin, 'seqtk')
                 call(seqtk)
             except Exception:
                 logger('Something went wrong while trying to compile Seqtk.')
@@ -133,7 +133,7 @@ def get_version_seqtk(seqtk):  # noqa
 
 def _write_trimmomatic_adapters_file(logger=print):
 
-    path_adapters = os.path.join(DIR_CFG, 'trimmomatic_adapters.fasta')
+    path_adapters = opj(DIR_DEP, 'trimmomatic_adapters.fasta')
 
     adapters = ('>TruSeq2_SE'
                 'AGATCGGAAGAGCTCGTATGCCGTCTTCTGCTTG'
@@ -185,9 +185,9 @@ def _write_trimmomatic_adapters_file(logger=print):
 def dep_check_trimmomatic(logger=print): # noqa
     url = ('http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/'
            'Trimmomatic-0.39.zip')
-    dnld_path = os.path.join(DIR_DEP, 'Trimmomatic-0.39.zip')
-    dir_bin = os.path.join(DIR_DEP, 'Trimmomatic-0.39')
-    trimmomatic = os.path.join(dir_bin, 'trimmomatic-0.39.jar')
+    dnld_path = opj(DIR_DEP, 'Trimmomatic-0.39.zip')
+    dir_bin = opj(DIR_DEP, 'Trimmomatic-0.39')
+    trimmomatic = opj(dir_bin, 'trimmomatic-0.39.jar')
 
     if not os.path.exists(trimmomatic):
         download_file(url, dnld_path)
@@ -200,7 +200,7 @@ def dep_check_trimmomatic(logger=print): # noqa
         sys.exit(1)
 
     logger('Trimmomatic is available: ' + trimmomatic)
-    path_adapters = _write_trimmomatic_adapters_file()
+    path_adapters = _write_trimmomatic_adapters_file(logger)
 
     return trimmomatic, path_adapters
 
@@ -215,26 +215,25 @@ def get_version_trimmomatic(trimmomatic):  # noqa
 # SRA Toolkit
 def dep_check_sra_toolkit(logger=print): # noqa
     if OS_ID == 'mac':
-        url = ('https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/current/'
-               'sratoolkit.current-mac64.tar.gz')
+        url = ('https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.9.6/'
+               'sratoolkit.2.9.6-mac64.tar.gz')
     elif OS_ID == 'linux':
         if DIST_ID in DEBIAN_DISTS:
-            url = ('https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/current/'
-                   'sratoolkit.current-ubuntu64.tar.gz')
+            url = ('https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.10.0/'
+                   'sratoolkit.2.10.0-ubuntu64.tar.gz')
         elif DIST_ID in REDHAT_DISTS:
-            url = ('https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/current/'
-                   'sratoolkit.current-centos_linux64.tar.gz')
+            url = ('https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.10.0/'
+                   'sratoolkit.2.10.0-centos_linux64.tar.gz')
 
-    dnld_path = os.path.join(DIR_DEP, 'sra-toolkit.tar.gz')
+    dnld_path = opj(DIR_DEP, 'sra-toolkit.tar.gz')
 
     try:
         fasterq_dump = 'fasterq-dump'
         call(fasterq_dump)
     except Exception:
         try:
-            dir_bin = os.path.join(DIR_DEP,
-                                   sra_toolkit_dir_name(path=DIR_DEP))
-            fasterq_dump = os.path.join(dir_bin, 'bin', 'fasterq-dump')
+            dir_bin = opj(DIR_DEP, sra_toolkit_dir_name(path=DIR_DEP))
+            fasterq_dump = opj(dir_bin, 'bin', 'fasterq-dump')
             call(fasterq_dump)
         except Exception:
             logger('SRA Toolkit was not found on this system, trying to '
@@ -244,9 +243,8 @@ def dep_check_sra_toolkit(logger=print): # noqa
             tar_ref.extractall(DIR_DEP)
             tar_ref.close()
 
-            dir_bin = os.path.join(DIR_DEP,
-                                   sra_toolkit_dir_name(path=DIR_DEP))
-            fasterq_dump = os.path.join(dir_bin, 'bin', 'fasterq-dump')
+            dir_bin = opj(DIR_DEP, sra_toolkit_dir_name(path=DIR_DEP))
+            fasterq_dump = opj(dir_bin, 'bin', 'fasterq-dump')
 
             if not os.path.exists(fasterq_dump):
                 logger('Could not download SRA Toolkit.')
@@ -271,10 +269,14 @@ def dep_check_blast(logger=print): # noqa
         url = ('https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.9.0/'
                'ncbi-blast-2.9.0+-x64-macosx.tar.gz')
     elif OS_ID == 'linux':
-        url = ('https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.9.0/'
-               'ncbi-blast-2.9.0+-x64-linux.tar.gz')
+        if DIST_ID in DEBIAN_DISTS:
+            url = ('https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.9.0/'
+                   'ncbi-blast-2.9.0+-x64-linux.tar.gz')
+        elif DIST_ID in REDHAT_DISTS:
+            url = ('https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.9.0/'
+                   'ncbi-blast-2.9.0+-x64-linux.tar.gz')
 
-    dnld_path = os.path.join(DIR_DEP, 'ncbi-blast.tar.gz')
+    dnld_path = opj(DIR_DEP, 'ncbi-blast.tar.gz')
 
     try:
         makeblastdb = 'makeblastdb'
@@ -283,10 +285,10 @@ def dep_check_blast(logger=print): # noqa
         call(makeblastdb)
     except Exception:
         try:
-            dir_bin = os.path.join(DIR_DEP, blast_dir_name(path=DIR_DEP))
-            makeblastdb = os.path.join(dir_bin, 'bin', 'makeblastdb')
-            blastn = os.path.join(dir_bin, 'bin', 'blastn')
-            tblastn = os.path.join(dir_bin, 'bin', 'tblastn')
+            dir_bin = opj(DIR_DEP, blast_dir_name(path=DIR_DEP))
+            makeblastdb = opj(dir_bin, 'bin', 'makeblastdb')
+            blastn = opj(dir_bin, 'bin', 'blastn')
+            tblastn = opj(dir_bin, 'bin', 'tblastn')
             call(makeblastdb)
         except Exception:
             logger('BLAST+ was not found on this system, trying to download.')
@@ -295,10 +297,10 @@ def dep_check_blast(logger=print): # noqa
             tar_ref.extractall(DIR_DEP)
             tar_ref.close()
 
-            dir_bin = os.path.join(DIR_DEP, blast_dir_name(path=DIR_DEP))
-            makeblastdb = os.path.join(dir_bin, 'bin', 'makeblastdb')
-            blastn = os.path.join(dir_bin, 'bin', 'blastn')
-            tblastn = os.path.join(dir_bin, 'bin', 'tblastn')
+            dir_bin = opj(DIR_DEP, blast_dir_name(path=DIR_DEP))
+            makeblastdb = opj(dir_bin, 'bin', 'makeblastdb')
+            blastn = opj(dir_bin, 'bin', 'blastn')
+            tblastn = opj(dir_bin, 'bin', 'tblastn')
 
             if not os.path.exists(makeblastdb) or \
                not os.path.exists(blastn) or \
@@ -324,15 +326,15 @@ def get_version_blast(any_blast_bin):  # noqa
 # VSEARCH
 def dep_check_vsearch(logger=print): # noqa
     url = 'https://github.com/torognes/vsearch/archive/master.tar.gz'
-    dnld_path = os.path.join(DIR_DEP, 'vsearch.tar.gz')
-    dir_bin = os.path.join(DIR_DEP, 'vsearch-master')
+    dnld_path = opj(DIR_DEP, 'vsearch.tar.gz')
+    dir_bin = opj(DIR_DEP, 'vsearch-master')
 
     try:
         vsearch = 'vsearch'
         call(vsearch)
     except Exception:
         try:
-            vsearch = os.path.join(dir_bin, 'bin', 'vsearch')
+            vsearch = opj(dir_bin, 'bin', 'vsearch')
             call(vsearch)
         except Exception:
             logger('Vsearch was not found on this system, trying to download.')
@@ -345,7 +347,7 @@ def dep_check_vsearch(logger=print): # noqa
                 call('./autogen.sh', cwd=dir_bin)
                 call('./configure', cwd=dir_bin)
                 call('make', cwd=dir_bin)
-                vsearch = os.path.join(dir_bin, 'bin', 'vsearch')
+                vsearch = opj(dir_bin, 'bin', 'vsearch')
                 call(vsearch)
             except Exception:
                 logger('Something went wrong while trying to compile Vsearch.')
@@ -375,15 +377,15 @@ def dep_check_spades(logger=print): # noqa
         url = ('http://cab.spbu.ru/files/release3.13.1/'
                'SPAdes-3.13.1-Linux.tar.gz')
 
-    dnld_path = os.path.join(DIR_DEP, 'SPAdes.tar.gz')
+    dnld_path = opj(DIR_DEP, 'SPAdes.tar.gz')
 
     try:
         spades = 'spades.py'
         call(spades)
     except Exception:
         try:
-            dir_bin = os.path.join(DIR_DEP, spades_dir_name(path=DIR_DEP))
-            spades = os.path.join(dir_bin, 'bin', 'spades.py')
+            dir_bin = opj(DIR_DEP, spades_dir_name(path=DIR_DEP))
+            spades = opj(dir_bin, 'bin', 'spades.py')
             call(spades)
         except Exception:
             logger('SPAdes was not found on this system, trying to download.')
@@ -392,8 +394,8 @@ def dep_check_spades(logger=print): # noqa
             tar_ref.extractall(DIR_DEP)
             tar_ref.close()
             try:
-                dir_bin = os.path.join(DIR_DEP, spades_dir_name(path=DIR_DEP))
-                spades = os.path.join(dir_bin, 'bin', 'spades.py')
+                dir_bin = opj(DIR_DEP, spades_dir_name(path=DIR_DEP))
+                spades = opj(dir_bin, 'bin', 'spades.py')
                 call(spades)
             except Exception:
                 logger('Could not download SPAdes.')
@@ -421,7 +423,7 @@ def dep_check_bowtie2(logger=print): # noqa
         url = ('https://sourceforge.net/projects/bowtie-bio/files/bowtie2/'
                '2.3.5.1/bowtie2-2.3.5.1-linux-x86_64.zip/download')
 
-    dnld_path = os.path.join(DIR_DEP, 'bowtie2.zip')
+    dnld_path = opj(DIR_DEP, 'bowtie2.zip')
 
     try:
         bowtie2 = 'bowtie2'
@@ -430,9 +432,9 @@ def dep_check_bowtie2(logger=print): # noqa
         call(bowtie2_build)
     except Exception:
         try:
-            dir_bin = os.path.join(DIR_DEP, bowtie2_dir_name(path=DIR_DEP))
-            bowtie2 = os.path.join(dir_bin, 'bowtie2')
-            bowtie2_build = os.path.join(dir_bin, 'bowtie2-build')
+            dir_bin = opj(DIR_DEP, bowtie2_dir_name(path=DIR_DEP))
+            bowtie2 = opj(dir_bin, 'bowtie2')
+            bowtie2_build = opj(dir_bin, 'bowtie2-build')
             call(bowtie2)
             call(bowtie2_build)
         except Exception:
@@ -443,9 +445,9 @@ def dep_check_bowtie2(logger=print): # noqa
             zip_ref.extractall(DIR_DEP)
             zip_ref.close()
 
-            dir_bin = os.path.join(DIR_DEP, bowtie2_dir_name(path=DIR_DEP))
-            bowtie2 = os.path.join(dir_bin, 'bowtie2')
-            bowtie2_build = os.path.join(dir_bin, 'bowtie2-build')
+            dir_bin = opj(DIR_DEP, bowtie2_dir_name(path=DIR_DEP))
+            bowtie2 = opj(dir_bin, 'bowtie2')
+            bowtie2_build = opj(dir_bin, 'bowtie2-build')
 
             bowtie2_execs = ('',
                              '-align-l',
@@ -485,11 +487,11 @@ def get_version_bowtie2(bowtie2):  # noqa
     return v
 
 
-# Kraken 2
+# Kraken2
 def dep_check_kraken2(logger=print): # noqa
     url = ('https://github.com/karolisr/kraken2/archive/master.tar.gz')
 
-    dnld_path = os.path.join(DIR_DEP, 'kraken2.tar.gz')
+    dnld_path = opj(DIR_DEP, 'kraken2.tar.gz')
 
     try:
         kraken2 = 'kraken2'
@@ -498,34 +500,34 @@ def dep_check_kraken2(logger=print): # noqa
         call(kraken2_build)
     except Exception:
         try:
-            dir_bin = os.path.join(DIR_DEP, kraken2_dir_name(path=DIR_DEP))
-            kraken2 = os.path.join(dir_bin, 'bin', 'kraken2')
-            kraken2_build = os.path.join(dir_bin, 'bin', 'kraken2-build')
+            dir_bin = opj(DIR_DEP, kraken2_dir_name(path=DIR_DEP))
+            kraken2 = opj(dir_bin, 'bin', 'kraken2')
+            kraken2_build = opj(dir_bin, 'bin', 'kraken2-build')
             call(kraken2)
             call(kraken2_build)
         except Exception:
-            logger('Kraken 2 was not found on this system, trying to '
+            logger('Kraken2 was not found on this system, trying to '
                    'download.')
             download_file(url, dnld_path)
             tar_ref = tarfile.open(dnld_path, 'r:gz')
             tar_ref.extractall(DIR_DEP)
             tar_ref.close()
 
-            dir_bin = os.path.join(DIR_DEP, kraken2_dir_name(path=DIR_DEP))
-            kraken2 = os.path.join(dir_bin, 'bin', 'kraken2')
-            kraken2_build = os.path.join(dir_bin, 'bin', 'kraken2-build')
+            dir_bin = opj(DIR_DEP, kraken2_dir_name(path=DIR_DEP))
+            kraken2 = opj(dir_bin, 'bin', 'kraken2')
+            kraken2_build = opj(dir_bin, 'bin', 'kraken2-build')
 
             try:
-                logger('Compiling Kraken 2')
+                logger('Compiling Kraken2')
                 call(['./install_kraken2.sh', 'bin'], cwd=dir_bin)
             except Exception:
                 logger('Something went wrong while trying to compile '
-                       'Kraken 2.')
+                       'Kraken2.')
                 logger('Try downloading and installing it manually from: '
                        'https://github.com/DerrickWood/kraken2')
 
             if not os.path.exists(kraken2):
-                logger('Could not download Kraken 2.')
+                logger('Could not download Kraken2.')
                 sys.exit(1)
 
     logger('kraken2 is available: ' + kraken2)
@@ -545,18 +547,16 @@ def get_version_kraken2(kraken2):  # noqa
 
 def download_kraken2_dbs(dbs_path):  # noqa
 
-    kraken2_dbs = dict()
-
     base_kraken2_url = 'ftp://ftp.ccb.jhu.edu/pub/data/kraken2_dbs/'
 
     # ------------------------------------------------------------------------
 
     base = '16S_Silva_20190418'
     url = base_kraken2_url + base + '.tgz'
-    tgz = os.path.join(dbs_path, base + '.tgz')
-    p_orig = os.path.join(dbs_path, base)
+    tgz = opj(dbs_path, base + '.tgz')
+    p_orig = opj(dbs_path, base)
     db_name = '16S_Silva'
-    p_new = os.path.join(dbs_path, db_name)
+    p_new = opj(dbs_path, db_name)
 
     if not os.path.exists(p_new):
         download_file(url=url, local_path=tgz, protocol='ftp')
@@ -565,17 +565,15 @@ def download_kraken2_dbs(dbs_path):  # noqa
         tar_ref.close()
         os.remove(tgz)
         move(p_orig, p_new)
-
-    kraken2_dbs['16S'] = db_name
 
     # ------------------------------------------------------------------------
 
     base = 'minikraken2_v2_8GB_201904_UPDATE'
     url = base_kraken2_url + base + '.tgz'
-    tgz = os.path.join(dbs_path, base + '.tgz')
-    p_orig = os.path.join(dbs_path, base)
+    tgz = opj(dbs_path, base + '.tgz')
+    p_orig = opj(dbs_path, base)
     db_name = 'minikraken2_v2'
-    p_new = os.path.join(dbs_path, db_name)
+    p_new = opj(dbs_path, db_name)
 
     if not os.path.exists(p_new):
         download_file(url=url, local_path=tgz, protocol='ftp')
@@ -584,8 +582,6 @@ def download_kraken2_dbs(dbs_path):  # noqa
         tar_ref.close()
         os.remove(tgz)
         move(p_orig, p_new)
-
-    kraken2_dbs['minikraken'] = db_name
 
     # ------------------------------------------------------------------------
 
@@ -594,8 +590,8 @@ def download_kraken2_dbs(dbs_path):  # noqa
     base = 'mitochondrion_and_plastid'
     garb = 'vkbp7iys6s76tvf/'
     url = base_dropbox_url + garb + base + '.tar.gz?dl=1'
-    tgz = os.path.join(dbs_path, base + '.tar.gz')
-    p = os.path.join(dbs_path, base)
+    tgz = opj(dbs_path, base + '.tar.gz')
+    p = opj(dbs_path, base)
 
     if not os.path.exists(p):
         download_file(url=url, local_path=tgz, protocol='http')
@@ -603,8 +599,6 @@ def download_kraken2_dbs(dbs_path):  # noqa
         tar_ref.extractall(dbs_path)
         tar_ref.close()
         os.remove(tgz)
-
-    kraken2_dbs['mt_pt'] = base
 
     # ------------------------------------------------------------------------
 
@@ -613,8 +607,8 @@ def download_kraken2_dbs(dbs_path):  # noqa
     base = 'mitochondrion'
     garb = '6liwneb26uvjuec/'
     url = base_dropbox_url + garb + base + '.tar.gz?dl=1'
-    tgz = os.path.join(dbs_path, base + '.tar.gz')
-    p = os.path.join(dbs_path, base)
+    tgz = opj(dbs_path, base + '.tar.gz')
+    p = opj(dbs_path, base)
 
     if not os.path.exists(p):
         download_file(url=url, local_path=tgz, protocol='http')
@@ -622,8 +616,6 @@ def download_kraken2_dbs(dbs_path):  # noqa
         tar_ref.extractall(dbs_path)
         tar_ref.close()
         os.remove(tgz)
-
-    kraken2_dbs['mt'] = base
 
     # ------------------------------------------------------------------------
 
@@ -632,8 +624,8 @@ def download_kraken2_dbs(dbs_path):  # noqa
     base = 'plastid'
     garb = 's9vdg4mxrfy1szn/'
     url = base_dropbox_url + garb + base + '.tar.gz?dl=1'
-    tgz = os.path.join(dbs_path, base + '.tar.gz')
-    p = os.path.join(dbs_path, base)
+    tgz = opj(dbs_path, base + '.tar.gz')
+    p = opj(dbs_path, base)
 
     if not os.path.exists(p):
         download_file(url=url, local_path=tgz, protocol='http')
@@ -641,8 +633,6 @@ def download_kraken2_dbs(dbs_path):  # noqa
         tar_ref.extractall(dbs_path)
         tar_ref.close()
         os.remove(tgz)
-
-    kraken2_dbs['pt'] = base
 
     # ------------------------------------------------------------------------
 
@@ -651,8 +641,8 @@ def download_kraken2_dbs(dbs_path):  # noqa
     base = 'viral'
     garb = '7xz31c7vw088n27/'
     url = base_dropbox_url + garb + base + '.tar.gz?dl=1'
-    tgz = os.path.join(dbs_path, base + '.tar.gz')
-    p = os.path.join(dbs_path, base)
+    tgz = opj(dbs_path, base + '.tar.gz')
+    p = opj(dbs_path, base)
 
     if not os.path.exists(p):
         download_file(url=url, local_path=tgz, protocol='http')
@@ -661,25 +651,24 @@ def download_kraken2_dbs(dbs_path):  # noqa
         tar_ref.close()
         os.remove(tgz)
 
-    kraken2_dbs['viral'] = base
-
     # ------------------------------------------------------------------------
 
+    kraken2_dbs = {k: opj(dbs_path, k) for k in list_of_dirs(dbs_path)}
     return kraken2_dbs
 
 
 # Rcorrector
 def dep_check_rcorrector(logger=print): # noqa
     url = 'https://github.com/mourisl/Rcorrector/archive/v1.0.4.tar.gz'
-    dnld_path = os.path.join(DIR_DEP, 'rcorrector.tar.gz')
+    dnld_path = opj(DIR_DEP, 'rcorrector.tar.gz')
 
     try:
         rcorrector = 'run_rcorrector.pl'
         call(rcorrector)
     except Exception:
         try:
-            dir_bin = os.path.join(DIR_DEP, rcorrector_dir_name(path=DIR_DEP))
-            rcorrector = os.path.join(dir_bin, 'run_rcorrector.pl')
+            dir_bin = opj(DIR_DEP, rcorrector_dir_name(path=DIR_DEP))
+            rcorrector = opj(dir_bin, 'run_rcorrector.pl')
             call(rcorrector)
         except Exception:
             logger('Rcorrector was not found on this system, trying to '
@@ -688,11 +677,11 @@ def dep_check_rcorrector(logger=print): # noqa
             tar_ref = tarfile.open(dnld_path, 'r:gz')
             tar_ref.extractall(DIR_DEP)
             tar_ref.close()
-            dir_bin = os.path.join(DIR_DEP, rcorrector_dir_name(path=DIR_DEP))
+            dir_bin = opj(DIR_DEP, rcorrector_dir_name(path=DIR_DEP))
             try:
                 logger('Compiling Rcorrector.')
                 call('make', cwd=dir_bin)
-                rcorrector = os.path.join(dir_bin, 'run_rcorrector.pl')
+                rcorrector = opj(dir_bin, 'run_rcorrector.pl')
                 os.chmod(rcorrector, stat.S_IRWXU | stat.S_IRGRP |
                          stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
                 call(rcorrector)

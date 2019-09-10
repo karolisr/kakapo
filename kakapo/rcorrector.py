@@ -9,8 +9,9 @@ from __future__ import nested_scopes
 from __future__ import print_function
 from __future__ import with_statement
 
+from kakapo.helpers import plain_or_gzip
 from kakapo.shell import call
-from kakapo.py_v_diffs import zip_longest
+from kakapo.helpers import grouper
 
 
 def run_rcorrector_se(rcorrector, in_file, out_dir, threads, dir_temp):  # noqa
@@ -43,22 +44,16 @@ def run_rcorrector_pe(rcorrector, in_file_1, in_file_2, out_dir, threads,
 # https://github.com/harvardinformatics/TranscriptomeAssemblyTools
 
 
-def _grouper(iterable, n, fillvalue=None):
-    """
-    Break the data into fixed-length chunks or blocks.
-
-    Allows parsing of a (FASTQ) file n (4) lines at a time."""
-    args = [iter(iterable)] * n
-    return zip_longest(fillvalue=fillvalue, *args)
-
-
 def filter_unc_se(in_file, out_file, log_file=None):  # noqa
+
+    r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(in_file)
+
     counter = 0
     cor_count = 0
     unc_count = 0
 
-    with open(in_file, 'r') as in_f, open(out_file, 'w') as out_f:
-        entries = _grouper(in_f, 4)
+    with fqopen(in_file, r_mode) as in_f, fqopen(out_file, w_mode) as out_f:
+        entries = grouper(in_f, 4)
         for entry in entries:
             counter += 1
             # if counter % 100000 == 0:
@@ -95,19 +90,21 @@ def filter_unc_se(in_file, out_file, log_file=None):  # noqa
 
 def filter_unc_pe(in_file_1, in_file_2, out_file_1, out_file_2, log_file=None):  # noqa
 
+    r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(in_file_1)
+
     counter = 0
     cor_1_count = 0
     cor_2_count = 0
     cor_12_count = 0
     unc_count = 0
 
-    with open(in_file_1, 'r') as in_f_1, \
-            open(in_file_2, 'r') as in_f_2, \
-            open(out_file_1, 'w') as out_f_1, \
-            open(out_file_2, 'w') as out_f_2:
+    with fqopen(in_file_1, r_mode) as in_f_1, \
+            fqopen(in_file_2, r_mode) as in_f_2, \
+            fqopen(out_file_1, w_mode) as out_f_1, \
+            fqopen(out_file_2, w_mode) as out_f_2:
 
-        entries_1 = _grouper(in_f_1, 4)
-        entries_2 = _grouper(in_f_2, 4)
+        entries_1 = grouper(in_f_1, 4)
+        entries_2 = grouper(in_f_2, 4)
 
         for entry_1 in entries_1:
             entry_2 = next(entries_2)

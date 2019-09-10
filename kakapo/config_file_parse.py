@@ -96,6 +96,7 @@ def config_file_parse(file_path, taxonomy, linfo=print):  # noqa
     inter_pro_scan = cfg.getboolean('General', 'run_inter_pro_scan')
     prepend_assmbl = cfg.getboolean('General',
                                     'prepend_assembly_name_to_sequence_name')
+    kraken_confidence = cfg.getfloat('General', 'kraken_2_confidence')
 
     # Target filters
     min_target_orf_len = cfg.getint('Target filters', 'min_target_orf_length')
@@ -198,6 +199,12 @@ def config_file_parse(file_path, taxonomy, linfo=print):  # noqa
         all_tax_ids.add(tax_id)
     all_tax_ids = tuple(sorted(all_tax_ids))
 
+    # Kraken2 filter order
+    krkn_sctn = 'Kraken2 filter order'
+    krkn_order = []
+    if cfg.has_section(krkn_sctn):
+        krkn_order = cfg.items(krkn_sctn)
+
     # Query filters
     min_query_length = cfg.getint('Query filters', 'min_query_length')
     max_query_length = cfg.getint('Query filters', 'max_query_length')
@@ -229,23 +236,10 @@ def config_file_parse(file_path, taxonomy, linfo=print):  # noqa
 
     # ------------------------------------------------------------------------
 
-    ret_dict = {'project_name': project_name,
-                'email': email,
-                'output_directory': output_directory,
-                'inter_pro_scan': inter_pro_scan,
-                'prepend_assmbl': prepend_assmbl,
-                'min_target_orf_len': min_target_orf_len,
-                'max_target_orf_len': max_target_orf_len,
-                'allow_non_aug': allow_non_aug,
+    ret_dict = {'allow_no_stop_cod': allow_no_stop_cod,
                 'allow_no_strt_cod': allow_no_strt_cod,
-                'allow_no_stop_cod': allow_no_stop_cod,
-                'sras': sras,
-                'fq_pe': fq_pe,
-                'fq_se': fq_se,
+                'allow_non_aug': allow_non_aug,
                 'assmbl': assmbl,
-                'min_query_length': min_query_length,
-                'max_query_length': max_query_length,
-                'user_queries': user_queries,
                 'blast_1_culling_limit': blast_1_culling_limit,
                 'blast_1_evalue': blast_1_evalue,
                 'blast_1_max_target_seqs': blast_1_max_target_seqs,
@@ -254,10 +248,25 @@ def config_file_parse(file_path, taxonomy, linfo=print):  # noqa
                 'blast_2_evalue': blast_2_evalue,
                 'blast_2_max_target_seqs': blast_2_max_target_seqs,
                 'blast_2_qcov_hsp_perc': blast_2_qcov_hsp_perc,
+                'email': email,
+                'fq_pe': fq_pe,
+                'fq_se': fq_se,
+                'inter_pro_scan': inter_pro_scan,
+                'kraken_confidence': kraken_confidence,
+                'krkn_order': krkn_order,
+                'max_query_length': max_query_length,
+                'max_target_orf_len': max_target_orf_len,
+                'min_query_length': min_query_length,
+                'min_target_orf_len': min_target_orf_len,
+                'output_directory': output_directory,
+                'pfam_acc': pfam_acc,
+                'prepend_assmbl': prepend_assmbl,
+                'project_name': project_name,
+                'prot_acc': prot_acc,
+                'sras': sras,
                 'tax_group': tax_group,
                 'tax_group_name': tax_group_name,
                 'tax_ids': all_tax_ids,
-                'pfam_acc': pfam_acc,
-                'prot_acc': prot_acc}
+                'user_queries': user_queries}
 
     return ret_dict
