@@ -11,17 +11,18 @@ from __future__ import nested_scopes
 from __future__ import print_function
 from __future__ import with_statement
 
+from datetime import datetime
+from ftplib import FTP
+from operator import itemgetter
+from os.path import splitext
+from urllib.parse import urlparse
 import fileinput
+import gzip
 import hashlib
 import os
-from ftplib import FTP
-from urllib.parse import urlparse
-
-from datetime import datetime
-from operator import itemgetter
 
 from kakapo.http_k import download_file as download_file_http
-
+from kakapo.py_v_diffs import zip_longest
 
 def debug_print(msg=''): # noqa
     from kakapo.config import DEBUG_MODE
@@ -108,7 +109,7 @@ def combine_text_files(paths, out_path):  # noqa
 
 def sys_ram():  # noqa
     ram_b = os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES')
-    ram_g = ram_b / (1024**3)
+    ram_g = ram_b / (1024 ** 3)
     return ram_g
 
 
@@ -143,3 +144,78 @@ def download_file(url, local_path, protocol='http'):  # noqa
                 ftp.retrbinary(cmd='RETR ' + path,
                                callback=lambda x: f.write(x),
                                blocksize=8192 * 32)
+
+
+def splitext_gz(path):
+    """
+    Split extension for files that may have a double extension: x.y.(gz|gzip)
+
+    Return ('x', '.y', '.(gz|gzip)')
+    """
+    ext = splitext(path)
+    ext_gz = None
+    ext_fq = None
+
+    if ext[1] in ('.gz', '.gzip'):
+        ext_gz = ext[1]
+        ext = splitext(ext[0])
+
+    ext_fq = ext[1]
+    base = ext[0]
+
+    return base, ext_fq, ext_gz
+
+
+def _gzip_open(filename, mode='rt', compresslevel=5, encoding=None,
+               errors=None, newline=None):
+    return gzip.open(filename, mode, compresslevel, encoding, errors, newline)
+
+
+def plain_or_gzip(in_file):  # noqa
+    read_mode = 'r'
+    write_mode = 'w'
+    append_mode = 'a'
+    fqopen = open
+    ext = ''
+
+    ext_info = splitext_gz(in_file)
+    if ext_info[2] is not None:
+        read_mode = 'rt'
+        write_mode = 'wt'
+        append_mode = 'at'
+        fqopen = _gzip_open
+        ext = ext_info[2]
+
+    return read_mode, write_mode, append_mode, fqopen, ext
+
+
+def grouper(iterable, n, fillvalue=None):
+    """
+    Break the data into fixed-length chunks or blocks.
+
+    Allows parsing of a (FASTQ) file n (4) lines at a time.
+
+    Edited from "Transcriptome workshop at Botany 2018"
+    Ya Yang and Stephen A. Smith, which was modified from the code in:
+    FilterUncorrectabledPEfastq.py file by Adam H. Freedman:
+    https://github.com/harvardinformatics/TranscriptomeAssemblyTools
+    """
+    args = [iter(iterable)] * n
+    return zip_longest(fillvalue=fillvalue, *args)
+
+
+def split_mixed_fq(in_file, out_file_1, out_file_2):  # noqa
+
+    r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(in_file)
+
+    with fqopen(in_file, r_mode) as in_f, \
+            fqopen(out_file_1, w_mode) as out_f_1, \
+            fqopen(out_file_2, w_mode) as out_f_2:
+        entries = grouper(in_f, 4)
+        for entry in entries:
+            head, seq, plhld, qual = [i.strip() for i in entry]
+            entry_str = '\n'.join([head, seq, plhld, qual])
+            if ' 1:N:' in head:
+                out_f_1.write('{}\n'.format(entry_str))
+            elif ' 2:N:' in head:
+                out_f_2.write('{}\n'.format(entry_str))
