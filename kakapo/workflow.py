@@ -23,6 +23,7 @@ from os.path import commonprefix
 from os.path import exists as ope
 from os.path import join as opj
 from os.path import splitext
+from os.path import sep as ops
 from shutil import copyfile
 from shutil import rmtree
 from sys import exit
@@ -851,8 +852,8 @@ def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
 
     for se in se_fastq_files:
         fq_path = se_fastq_files[se]['trim_path_fq']
-        dir_fq_filter_data_sample = opj(dir_fq_filter_data, se, nuclear)
-        out_f = opj(dir_fq_filter_data_sample, se + '.fastq')
+        dir_fq_filter_data_sample = opj(dir_fq_filter_data, se)
+        out_f = opj(dir_fq_filter_data_sample, nuclear, se + '.fastq')
         se_fastq_files[se]['filter_path_fq'] = out_f
         if ope(dir_fq_filter_data_sample):
             linfo('Kraken2 filtered FASTQ file for sample ' + se +
@@ -874,8 +875,9 @@ def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
 
     for pe in pe_fastq_files:
         fq_path = pe_fastq_files[pe]['trim_path_fq']
-        dir_fq_filter_data_sample = opj(dir_fq_filter_data, pe, nuclear)
-        out_fs = [x.replace('@D@', dir_fq_filter_data_sample) for x in fpatt]
+        dir_fq_filter_data_sample = opj(dir_fq_filter_data, pe)
+        dir_name_nuclear = dir_fq_filter_data_sample + ops + nuclear
+        out_fs = [x.replace('@D@', dir_name_nuclear) for x in fpatt]
         out_fs = [x.replace('@N@', pe) for x in out_fs]
         pe_fastq_files[pe]['filter_path_fq'] = out_fs
         if ope(dir_fq_filter_data_sample):
