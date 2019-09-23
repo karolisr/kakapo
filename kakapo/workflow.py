@@ -907,7 +907,7 @@ def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
 
 def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
                bowtie2, bowtie2_build, threads, dir_temp, filter_dir, dbs,
-               fpatt, ranks, taxonomy, dir_cache_refseqs, linfo=print):  # noqa
+               fpatt, taxonomy, dir_cache_refseqs, linfo=print):  # noqa
 
     new_se_fastq_files = dict()
     new_pe_fastq_files = dict()
