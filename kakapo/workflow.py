@@ -187,7 +187,10 @@ def dnld_refseqs_for_taxid(taxid, filter_term, taxonomy,
         term = '"RefSeq"[Keyword] AND "{}"[Primary Organism] AND "{}"[filter]'.format(tax_term, filter_term)
         accs = set(esearch(term=term, db=db)['ids'])
         if len(accs) > 0:
-            linfo('Found {} RefSeq {} sequences for {}.'.format(len(accs), filter_term, tax_term))
+            plural = 'sequences'
+            if len(accs) == 1:
+                plural = 'sequence'
+            linfo('Found {} RefSeq {} {} for {}.'.format(len(accs), filter_term, plural, tax_term))
             break
         else:
             linfo('No RefSeq {} sequences were found for {}.'.format(filter_term, tax_term))
