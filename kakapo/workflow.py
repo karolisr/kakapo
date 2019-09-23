@@ -555,10 +555,13 @@ def user_fastq_files(fq_se, fq_pe, linfo=print): # noqa
         tax_id = se[0]
         path = se[1]
         base = basename(path)
+        if plain_or_gzip(base)[4] != '':
+            base = splitext(base)[0]
+        base = splitext(base)[0]
         fq_type_1_match = re.findall(fq_type_1_regex, base)
         if len(fq_type_1_match) > 0 and len(fq_type_1_match[0]) == 3:
-            base = ''.join(fq_type_1_match[0])
-        sample_base_name = splitext(base)[0].split('_R')[0]
+            base = fq_type_1_match[0][0]
+        sample_base_name = base
         se_fastq_files[sample_base_name] = {'path': path}
         se_fastq_files[sample_base_name]['src'] = 'usr'
         se_fastq_files[sample_base_name]['avg_len'] = None
@@ -569,10 +572,12 @@ def user_fastq_files(fq_se, fq_pe, linfo=print): # noqa
         tax_id = pe[0]
         path = pe[1]
         base = basename(path[0])
+        if plain_or_gzip(base)[4] != '':
+            base = splitext(base)[0]
+        base = splitext(base)[0]
         fq_type_1_match = re.findall(fq_type_1_regex, base)
         if len(fq_type_1_match) > 0 and len(fq_type_1_match[0]) == 3:
-            base = ''.join(fq_type_1_match[0])
-            base = splitext(base)[0].split('_R')[0]
+            base = fq_type_1_match[0][0]
         else:
             base = basename(commonprefix(path)).rstrip('_- R')
         sample_base_name = base
