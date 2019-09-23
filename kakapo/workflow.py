@@ -182,13 +182,15 @@ def dnld_refseqs_for_taxid(taxid, filter_term, taxonomy,
                            dir_cache_refseqs, db='nuccore', linfo=print):  # noqa
     tax_terms = tuple(reversed(taxonomy.lineage_for_taxid(taxid)['names']))
     for tax_term in tax_terms:
-        print(tax_term)
         if tax_term is None:
             tax_term = taxonomy.scientific_name_for_taxid(taxid)
         term = '"RefSeq"[Keyword] AND "{}"[Primary Organism] AND "{}"[filter]'.format(tax_term, filter_term)
         accs = set(esearch(term=term, db=db)['ids'])
         if len(accs) > 0:
+            linfo('Found {} RefSeq {} sequences for {}.'.format(len(accs), filter_term, tax_term))
             break
+        else:
+            linfo('No RefSeq {} sequences were found for {}.'.format(filter_term, tax_term))
     cache_path = opj(dir_cache_refseqs, filter_term + '_' + tax_term + '.fasta')
     parsed_fasta_cache = {}
     if ope(cache_path):
