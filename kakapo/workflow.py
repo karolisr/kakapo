@@ -181,6 +181,8 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
 def dnld_refseqs_for_taxid(taxid, filter_term, rank, taxonomy,
                            dir_cache_refseqs, db='nuccore', linfo=print):  # noqa
     tax_term = taxonomy.higher_rank_for_taxid(taxid, rank=rank)
+    if tax_term is None:
+        tax_term = taxonomy.scientific_name_for_taxid(taxid)
     term = '"RefSeq"[Keyword] AND "{}"[Primary Organism] AND "{}"[filter]'.format(tax_term, filter_term)
     accs = set(esearch(term=term, db=db)['ids'])
     cache_path = opj(dir_cache_refseqs, filter_term + '_' + tax_term + '.fasta')
