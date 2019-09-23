@@ -234,10 +234,19 @@ def esummary(data, api_key=None):  # noqa
 
 
 def esearch_epost(term, db):  # noqa
+    id_list = list()
     if type(term) in (list, tuple):
-        term = ' OR '.join(term)
-    esearch_results = esearch(term, db)
-    id_list = esearch_results['ids']
+        count = len(term)
+        max_count = 200
+        for strt in range(0, count, max_count):
+            term_temp = term[strt:strt + min(count, max_count)]
+            term_temp = ' OR '.join(term_temp)
+            esearch_results = esearch(term_temp, db)
+            id_list = id_list + list(esearch_results['ids'])
+    else:
+        term_temp = term
+        esearch_results = esearch(term_temp, db)
+        id_list = id_list + list(esearch_results['ids'])
     if len(id_list) > 0:
         epost_results = epost(id_list, db)
     else:
