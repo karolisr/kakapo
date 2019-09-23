@@ -400,11 +400,9 @@ def main():
     krkn_dbs_used = [x[0] for x in krkn_order]
     if MT_PT_KRKN_DB in krkn_dbs_used:
         dbs = ('mitochondrion', 'chloroplast')
-        ranks = ('species', 'genus', 'family', 'order', 'class', 'phylum',
-                 'kingdom')
         run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
                    bowtie2, bowtie2_build, THREADS, dir_temp, MT_PT_KRKN_DB, dbs,
-                   pe_trim_fq_file_patterns, ranks, tax, dir_cache_refseqs, linfo)
+                   pe_trim_fq_file_patterns, tax, dir_cache_refseqs, linfo)
 
     se_fastq_files = OrderedDict(se_fastq_files)
     pe_fastq_files = OrderedDict(pe_fastq_files)

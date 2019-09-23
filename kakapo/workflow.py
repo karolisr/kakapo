@@ -178,10 +178,11 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
     return ret_dict
 
 
-def dnld_refseqs_for_taxid(taxid, filter_term, ranks, taxonomy,
+def dnld_refseqs_for_taxid(taxid, filter_term, taxonomy,
                            dir_cache_refseqs, db='nuccore', linfo=print):  # noqa
-    for rank in ranks:
-        tax_term = taxonomy.higher_rank_for_taxid(taxid, rank=rank)
+    tax_terms = tuple(reversed(taxonomy.lineage_for_taxid(taxid)['names']))
+    for tax_term in tax_terms:
+        print(tax_term)
         if tax_term is None:
             tax_term = taxonomy.scientific_name_for_taxid(taxid)
         term = '"RefSeq"[Keyword] AND "{}"[Primary Organism] AND "{}"[filter]'.format(tax_term, filter_term)
@@ -941,7 +942,7 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
                 linfo('Running Bowtie2 in SE mode: ' + new_se)
                 make_dir(dir_fq_bt_data_sample)
                 db_fasta_path = dnld_refseqs_for_taxid(
-                    taxid, db, ranks, taxonomy, dir_cache_refseqs,
+                    taxid, db, taxonomy, dir_cache_refseqs,
                     db='nuccore', linfo=linfo)
                 bt2_idx_path = db_fasta_path.replace('.fasta', '')
                 build_bt2_index(bowtie2_build, [db_fasta_path], bt2_idx_path,
@@ -985,7 +986,7 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
                 linfo('Running Bowtie2 in PE mode: ' + new_pe)
                 make_dir(dir_fq_bt_data_sample)
                 db_fasta_path = dnld_refseqs_for_taxid(
-                    taxid, db, ranks, taxonomy, dir_cache_refseqs,
+                    taxid, db, taxonomy, dir_cache_refseqs,
                     db='nuccore', linfo=linfo)
                 bt2_idx_path = db_fasta_path.replace('.fasta', '')
                 build_bt2_index(bowtie2_build, [db_fasta_path], bt2_idx_path,
