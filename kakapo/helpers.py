@@ -118,6 +118,8 @@ def time_stamp():  # noqa
 
 
 def overlap(a, b):  # noqa
+    a = sorted(a)
+    b = sorted(b)
     ab = tuple(sorted((a, b), key=itemgetter(0)))
     if ab[0][1] <= ab[1][0]:
         overlap = 0
