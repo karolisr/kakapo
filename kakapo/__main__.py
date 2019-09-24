@@ -285,12 +285,12 @@ def main():
     rcorrector = deps.dep_check_rcorrector(linfo)
 
     # Resolve descending taxonomy nodes --------------------------------------
-    tax_ids = descending_tax_ids(tax_ids_user, tax, linfo)
-    if tax_ids is None:
-        tax_ids = [tax_group]
+    # tax_ids = descending_tax_ids(tax_ids_user, tax, linfo)
+    # if tax_ids is None:
+    #     tax_ids = [tax_group]
 
     # Pfam uniprot accessions ------------------------------------------------
-    pfam_uniprot_acc = pfam_uniprot_accessions(pfam_acc, tax_ids,
+    pfam_uniprot_acc = pfam_uniprot_accessions(pfam_acc, [tax_group],
                                                dir_cache_pfam_acc, linfo)
 
     # Download Pfam uniprot sequences if needed ------------------------------
@@ -476,7 +476,6 @@ def main():
         assemblies.append(a)
 
     assemblies = sorted(assemblies, key=itemgetter('name'), reverse=False)
-
 
     # Run makeblastdb on assemblies  -----------------------------------------
     makeblastdb_assemblies(assemblies, dir_prj_blast_assmbl, makeblastdb,
