@@ -285,12 +285,13 @@ def main():
     rcorrector = deps.dep_check_rcorrector(linfo)
 
     # Resolve descending taxonomy nodes --------------------------------------
+    tax_ids = descending_tax_ids([tax_group], tax, linfo)
     # tax_ids = descending_tax_ids(tax_ids_user, tax, linfo)
     # if tax_ids is None:
     #     tax_ids = [tax_group]
 
     # Pfam uniprot accessions ------------------------------------------------
-    pfam_uniprot_acc = pfam_uniprot_accessions(pfam_acc, [tax_group],
+    pfam_uniprot_acc = pfam_uniprot_accessions(pfam_acc, tax_ids,
                                                dir_cache_pfam_acc, linfo)
 
     # Download Pfam uniprot sequences if needed ------------------------------
