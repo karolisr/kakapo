@@ -97,10 +97,17 @@ PARSER.add_argument(
     help='Path to a {} project configuration file.'.format(__script_name__))
 
 PARSER.add_argument(
+    '--stop-after-filter',
+    action='store_true',
+    required=False,
+    dest='STOP_AFTER_FILTER',
+    help='Stop {} after Kraken2/Bowtie2 filtering step.'.format(__script_name__))
+
+PARSER.add_argument(
     '--force-deps',
     action='store_true',
     required=False,
-    dest='CLEAN_CONFIG_DIR',
+    dest='FORCE_DEPS',
     help='Force the use of {}-installed dependencies,\neven if they are '
          'already available on the system.'.format(__script_name__))
 
@@ -130,6 +137,7 @@ ARGS = PARSER.parse_args()
 
 CLEAN_CONFIG_DIR = ARGS.CLEAN_CONFIG_DIR
 CONFIG_FILE_PATH = ARGS.CONFIG_FILE_PATH
+STOP_AFTER_FILTER = ARGS.STOP_AFTER_FILTER
 PRINT_VERSION = ARGS.PRINT_VERSION
 PRINT_HELP = ARGS.PRINT_HELP
 
@@ -413,7 +421,12 @@ def main():
     pe_fastq_files = OrderedDict(sorted(pe_fastq_files.items(),
                                         key=lambda x: x[1]['filter_path_fq']))
 
-    # Convert filtered FASTQ files to FASTA -----------------------------------
+    # Stop After Filter ------------------------------------------------------
+    if STOP_AFTER_FILTER is True:
+        linfo('Stopping after Kraken2/Bowtie2 filtering step as requested.')
+        exit(0)
+
+    # Convert filtered FASTQ files to FASTA ----------------------------------
     filtered_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
                       pe_trim_fa_file_patterns, linfo)
 
