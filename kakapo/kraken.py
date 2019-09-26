@@ -87,6 +87,7 @@ def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,
         in_file = in_files
         _, in_file_ext, _ = splitext_gz(in_file)
         for i, db in enumerate(dbs_ordered):
+            linfo('Filtering SE reads using Kraken2 database: ' + db)
             dir_out_db = opj(dir_out, db)
             make_dir(dir_out_db)
             report_file = opj(dir_out_db, base_name + '.txt')
@@ -125,6 +126,7 @@ def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,
             in_file = in_files[2]
 
             for i, db in enumerate(dbs_ordered):
+                linfo('Filtering unpaired forward reads using Kraken2 database: ' + db)
                 dir_out_db = opj(dir_out, db)
                 make_dir(dir_out_db)
                 report_file = opj(dir_out_db, base_name + '_unpaired_1.txt')
@@ -153,6 +155,7 @@ def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,
             in_file = in_files[3]
 
             for i, db in enumerate(dbs_ordered):
+                linfo('Filtering unpaired reverse reads using Kraken2 database: ' + db)
                 dir_out_db = opj(dir_out, db)
                 make_dir(dir_out_db)
                 report_file = opj(dir_out_db, base_name + '_unpaired_2.txt')
@@ -179,6 +182,7 @@ def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,
                               in_file_ext))
 
         for i, db in enumerate(dbs_ordered):
+            linfo('Filtering paired reads using Kraken2 database: ' + db)
             dir_out_db = opj(dir_out, db)
             make_dir(dir_out_db)
             report_file = opj(dir_out_db, base_name + '_paired.txt')
