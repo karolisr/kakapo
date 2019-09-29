@@ -137,16 +137,27 @@ def find_orf_for_blast_hit(seq, frame, hit_start, hit_end,
     assert type(frame) is int
 
     seq_len = len(seq)
-    hit_len = hit_end - hit_start
+    seq_local = seq
+
+    print(hit_start, hit_end)
+
+    if frame > 0:
+        hit_len = hit_end - hit_start
+
+    else:
+        seq_local = reverse_complement(seq)
+        hit_start = seq_len - hit_start
+        hit_end = seq_len - hit_end
+        hit_len = hit_end - hit_start
+
+    print(hit_start, hit_end, hit_len)
+
     min_len = hit_len * 0.85
 
     results = get_orf_coords_for_frames(seq, start_codons, stop_codons,
                                         min_len, frames=(frame,))
-    orfs = list()
-    seq_local = seq
 
-    if frame < 0:
-        seq_local = reverse_complement(seq)
+    orfs = list()
 
     for r in results:
 
