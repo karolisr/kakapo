@@ -65,8 +65,8 @@ def get_orf_coords_for_forward_frame(seq, start_codons, stop_codons,
     coords_filtered = tuple(filter(lambda x: x[1] - x[0] >= min_len, coords))
     if len(coords_filtered) > 0:
         used_start_codons = tuple(map(lambda x: x[0] // 3, coords))
-        seq = reduce(add, ['...' if i in used_start_codons else x
-                           for i, x in enumerate(get_codons(seq))])
+        seq = seq[:offset % 3] + reduce(add, ['...' if i in used_start_codons else x
+                                              for i, x in enumerate(get_codons(seq[offset % 3:]))])
         new_start = min(tuple(chain.from_iterable(coords_filtered))) + 4
         coords_filtered += get_orf_coords_for_forward_frame(
             seq, start_codons, stop_codons, min_len, frame=new_start)
