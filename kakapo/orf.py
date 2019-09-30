@@ -139,29 +139,27 @@ def find_orf_for_blast_hit(seq, frame, hit_start, hit_end,
     seq_len = len(seq)
     seq_local = seq
 
-    print(hit_start, hit_end)
-
     if frame > 0:
         hit_len = hit_end - hit_start
+        frames = [1, 2, 3]
 
     else:
         seq_local = reverse_complement(seq)
-        hit_start = seq_len - hit_start
-        hit_end = seq_len - hit_end
+        hit_start_temp = hit_start
+        hit_start = hit_end
+        hit_end = hit_start_temp
         hit_len = hit_end - hit_start
+        frames = [-1, -2, -3]
 
-    print(hit_start, hit_end, hit_len)
-
-    min_len = hit_len * 0.85
+    min_len = 100
 
     results = get_orf_coords_for_frames(seq, start_codons, stop_codons,
-                                        min_len, frames=(frame,))
-
+                                        min_len, frames=frames)
     orfs = list()
 
     for r in results:
 
-        assert frame == r['frame']
+        orf_frame = r['frame']
         orf_coords = r['orf_coords']
 
         for loc in orf_coords:
@@ -185,7 +183,7 @@ def find_orf_for_blast_hit(seq, frame, hit_start, hit_end,
                          'sc_score': sc_score,
                          'context': context,
                          'orf_seq': orf,
-                         'frame': frame})
+                         'frame': orf_frame})
 
     orfs = sorted(orfs, key=itemgetter('sc_score'), reverse=True)
 
@@ -198,15 +196,15 @@ def find_orf_for_blast_hit(seq, frame, hit_start, hit_end,
         sc_score = orf['sc_score']
         context = orf['context']
         orf_seq = orf['orf_seq']
-        frame = orf['frame']
+        orf_frame = orf['frame']
 
         orf_len = orf_end - orf_start
         ovrlp = overlap((hit_start, hit_end), (orf_start, orf_end))
         ovrlp = ovrlp / max(orf_len, hit_len)
 
-        if good_orf is None and ovrlp >= 0.80:
+        if good_orf is None and orf_frame == frame and ovrlp >= 0.90:
 
-            print('{:3d}'.format(frame),
+            print('{:3d}'.format(orf_frame),
                   '{:3d}'.format(len(orfs)),
                   '{:.4f}'.format(sc_score),
                   context.rjust(10),
@@ -215,9 +213,9 @@ def find_orf_for_blast_hit(seq, frame, hit_start, hit_end,
                   orf_seq[13:53],
                   end='')
 
-            good_orf = (orf_start, orf_end)
+            good_orf = (orf_start, orf_end, orf_frame)
         else:
-            bad_orfs.append((orf_start, orf_end))
+            bad_orfs.append((orf_start, orf_end, orf_frame))
 
     return good_orf, bad_orfs
 

@@ -98,17 +98,16 @@ def gff_orf_bad_blast_hit(json_dict):  # noqa
         ann = rec['kakapo_annotations']
 
         # ORF bad annotation -------------------------------------------------
-        if 'orfs_bad' not in ann or \
-           'frame' not in ann:
+        if 'orfs_bad' not in ann:
             continue
 
-        frame = ann['frame']
         orfs_bad = ann['orfs_bad']
 
         for i, bad in enumerate(orfs_bad):
 
             orf_begin = bad['orf_begin']
             orf_end = bad['orf_end']
+            orf_frame = bad['orf_frame']
             entry_orf = gff_template()
             entry_orf['seqid'] = rec_key
             entry_orf['source'] = 'KAKAPO'
@@ -118,7 +117,7 @@ def gff_orf_bad_blast_hit(json_dict):  # noqa
             entry_orf['score'] = '.'
             entry_orf['strand'] = '+'
             entry_orf['phase'] = str(0)
-            name = 'name=ORF BAD {} frame {}'.format(i, frame)
+            name = 'name=ORF BAD {} frame {}'.format(i, orf_frame)
             entry_orf['attributes'] = name
             gff = gff + gff_text(entry_orf)
 

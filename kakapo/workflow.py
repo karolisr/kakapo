@@ -1581,6 +1581,7 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, seqtk,
             a['annotations'][target_name] = {}
 
             good_orf = orf[0]
+            bad_orfs = orf[1]
             if good_orf is not None:
 
                 print(' :: ' + target_name, end='')
@@ -1634,15 +1635,17 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, seqtk,
 
                 else:
                     print(' INVALID')
+                    bad_orfs.append(good_orf)
 
-            bad_orfs = orf[1]
             if len(bad_orfs) > 0:
                 a['annotations'][target_name]['orfs_bad'] = list()
                 orfs_bad_list = a['annotations'][target_name]['orfs_bad']
 
             for bad_orf in bad_orfs:
 
-                if hit_frame > 0:
+                bad_orf_frame = bad_orf[2]
+
+                if bad_orf_frame > 0:
                     ann_orf_b = bad_orf[0]
                     ann_orf_e = bad_orf[1] + 3
                     orf_seq = target_seq[ann_orf_b:ann_orf_e]
@@ -1654,30 +1657,9 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, seqtk,
                 orf_bad_dict = dict()
                 orf_bad_dict['orf_begin'] = ann_orf_b
                 orf_bad_dict['orf_end'] = ann_orf_e
+                orf_bad_dict['orf_frame'] = abs(bad_orf_frame)
 
-                ##############################################################
-                valid_orf = True
-
-                if allow_non_aug is False and \
-                        orf_seq[0:3] != 'ATG':
-                    valid_orf = False
-
-                elif allow_no_strt_cod is False and \
-                        orf_seq[0:3] not in start_codons:
-                    valid_orf = False
-
-                elif allow_no_stop_cod is False and \
-                        orf_seq[-3:] not in stop_codons:
-                    valid_orf = False
-
-                elif len(orf_seq) < min_target_orf_len:
-                    valid_orf = False
-
-                elif len(orf_seq) > max_target_orf_len:
-                    valid_orf = False
-                ##############################################################
-                if valid_orf is True:
-                    orfs_bad_list.append(orf_bad_dict)
+                orfs_bad_list.append(orf_bad_dict)
 
             transcripts_nt[target_name] = target_seq
 
