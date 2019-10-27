@@ -80,12 +80,12 @@ def _no_spaces(name, sep='_'):
 
 def write_fasta(data, f, handle_types=HANDLE_TYPES):
     """Write FASTA"""
-    def rec_name(r):
+    def rec_defn(r):
         org = r['organism']
-        dfn = r['definition'].replace(org, '').strip(' []')
-        x = r['accession'] + '.' + r['version'] + '|' + \
-            dfn.title() + '|' + org
-        return x
+        defn = r['definition']
+        accv = r['accession'] + '.' + r['version']
+        defn_new = accv + '|' + defn + '|' + org
+        return defn_new
 
     def rec_seq(r):
         return r['seq'].upper()
@@ -102,7 +102,7 @@ def write_fasta(data, f, handle_types=HANDLE_TYPES):
         text = dict_to_fasta(data)
 
     elif type(data) in (list, tuple):
-        names = map(_no_spaces, map(rec_name, data))
+        names = map(_no_spaces, map(rec_defn, data))
         seqs = map(rec_seq, data)
         fasta_dict = {k: v for (k, v) in zip(names, seqs)}
         text = dict_to_fasta(fasta_dict)
