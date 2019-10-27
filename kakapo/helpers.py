@@ -221,3 +221,13 @@ def split_mixed_fq(in_file, out_file_1, out_file_2):  # noqa
                 out_f_1.write('{}\n'.format(entry_str))
             elif ' 2:N:' in head:
                 out_f_2.write('{}\n'.format(entry_str))
+
+
+def split_seq_defn_for_printing(defn):  # noqa
+    defn_split = defn.split(' ')
+    defn_a = defn_split[0]
+    defn_b = ' '.join(defn_split[1:]).split('|')[0]
+    defn_b = defn_b.replace('_', ' ').replace('-', ' ')
+    defn_b = defn_b[0].upper() + defn_b[1:]
+    defn_b = defn_b.split('; RevComp')[0]
+    return defn_a, defn_b
