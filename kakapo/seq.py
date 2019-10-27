@@ -94,6 +94,14 @@ def translate(seq, trans_table, start_codons):  # noqa
     return translated
 
 
+def untranslate(seq, trans_table_inv):  # noqa
+    seq = seq.upper()
+    tt = trans_table_inv
+    tt['X'] = ('NNN',)
+    unt = ''.join(tuple(map(lambda x: tt[x][0], seq)))
+    return unt
+
+
 class Seq(object):
     """
     Seq
