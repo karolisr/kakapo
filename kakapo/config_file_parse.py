@@ -18,6 +18,7 @@ from os.path import basename
 from os.path import dirname
 from os.path import expanduser
 from os.path import join
+from os.path import exists as ope
 from sys import exit
 
 from kakapo.py_v_diffs import ConfigParser
@@ -195,6 +196,17 @@ def config_file_parse(file_path, taxonomy, linfo=print):  # noqa
     assmbl = [abspath(expanduser(x[1])) for x in assmbl_temp]
     assmbl = list(zip(tax_ids, assmbl))
 
+    all_assemblies_found = True
+    for a in assmbl:
+        a_path = a[1]
+        if not ope(a_path):
+            linfo('Cannot find the assembly file: ' + a_path)
+            all_assemblies_found = False
+
+    if all_assemblies_found is False:
+        linfo('Stopping.')
+        exit(1)
+
     for tax_id in tax_ids:
         all_tax_ids.add(tax_id)
     all_tax_ids = tuple(sorted(all_tax_ids))
@@ -208,11 +220,16 @@ def config_file_parse(file_path, taxonomy, linfo=print):  # noqa
     # Query filters
     min_query_length = cfg.getint('Query filters', 'min_query_length')
     max_query_length = cfg.getint('Query filters', 'max_query_length')
+    max_query_identity = cfg.getfloat('Query filters', 'max_query_identity')
 
     # Query Pfam families
     pfam_temp = cfg.items('Query Pfam families')
     pfam_temp = [x[0] for x in pfam_temp]
     pfam_acc = _parse_pfam(pfam_entries=pfam_temp, config_file_path=file_path)
+
+    # Query NCBI Entrez search
+    entrez_queries = cfg.items('Query NCBI Entrez search')
+    entrez_queries = [x[0] for x in entrez_queries]
 
     # Query NCBI protein accessions
     prot_acc = cfg.items('Query NCBI protein accessions')
@@ -223,16 +240,20 @@ def config_file_parse(file_path, taxonomy, linfo=print):  # noqa
     user_queries = [abspath(expanduser(x[0])) for x in user_queries]
 
     # BLAST SRA/FASTQ
-    blast_1_evalue = cfg.get('BLAST SRA/FASTQ', 'evalue')
-    blast_1_max_target_seqs = cfg.get('BLAST SRA/FASTQ', 'max_target_seqs')
-    blast_1_qcov_hsp_perc = cfg.get('BLAST SRA/FASTQ', 'qcov_hsp_perc')
-    blast_1_culling_limit = cfg.get('BLAST SRA/FASTQ', 'culling_limit')
+    blast_1_evalue = cfg.getfloat('BLAST SRA/FASTQ', 'evalue')
+    blast_1_max_hsps = cfg.getint('BLAST SRA/FASTQ', 'max_hsps')
+    blast_1_qcov_hsp_perc = cfg.getfloat('BLAST SRA/FASTQ', 'qcov_hsp_perc')
+    blast_1_best_hit_overhang = cfg.getfloat('BLAST SRA/FASTQ', 'best_hit_overhang')
+    blast_1_best_hit_score_edge = cfg.getfloat('BLAST SRA/FASTQ', 'best_hit_score_edge')
+    blast_1_max_target_seqs = cfg.getint('BLAST SRA/FASTQ', 'max_target_seqs')
 
     # BLAST assemblies
-    blast_2_evalue = cfg.get('BLAST assemblies', 'evalue')
-    blast_2_max_target_seqs = cfg.get('BLAST assemblies', 'max_target_seqs')
-    blast_2_qcov_hsp_perc = cfg.get('BLAST assemblies', 'qcov_hsp_perc')
-    blast_2_culling_limit = cfg.get('BLAST assemblies', 'culling_limit')
+    blast_2_evalue = cfg.getfloat('BLAST assemblies', 'evalue')
+    blast_2_max_hsps = cfg.getint('BLAST assemblies', 'max_hsps')
+    blast_2_qcov_hsp_perc = cfg.getfloat('BLAST assemblies', 'qcov_hsp_perc')
+    blast_2_best_hit_overhang = cfg.getfloat('BLAST assemblies', 'best_hit_overhang')
+    blast_2_best_hit_score_edge = cfg.getfloat('BLAST assemblies', 'best_hit_score_edge')
+    blast_2_max_target_seqs = cfg.getint('BLAST assemblies', 'max_target_seqs')
 
     # ------------------------------------------------------------------------
 
@@ -240,14 +261,21 @@ def config_file_parse(file_path, taxonomy, linfo=print):  # noqa
                 'allow_no_strt_cod': allow_no_strt_cod,
                 'allow_non_aug': allow_non_aug,
                 'assmbl': assmbl,
-                'blast_1_culling_limit': blast_1_culling_limit,
+
                 'blast_1_evalue': blast_1_evalue,
-                'blast_1_max_target_seqs': blast_1_max_target_seqs,
+                'blast_1_max_hsps': blast_1_max_hsps,
                 'blast_1_qcov_hsp_perc': blast_1_qcov_hsp_perc,
-                'blast_2_culling_limit': blast_2_culling_limit,
+                'blast_1_best_hit_overhang': blast_1_best_hit_overhang,
+                'blast_1_best_hit_score_edge': blast_1_best_hit_score_edge,
+                'blast_1_max_target_seqs': blast_1_max_target_seqs,
+
                 'blast_2_evalue': blast_2_evalue,
-                'blast_2_max_target_seqs': blast_2_max_target_seqs,
+                'blast_2_max_hsps': blast_2_max_hsps,
                 'blast_2_qcov_hsp_perc': blast_2_qcov_hsp_perc,
+                'blast_2_best_hit_overhang': blast_2_best_hit_overhang,
+                'blast_2_best_hit_score_edge': blast_2_best_hit_score_edge,
+                'blast_2_max_target_seqs': blast_2_max_target_seqs,
+
                 'email': email,
                 'fq_pe': fq_pe,
                 'fq_se': fq_se,
@@ -257,11 +285,13 @@ def config_file_parse(file_path, taxonomy, linfo=print):  # noqa
                 'max_query_length': max_query_length,
                 'max_target_orf_len': max_target_orf_len,
                 'min_query_length': min_query_length,
+                'max_query_identity': max_query_identity,
                 'min_target_orf_len': min_target_orf_len,
                 'output_directory': output_directory,
                 'pfam_acc': pfam_acc,
                 'prepend_assmbl': prepend_assmbl,
                 'project_name': project_name,
+                'entrez_queries': entrez_queries,
                 'prot_acc': prot_acc,
                 'sras': sras,
                 'tax_group': tax_group,

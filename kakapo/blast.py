@@ -19,7 +19,8 @@ from collections import Counter
 from kakapo.shell import call
 
 BLST_RES_COLS_1 = ['sseqid']
-BLST_RES_COLS_2 = ['sseqid', 'evalue', 'sframe', 'sstart', 'send', 'qseqid']
+BLST_RES_COLS_2 = ['sseqid', 'evalue', 'qcovhsp', 'sframe', 'sstart', 'send',
+                   'qseqid']
 
 
 def make_blast_db(exec_file, in_file, out_file, title, dbtype='nucl'):
@@ -34,8 +35,9 @@ def make_blast_db(exec_file, in_file, out_file, title, dbtype='nucl'):
 
 
 def run_blast(exec_file, task, threads, db_path, queries_file, out_file,
-              evalue, qcov_hsp_perc, culling_limit, max_target_seqs,
-              db_genetic_code, out_cols=BLST_RES_COLS_1):
+              evalue, max_hsps, qcov_hsp_perc, best_hit_overhang,
+              best_hit_score_edge, max_target_seqs, db_genetic_code,
+              out_cols=BLST_RES_COLS_1):
     """Wrap blastn and tblastn"""
     exec_name = os.path.basename(exec_file)
     if exec_name in ['tblastn', ]:
@@ -49,11 +51,14 @@ def run_blast(exec_file, task, threads, db_path, queries_file, out_file,
            '-db', db_path,
            '-query', queries_file,
            '-out', out_file,
-           '-evalue', evalue,
            '-outfmt', '6 delim=\t ' + ' '.join(out_cols),
-           '-qcov_hsp_perc', qcov_hsp_perc,
-           '-culling_limit', culling_limit,
-           '-max_target_seqs', max_target_seqs]
+           '-evalue', str(evalue),
+           '-max_hsps', str(max_hsps),
+           '-qcov_hsp_perc', str(qcov_hsp_perc),
+           '-best_hit_overhang', str(best_hit_overhang),
+           '-best_hit_score_edge', str(best_hit_score_edge),
+           '-max_target_seqs', str(max_target_seqs),
+           ]
 
     cmd = cmd + db_genetic_code
     call(cmd)
@@ -78,6 +83,8 @@ def parse_blast_results_file(blast_results_file, col_names=BLST_RES_COLS_2):  # 
 
     for rec in parsed_raw:
         subject = rec['sseqid']
+        query = rec['qseqid']
+        evalue = float(rec['evalue'])
         frame = int(rec['sframe'])
         start = int(rec['sstart'])
         end = int(rec['send'])
@@ -95,6 +102,8 @@ def parse_blast_results_file(blast_results_file, col_names=BLST_RES_COLS_2):  # 
         rec_dict['frame'] = frame
         rec_dict['start'] = start
         rec_dict['end'] = end
+        rec_dict['query'] = query
+        rec_dict['evalue'] = evalue
 
         parsed[subject].append(rec_dict)
 
@@ -112,8 +121,11 @@ def collate_blast_results(parsed_blast_results):  # noqa
         t_frames = []
         t_starts = []
         t_ends = []
+        t_evalues_queries = []
 
         for hit in hits:
+            hit_query = hit['query']
+            hit_evalue = hit['evalue']
             hit_frame = hit['frame']
             hit_start = hit['start']
             hit_end = hit['end']
@@ -121,6 +133,7 @@ def collate_blast_results(parsed_blast_results):  # noqa
             t_frames.append(hit_frame)
             t_starts.append(hit_start)
             t_ends.append(hit_end)
+            t_evalues_queries.append((hit_evalue, hit_query))
 
         t_frame_counts = Counter(t_frames)
         t_chosen_frame = t_frame_counts.most_common(1)[0][0]
@@ -141,15 +154,27 @@ def collate_blast_results(parsed_blast_results):  # noqa
             t_start = max(t_starts)
             t_end = min(t_ends)
 
+        best_query_evalue = sorted(t_evalues_queries)[0]
+        best_evalue = best_query_evalue[0]
+        best_query_split = best_query_evalue[1].split('|')
+        if len(best_query_split) > 1:
+            best_query = best_query_split[1].replace('_', ' ')
+            best_query = best_query + ' ' + best_query_split[0]
+        else:
+            best_query = best_query_split[0]
+
         t_coll = OrderedDict()
         t_coll['sseqid'] = target
+        t_coll['qseqid'] = best_query
+        t_coll['evalue'] = best_evalue
         t_coll['frame'] = t_frame
         t_coll['start'] = t_start
         t_coll['end'] = t_end
 
         coll.append(t_coll)
 
-    coll_sorted = sorted(coll, key=itemgetter('sseqid'), reverse=False)
+    coll_sorted = sorted(coll, key=itemgetter('qseqid', 'sseqid'),
+                         reverse=False)
 
     return coll_sorted
 
