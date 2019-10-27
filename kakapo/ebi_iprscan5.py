@@ -30,6 +30,7 @@ from xml.etree import ElementTree
 from kakapo.http_k import get
 from kakapo.http_k import post
 from kakapo.config import PICKLE_PROTOCOL
+from kakapo.helpers import split_seq_defn_for_printing as split_seq_defn
 
 IPS_URL = 'https://www.ebi.ac.uk/Tools/services/rest/iprscan5'
 
@@ -71,10 +72,10 @@ def result_types(job_id):  # noqa
 
 def _result(job_id, result_type):
 
-    valid_result_types = result_types(job_id)
+    available_result_types = result_types(job_id)
 
-    if result_type in valid_result_types:
-        response_format = valid_result_types[result_type]
+    if result_type in available_result_types:
+        response_format = available_result_types[result_type]
     else:
         raise Exception
 
@@ -119,7 +120,7 @@ def job_runner(email, dir_cache, seqs=None, logger=print):
     """Run InterProScan 5"""
     ##########################################################################
     MAX_JOBS = 25
-    DELAY = 5
+    DELAY = 0.5
     CFP = opj(dir_cache, 'ips5_cache')
     ##########################################################################
 
@@ -134,6 +135,7 @@ def job_runner(email, dir_cache, seqs=None, logger=print):
             pickle.dump(c, f, protocol=PICKLE_PROTOCOL)
     ##########################################################################
 
+    seqs_orig = deepcopy(seqs)
     seqs = deepcopy(seqs)
 
     jobs = None
@@ -153,7 +155,7 @@ def job_runner(email, dir_cache, seqs=None, logger=print):
             dump(jobs)
 
         else:
-            # print('No sequences provided.')
+            logger('No sequences provided.')
             sys.exit(0)
 
     ##########################################################################
@@ -166,40 +168,74 @@ def job_runner(email, dir_cache, seqs=None, logger=print):
     not_found = jobs['not_found']
     other = jobs['other']
 
+    retry_list = list()
+
     ###
     # Nicer printing
-    max_title_len = max([len(x) for x in list(queue.keys())])
+    max_title_a_len = 2 + max([len(split_seq_defn(x)[0]) for x in list(seqs_orig.keys())])
+    max_title_b_len = 2 + max([len(split_seq_defn(x)[1]) for x in list(seqs_orig.keys())])
     ###
 
+    queue_size = len(seqs_orig)
+
     busy = True
+    submit_message = True
     while busy:
-
         dump(jobs)
-
         sleep(DELAY)
 
         if len(queue) > 0:
             if len(running) < MAX_JOBS:
+                if submit_message is True:
+                    print()
+                    logger('Submitting jobs...')
+                    print()
                 title = list(queue.keys()).pop()
                 sequence = queue.pop(title)
                 job_id = submit_job(email, title, sequence)
                 running[title] = job_id
-                title_len = len(title)
-                title_len_diff = max_title_len - title_len
-                msg = '' + title + title_len_diff * ' ' + \
-                      '\t' + job_id + '\t' + 'SUBMITTED'
+                titles_ab = split_seq_defn(title)
+                title_a = titles_ab[0]
+                title_b = titles_ab[1]
+
+                msg = ('SUBMITTED   ' +
+                       title_a.ljust(max_title_a_len) +
+                       title_b.ljust(max_title_b_len) + ' ' * 4 +
+                       ' ' + job_id)
+
                 logger(msg)
 
-        if len(running) > 0:
+        if len(running) < MAX_JOBS and len(queue) > 0:
+            submit_message = False
+            continue
 
+        if len(running) > 0:
+            submit_message = True
+            print()
+            logger('Looking for finished jobs...')
+            print()
+            finished_jobs = False
+            sleep(DELAY + 5)
             job_statuses = {}
 
             for title in running:
+                sleep(DELAY)
                 job_id = running[title]
                 job_status = status(job_id)
-
                 job_statuses[title] = {'job_id': job_id,
                                        'job_status': job_status}
+                titles_ab = split_seq_defn(title)
+                if job_status == 'RUNNING':
+                    pass
+                    logger(' ' * 10 + '- ' + titles_ab[0])
+                else:
+                    logger(' ' * 10 + '+ ' + titles_ab[0])
+                    finished_jobs = True
+
+            if finished_jobs is True:
+                print()
+            else:
+                continue
 
             for title in job_statuses:
 
@@ -211,15 +247,24 @@ def job_runner(email, dir_cache, seqs=None, logger=print):
 
                 elif job_status == 'FINISHED':
                     job_id = running.pop(title)
-                    finished[title] = job_id
-
-                elif job_status == 'ERROR':
-                    job_id = running.pop(title)
-                    error[title] = job_id
+                    if 'error' in result_types(job_id):
+                        job_status = 'FAILURE'
+                        failure[title] = job_id
+                        if retry_list.count(title) < 3:
+                            job_status = 'WILL_RETRY'
+                            queue[title] = seqs_orig[title]
+                            retry_list.append(title)
+                    else:
+                        finished[title] = job_id
 
                 elif job_status == 'FAILURE':
                     job_id = running.pop(title)
                     failure[title] = job_id
+
+                elif job_status == 'ERROR':
+                    continue
+                    # job_id = running.pop(title)
+                    # error[title] = job_id
 
                 elif job_status == 'NOT_FOUND':
                     job_id = running.pop(title)
@@ -230,10 +275,17 @@ def job_runner(email, dir_cache, seqs=None, logger=print):
                     other[title] = job_id
 
                 if job_status != 'RUNNING':
-                    title_len = len(title)
-                    title_len_diff = max_title_len - title_len
-                    msg = '' + title + title_len_diff * ' ' + \
-                          '\t' + job_id + '\t' + job_status
+                    progress = round((len(finished) / queue_size) * 100)
+                    progress_str = '{:3d}'.format(progress) + '%'
+                    titles_ab = split_seq_defn(title)
+                    title_a = titles_ab[0]
+                    title_b = titles_ab[1]
+                    job_status_msg = job_status.ljust(10)
+                    msg = (job_status_msg + '  ' +
+                           title_a.ljust(max_title_a_len) +
+                           title_b.ljust(max_title_b_len) +
+                           progress_str + ' ' + job_id)
+
                     logger(msg)
 
         if len(running) == 0 and len(queue) == 0:
