@@ -61,10 +61,11 @@ def gff_orf_blast_hit(json_dict):  # noqa
         entry_blast_hit['type'] = 'BLAST'
         entry_blast_hit['start'] = str(blast_hit_begin + 1)
         entry_blast_hit['end'] = str(blast_hit_end)
-        entry_blast_hit['score'] = '.'
+        entry_blast_hit['score'] = str(ann['evalue'])
         entry_blast_hit['strand'] = '+'
         entry_blast_hit['phase'] = str(0)
-        name = 'name=Hit frame ' + str(frame)
+        query_name = ann['query_name'].replace('_', ' ')
+        name = 'name=' + ann['query_name'] + '; Hit frame ' + str(frame)
         entry_blast_hit['attributes'] = name + ';note=Merged tblastn hits;'
         gff = gff + gff_text(entry_blast_hit)
 
@@ -80,6 +81,7 @@ def gff_orf_blast_hit(json_dict):  # noqa
         entry_orf['type'] = 'ORF'
         entry_orf['start'] = str(orf_begin + 1)
         entry_orf['end'] = str(orf_end)
+        entry_orf['score'] = str(ann['orf_grade'])
         name = 'name=ORF frame ' + str(frame)
         entry_orf['attributes'] = name
         gff = gff + gff_text(entry_orf)
@@ -114,7 +116,7 @@ def gff_orf_bad_blast_hit(json_dict):  # noqa
             entry_orf['type'] = 'ORF BAD'
             entry_orf['start'] = str(orf_begin + 1)
             entry_orf['end'] = str(orf_end)
-            entry_orf['score'] = '.'
+            entry_orf['score'] = str(bad['orf_grade'])
             entry_orf['strand'] = '+'
             entry_orf['phase'] = str(0)
             name = 'name=ORF BAD {} frame {}'.format(i, orf_frame)
@@ -272,7 +274,11 @@ def gff_panther(json_dict):  # noqa
                     continue
 
                 name = sig['name'].title()
-                attributes = ('name=' + name + ': ' + accession + ';' +
+                if name == 'Family Not Named':
+                    name = ''
+                else:
+                    name = ': ' + name
+                attributes = ('name=' + accession + name + ';' +
                               'accession=' + accession + ';')
 
                 ipr_acc = None

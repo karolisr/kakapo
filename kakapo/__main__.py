@@ -75,6 +75,7 @@ from kakapo.workflow import run_vsearch_on_reads
 from kakapo.workflow import user_aa_fasta
 from kakapo.workflow import user_fastq_files
 from kakapo.workflow import user_protein_accessions
+from kakapo.workflow import user_entrez_search
 
 # Command line arguments -----------------------------------------------------
 USAGE = '{} --cfg path/to/configuration_file.ini'.format(__script_name__)
@@ -204,14 +205,21 @@ def main():
     allow_no_stop_cod = _['allow_no_stop_cod']
     allow_no_strt_cod = _['allow_no_strt_cod']
     allow_non_aug = _['allow_non_aug']
-    blast_1_culling_limit = _['blast_1_culling_limit']
+
     blast_1_evalue = _['blast_1_evalue']
-    blast_1_max_target_seqs = _['blast_1_max_target_seqs']
+    blast_1_max_hsps = _['blast_1_max_hsps']
     blast_1_qcov_hsp_perc = _['blast_1_qcov_hsp_perc']
-    blast_2_culling_limit = _['blast_2_culling_limit']
+    blast_1_best_hit_overhang = _['blast_1_best_hit_overhang']
+    blast_1_best_hit_score_edge = _['blast_1_best_hit_score_edge']
+    blast_1_max_target_seqs = _['blast_1_max_target_seqs']
+
     blast_2_evalue = _['blast_2_evalue']
-    blast_2_max_target_seqs = _['blast_2_max_target_seqs']
+    blast_2_max_hsps = _['blast_2_max_hsps']
     blast_2_qcov_hsp_perc = _['blast_2_qcov_hsp_perc']
+    blast_2_best_hit_overhang = _['blast_2_best_hit_overhang']
+    blast_2_best_hit_score_edge = _['blast_2_best_hit_score_edge']
+    blast_2_max_target_seqs = _['blast_2_max_target_seqs']
+
     dir_out = _['output_directory']
     email = _['email']
     fq_pe = _['fq_pe']
@@ -222,10 +230,12 @@ def main():
     max_query_length = _['max_query_length']
     max_target_orf_len = _['max_target_orf_len']
     min_query_length = _['min_query_length']
+    max_query_identity = _['max_query_identity']
     min_target_orf_len = _['min_target_orf_len']
     pfam_acc = _['pfam_acc']
     prepend_assmbl = _['prepend_assmbl']
     prj_name = _['project_name']
+    entrez_queries = _['entrez_queries']
     prot_acc_user = _['prot_acc']
     sras = _['sras']
     tax_group = _['tax_group']
@@ -307,12 +317,19 @@ def main():
     dnld_pfam_uniprot_seqs(pfam_uniprot_acc, aa_uniprot_file, dir_cache_prj,
                            linfo)
 
+    # User provided entrez query ---------------------------------------------
+    prot_acc_user_1 = user_entrez_search(entrez_queries, dir_cache_prj, linfo)
+
     # User provided protein accessions ---------------------------------------
-    prot_acc_user = user_protein_accessions(prot_acc_user, linfo)
+    prot_acc_user_2 = user_protein_accessions(prot_acc_user, dir_cache_prj,
+                                              linfo)
+
+    prot_acc_user = prot_acc_user_1 + prot_acc_user_2
+    prot_acc_user = sorted(set(prot_acc_user))
 
     # Download from NCBI if needed -------------------------------------------
     aa_prot_ncbi_file = opj(dir_prj_queries, 'aa_prot_ncbi.fasta')
-    dnld_prot_seqs(prot_acc_user, aa_prot_ncbi_file, dir_cache_prj, linfo)
+    prot_acc_user = dnld_prot_seqs(prot_acc_user, aa_prot_ncbi_file, linfo)
 
     # User provided protein sequences ----------------------------------------
     aa_prot_user_file = opj(dir_prj_queries, 'aa_prot_user.fasta')
@@ -325,7 +342,9 @@ def main():
                       aa_prot_user_file], aa_queries_file, linfo)
 
     # Filter AA queries ------------------------------------------------------
-    filter_queries(aa_queries_file, min_query_length, max_query_length, linfo)
+    prot_acc_user = filter_queries(aa_queries_file, min_query_length,
+                                   max_query_length, max_query_identity,
+                                   vsearch, prot_acc_user, linfo)
 
     # Download SRA run metadata if needed ------------------------------------
     sra_runs_info, sras_acceptable = dnld_sra_info(sras, dir_cache_prj, linfo)
@@ -436,8 +455,9 @@ def main():
 
     # Run tblastn on reads ---------------------------------------------------
     run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
-                         tblastn, blast_1_evalue, blast_1_max_target_seqs,
-                         blast_1_culling_limit, blast_1_qcov_hsp_perc,
+                         tblastn, blast_1_evalue, blast_1_max_hsps,
+                         blast_1_qcov_hsp_perc, blast_1_best_hit_overhang,
+                         blast_1_best_hit_score_edge, blast_1_max_target_seqs,
                          dir_prj_blast_results_fa_trim,
                          pe_blast_results_file_patterns, THREADS, seqtk,
                          vsearch, linfo)
@@ -498,21 +518,25 @@ def main():
     # Run tblastn on assemblies ----------------------------------------------
     run_tblastn_on_assemblies(assemblies, aa_queries_file, tblastn,
                               dir_prj_assmbl_blast_results, blast_2_evalue,
-                              blast_2_max_target_seqs, blast_2_culling_limit,
-                              blast_2_qcov_hsp_perc, THREADS, linfo)
+                              blast_2_max_hsps, blast_2_qcov_hsp_perc,
+                              blast_2_best_hit_overhang,
+                              blast_2_best_hit_score_edge,
+                              blast_2_max_target_seqs, THREADS, dir_cache_prj,
+                              dir_prj_ips, linfo)
 
     # Prepare BLAST hits for analysis: find ORFs, translate ------------------
     find_orfs_translate(assemblies, dir_prj_transcripts, seqtk,
                         dir_temp, prepend_assmbl, min_target_orf_len,
                         max_target_orf_len, allow_non_aug, allow_no_strt_cod,
-                        allow_no_stop_cod, tax, tax_group, tax_ids_user, linfo)
+                        allow_no_stop_cod, tax, tax_group, tax_ids_user,
+                        blast_2_qcov_hsp_perc, linfo)
 
     # Download CDS for NCBI protein queries ----------------------------------
-    nt_prot_ncbi_file = opj(dir_prj_transcripts_combined, prj_name +
-                            '_ncbi_query_cds.fasta')
+    prot_cds_ncbi_file = opj(dir_prj_transcripts_combined, prj_name +
+                             '_ncbi_query_cds.fasta')
     if len(prot_acc_user) > 0:
-        dnld_cds_for_ncbi_prot_acc(prot_acc_user, nt_prot_ncbi_file, tax,
-                                   linfo)
+        dnld_cds_for_ncbi_prot_acc(prot_acc_user, prot_cds_ncbi_file, tax,
+                                   dir_cache_prj, linfo)
 
     # GFF3 files from kakapo results JSON files ------------------------------
     gff_from_json(assemblies, dir_prj_ips, dir_prj_transcripts_combined,
@@ -529,9 +553,25 @@ def main():
                       prj_name, linfo)
 
 # ----------------------------------------------------------------------------
+
     rmtree(dir_temp)
+    log, _ = prepare_logger(console=False)
+
+# ----------------------------------------------------------------------------
+
+    rerun = input('\nRepeat? ').lower().strip()
+    if rerun.startswith('y') or rerun == '':
+        print()
+        return False
+    else:
+        print('\nExiting...')
+        return True
+
 # ----------------------------------------------------------------------------
 
 
 if __name__ == '__main__':
-    main()
+    while True:
+        stop = main()
+        if stop is True:
+            break

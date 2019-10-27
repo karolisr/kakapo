@@ -130,11 +130,12 @@ def start_codon_score(seq, idx, context_l, context_r):  # noqa
     return (q_l * q_r) ** 0.5
 
 
-def find_orf_for_blast_hit(seq, frame, hit_start, hit_end,
-                           start_codons, stop_codons,
-                           context_l, context_r):  # noqa
+def find_orf_for_blast_hit(seq, frame, hit_start, hit_end, start_codons,
+                           stop_codons, context_l, context_r, min_overlap):  # noqa
 
     assert type(frame) is int
+
+    log_str = ''
 
     seq_len = len(seq)
     seq_local = seq
@@ -151,7 +152,7 @@ def find_orf_for_blast_hit(seq, frame, hit_start, hit_end,
         hit_len = hit_end - hit_start
         frames = [-1, -2, -3]
 
-    min_len = 100
+    min_len = 200
 
     results = get_orf_coords_for_frames(seq, start_codons, stop_codons,
                                         min_len, frames=frames)
@@ -178,18 +179,28 @@ def find_orf_for_blast_hit(seq, frame, hit_start, hit_end,
             context_end = orf_beg
             context = seq_local[context_beg:context_end]
             orf = seq_local[orf_beg:orf_end]
+            stop_codon = seq_local[orf_end:orf_end + 3]
 
             orfs.append({'orf_coords': (loc[0], loc[1]),
                          'sc_score': sc_score,
                          'context': context,
                          'orf_seq': orf,
+                         'stop_codon': stop_codon,
                          'frame': orf_frame})
 
-    orfs = sorted(orfs, key=itemgetter('sc_score'), reverse=True)
+    for orf in orfs:
+        orf_start = orf['orf_coords'][0]
+        orf_end = orf['orf_coords'][1]
+        orf_len = orf_end - orf_start
+        ovrlp = overlap((hit_start, hit_end), (orf_start, orf_end))
+        ovrlp = ovrlp / max(orf_len, hit_len)
+        orf['ovrlp'] = ovrlp
+        orf['grade'] = (ovrlp ** 2) * orf['sc_score']
+
+    orfs = sorted(orfs, key=itemgetter('grade'), reverse=True)
 
     good_orf = None
     bad_orfs = list()
-
     for orf in orfs:
         orf_start = orf['orf_coords'][0]
         orf_end = orf['orf_coords'][1]
@@ -197,27 +208,33 @@ def find_orf_for_blast_hit(seq, frame, hit_start, hit_end,
         context = orf['context']
         orf_seq = orf['orf_seq']
         orf_frame = orf['frame']
+        ovrlp = orf['ovrlp']
+        orf_grade = orf['grade']
+        stop_codon = orf['stop_codon']
 
-        orf_len = orf_end - orf_start
-        ovrlp = overlap((hit_start, hit_end), (orf_start, orf_end))
-        ovrlp = ovrlp / max(orf_len, hit_len)
+        log_str += ('{:.4f}'.format(orf_grade) + ' ' +
+                    '{:.4f}'.format(ovrlp) + ' ' +
+                    '{:.4f}'.format(sc_score) + ' ' +
+                    str(len(orf_seq)).rjust(5) + ' ' +
+                    context.rjust(10) + ' ' +
+                    orf_seq[0:3] + ' ' +
+                    orf_seq[3:13] + ' ' +
+                    orf_seq[-33:] + ' ' +
+                    stop_codon.ljust(3))
 
-        if good_orf is None and orf_frame == frame and ovrlp >= 0.90:
+        if min_overlap > 1:
+            min_overlap = min_overlap / 100
 
-            print('{:3d}'.format(orf_frame),
-                  '{:3d}'.format(len(orfs)),
-                  '{:.4f}'.format(sc_score),
-                  context.rjust(10),
-                  orf_seq[0:3],
-                  orf_seq[3:13],
-                  orf_seq[13:53],
-                  end='')
+        min_overlap = max(min_overlap - 0.1, 0.75)
 
-            good_orf = (orf_start, orf_end, orf_frame)
+        if good_orf is None and orf_frame == frame and ovrlp >= min_overlap:
+            log_str += ' <<<\n'
+            good_orf = (orf_start, orf_end, orf_frame, orf_grade)
         else:
-            bad_orfs.append((orf_start, orf_end, orf_frame))
+            log_str += '\n'
+            bad_orfs.append((orf_start, orf_end, orf_frame, orf_grade))
 
-    return good_orf, bad_orfs
+    return good_orf, bad_orfs, log_str
 
 
 # if __name__ == '__main__':

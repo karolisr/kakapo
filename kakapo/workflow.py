@@ -15,6 +15,8 @@ import json
 import pickle
 import re
 
+from collections import OrderedDict
+from copy import deepcopy
 from functools import partial
 from os import remove as osremove
 from os import stat as osstat
@@ -22,13 +24,12 @@ from os.path import basename
 from os.path import commonprefix
 from os.path import exists as ope
 from os.path import join as opj
-from os.path import splitext
 from os.path import sep as ops
+from os.path import splitext
 from shutil import copyfile
 from shutil import rmtree
 from sys import exit
 from time import sleep
-from copy import deepcopy
 
 from kakapo.bioio import filter_fasta_text_by_length
 from kakapo.bioio import read_fasta
@@ -48,26 +49,28 @@ from kakapo.ebi_domain_search import prot_ids_for_tax_ids
 from kakapo.ebi_iprscan5 import job_runner
 from kakapo.ebi_iprscan5 import result_json
 from kakapo.ebi_proteins import fasta_by_accession_list
+from kakapo.entrez import accessions as accessions_ncbi
 from kakapo.entrez import cds_acc_for_prot_acc
 from kakapo.entrez import dnld_cds_nt_fasta as dnld_ncbi_cds_nt_fasta
 from kakapo.entrez import dnld_seqs as dnld_ncbi_seqs
 from kakapo.entrez import dnld_seqs_fasta_format
 from kakapo.entrez import esearch
+from kakapo.entrez import esummary as entrez_summary
 from kakapo.entrez import sra_run_info
-from kakapo.entrez import summary as entrez_summary
-from kakapo.entrez import taxids_for_acc
+from kakapo.entrez import taxids_for_accs
 from kakapo.gff3 import gff_from_kakapo_ips5_json_file
 from kakapo.helpers import combine_text_files
 from kakapo.helpers import keep_unique_lines_in_file
 from kakapo.helpers import make_dir
 from kakapo.helpers import plain_or_gzip
+from kakapo.helpers import split_seq_defn_for_printing as split_seq_defn
 from kakapo.helpers import splitext_gz
 from kakapo.kraken import run_kraken_filters
 from kakapo.orf import find_orf_for_blast_hit
 from kakapo.py_v_diffs import StringIO
 from kakapo.rcorrector import filter_unc_se, filter_unc_pe
 from kakapo.rcorrector import run_rcorrector_se, run_rcorrector_pe
-from kakapo.seq import reverse_complement, translate
+from kakapo.seq import reverse_complement, translate, untranslate
 from kakapo.seqtk import seqtk_fq_to_fa, seqtk_extract_reads
 from kakapo.shell import call
 from kakapo.spades import run_spades_se, run_spades_pe
@@ -185,7 +188,7 @@ def dnld_refseqs_for_taxid(taxid, filter_term, taxonomy,
         if tax_term is None:
             tax_term = taxonomy.scientific_name_for_taxid(taxid)
         term = '"RefSeq"[Keyword] AND "{}"[Primary Organism] AND "{}"[filter]'.format(tax_term, filter_term)
-        accs = set(esearch(term=term, db=db)['ids'])
+        accs = set(accessions_ncbi(esearch(term=term, db=db)))
         if len(accs) > 0:
             plural = 'sequences'
             if len(accs) == 1:
@@ -202,8 +205,7 @@ def dnld_refseqs_for_taxid(taxid, filter_term, taxonomy,
             if acc in accs:
                 accs.remove(acc)
     if len(accs) > 0:
-        fasta_list = dnld_seqs_fasta_format(term=list(accs), db=db)
-        parsed_fasta = read_fasta(StringIO('\n'.join(fasta_list)))
+        parsed_fasta = dnld_seqs_fasta_format(list(accs), db)
         parsed_fasta.update(parsed_fasta_cache)
     else:
         parsed_fasta = parsed_fasta_cache
@@ -273,96 +275,167 @@ def dnld_pfam_uniprot_seqs(uniprot_acc, aa_uniprot_file, dir_cache_prj,
             osremove(aa_uniprot_file)
 
 
-def user_protein_accessions(prot_acc_user, linfo=print):  # noqa
+def user_protein_accessions(prot_acc_user, dir_cache_prj, linfo=print):  # noqa
     if len(prot_acc_user) > 0:
         linfo('Reading user provided protein accessions')
-        pa_info = entrez_summary(prot_acc_user, 'protein')
+        pickle_file = opj(dir_cache_prj, 'ncbi_prot_metadata_cache')
+        acc_old = set()
+        if ope(pickle_file):
+            with open(pickle_file, 'rb') as f:
+                pickled = pickle.load(f)
+                acc_old = set([x['accessionversion'] for x in pickled])
+
+        if acc_old == set(prot_acc_user):
+            pa_info = pickled
+        else:
+            pa_info = entrez_summary(prot_acc_user, 'protein')
+
         prot_acc = []
+        prot_info_to_print = []
         for pa in pa_info:
-            title = pa['title']
-            title = title[0].upper() + title[1:]
             acc = pa['accessionversion']
             prot_acc.append(acc)
+            title = pa['title']
+            title_split = title.split('[')
+            organism = title_split[1].replace(']', '').strip().replace('_', ' ')
+            title = title_split[0]
+            title = title.lower().strip()
+            title = title.replace('_', ' ').replace('-', ' ')
+            title = title.replace(',', '')
+            title = title[0].upper() + title[1:] + ' [' + organism + ']'
+            prot_info_to_print.append((title, acc))
 
-            if len(title) > 60:
-                title = title[0:57] + '...'
-
+        prot_info_to_print = sorted(prot_info_to_print)
+        for pi in prot_info_to_print:
+            title = pi[0]
+            acc = pi[1]
+            if len(title) > 80:
+                title = title[:77] + '...'
             linfo(acc + ': ' + title)
+
+        with open(pickle_file, 'wb') as f:
+            pickle.dump(pa_info, f, protocol=PICKLE_PROTOCOL)
 
         return prot_acc
 
     else:
+
         return prot_acc_user
 
 
-def dnld_prot_seqs(prot_acc_user, aa_prot_ncbi_file, dir_cache_prj,
-                   linfo=print):  # noqa
+def user_entrez_search(queries, dir_cache_prj, linfo=print):  # noqa
+    accs = []
+    if len(queries) != 0:
+        linfo('Searching for protein sequences on NCBI')
+        for q in queries:
+            accs = accs + accessions_ncbi(esearch(term=q, db='protein'))
+
+    return user_protein_accessions(accs, dir_cache_prj, linfo=linfo)
+
+
+def dnld_prot_seqs(prot_acc_user, aa_prot_ncbi_file, linfo=print):  # noqa
     if len(prot_acc_user) != 0:
-        __ = opj(dir_cache_prj, 'aa_prot_ncbi_acc_cache')
-        prev_prot_acc_user = []
-        if ope(__):
-            with open(__, 'rb') as f:
-                prev_prot_acc_user = pickle.load(f)
+        acc_old = set()
+        if ope(aa_prot_ncbi_file):
+            _ = read_fasta(aa_prot_ncbi_file)
+            acc_old = set([x.split('|')[0] for x in tuple(_.keys())])
 
-        with open(__, 'wb') as f:
-            pickle.dump(prot_acc_user, f, protocol=PICKLE_PROTOCOL)
-
-        if (set(prot_acc_user) != set(prev_prot_acc_user)) or \
-           (not ope(aa_prot_ncbi_file)):
-
+        if acc_old == set(prot_acc_user):
+            return prot_acc_user
+        else:
             linfo('Downloading protein sequences from NCBI')
-            __ = dnld_ncbi_seqs(prot_acc_user, 'protein')
+            _ = dnld_ncbi_seqs(prot_acc_user, 'protein')
+            prot_acc_user_new = list()
+            for rec in _:
+                accession = rec['accession']
+                version = rec['version']
+                defn = rec['definition']
+                organism = rec['organism']
 
-            write_fasta(__, aa_prot_ncbi_file)
+                new_acc = accession + '.' + version
+                prot_acc_user_new.append(new_acc)
 
+                defn_new = defn.split('[' + organism + ']')[0]
+                defn_new = defn_new.lower().strip()
+                defn_new = defn_new.replace(' ', '_').replace('-', '_')
+                defn_new = defn_new.replace(',', '')
+                defn_new = defn_new[0].upper() + defn_new[1:]
+
+                rec['definition'] = defn_new
+
+            prot_acc_user = prot_acc_user_new
+            write_fasta(_, aa_prot_ncbi_file)
     else:
         if ope(aa_prot_ncbi_file):
             osremove(aa_prot_ncbi_file)
 
+    return prot_acc_user
+
 
 def user_aa_fasta(user_queries, aa_prot_user_file, linfo=print):  # noqa
-    __ = ''
+    _ = ''
     if len(user_queries) > 0:
         linfo('Reading user provided AA sequences')
         for ap in user_queries:
             linfo(ap)
             with open(ap, 'r') as f:
-                __ = __ + f.read()
-    if __ != '':
+                _ = _ + f.read()
+    if _ != '':
         with open(aa_prot_user_file, 'w') as f:
-            f.write(standardize_fasta_text(__))
+            f.write(standardize_fasta_text(_))
 
 
 def combine_aa_fasta(fasta_files, aa_queries_file, linfo=print):  # noqa
     linfo('Combining all AA query sequences')
-    __ = ''
+    _ = ''
     for fasta_file in fasta_files:
         if ope(fasta_file):
             with open(fasta_file, 'r') as f:
-                __ = __ + f.read()
+                _ = _ + f.read()
 
-    if __ != '':
+    if _ != '':
         with open(aa_queries_file, 'w') as f:
-            f.write(__)
+            f.write(_)
     else:
         linfo('No queries were provided. Exiting.')
         exit(0)
 
 
 def filter_queries(aa_queries_file, min_query_length, max_query_length,
-                   linfo=print): # noqa
-    __ = ''
+                   max_query_identity, vsearch, prot_acc_user, linfo=print): # noqa
+    _ = ''
     with open(aa_queries_file, 'r') as f:
-        __ = f.read()
+        _ = f.read()
 
     linfo('Filtering AA query sequences')
     linfo('min_query_length: ' + str(min_query_length))
     linfo('max_query_length: ' + str(max_query_length))
 
-    __ = filter_fasta_text_by_length(__, min_query_length, max_query_length)
+    _ = filter_fasta_text_by_length(_, min_query_length, max_query_length)
 
-    with open(aa_queries_file, 'w') as f:
-        f.write(__)
+    tmp1 = aa_queries_file + '_temp1'
+    tmp2 = aa_queries_file + '_temp2'
+    tt = TranslationTable(1)
+    parsed_fasta_1 = read_fasta(StringIO(_))
+    for dfn in parsed_fasta_1:
+        parsed_fasta_1[dfn] = untranslate(parsed_fasta_1[dfn], tt.table_inv)
+    write_fasta(parsed_fasta_1, tmp1)
+    run_cluster_fast(vsearch, max_query_identity, tmp1, tmp2)
+    parsed_fasta_2 = read_fasta(tmp2)
+    prot_acc_user_new = list()
+    for dfn in parsed_fasta_2:
+        parsed_fasta_2[dfn] = translate(parsed_fasta_2[dfn], tt.table,
+                                        tt.start_codons)
+        acc = dfn.split('|')[0]
+        if acc in prot_acc_user:
+            prot_acc_user_new.append(acc)
+
+    write_fasta(parsed_fasta_2, aa_queries_file)
+
+    osremove(tmp1)
+    osremove(tmp2)
+
+    return prot_acc_user_new
 
 
 def dnld_sra_info(sras, dir_cache_prj, linfo=print):  # noqa
@@ -1094,8 +1167,9 @@ def makeblastdb_fq(se_fastq_files, pe_fastq_files, dir_blast_fa_trim,
 
 
 def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
-                         tblastn, blast_1_evalue, blast_1_max_target_seqs,
-                         blast_1_culling_limit, blast_1_qcov_hsp_perc,
+                         tblastn, blast_1_evalue, blast_1_max_hsps,
+                         blast_1_qcov_hsp_perc, blast_1_best_hit_overhang,
+                         blast_1_best_hit_score_edge, blast_1_max_target_seqs,
                          dir_blast_results_fa_trim, fpatt, threads,
                          seqtk, vsearch, linfo=print): # noqa
     ident = 0.85
@@ -1122,8 +1196,10 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                       queries_file=aa_queries_file,
                       out_file=out_f,
                       evalue=blast_1_evalue,
+                      max_hsps=blast_1_max_hsps,
                       qcov_hsp_perc=blast_1_qcov_hsp_perc,
-                      culling_limit=blast_1_culling_limit,
+                      best_hit_overhang=blast_1_best_hit_overhang,
+                      best_hit_score_edge=blast_1_best_hit_score_edge,
                       max_target_seqs=blast_1_max_target_seqs,
                       db_genetic_code=genetic_code,
                       out_cols=BLST_RES_COLS_1)
@@ -1170,8 +1246,10 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                           queries_file=aa_queries_file,
                           out_file=x[1],
                           evalue=blast_1_evalue,
+                          max_hsps=blast_1_max_hsps,
                           qcov_hsp_perc=blast_1_qcov_hsp_perc,
-                          culling_limit=blast_1_culling_limit,
+                          best_hit_overhang=blast_1_best_hit_overhang,
+                          best_hit_score_edge=blast_1_best_hit_score_edge,
                           max_target_seqs=blast_1_max_target_seqs,
                           db_genetic_code=genetic_code,
                           out_cols=BLST_RES_COLS_1)
@@ -1397,47 +1475,85 @@ def makeblastdb_assemblies(assemblies, dir_prj_blast_assmbl, makeblastdb,
 
 def run_tblastn_on_assemblies(assemblies, aa_queries_file, tblastn,
                               dir_prj_assmbl_blast_results, blast_2_evalue,
-                              blast_2_max_target_seqs, blast_2_culling_limit,
-                              blast_2_qcov_hsp_perc, threads,
-                              linfo=print):  # noqa
+                              blast_2_max_hsps, blast_2_qcov_hsp_perc,
+                              blast_2_best_hit_overhang,
+                              blast_2_best_hit_score_edge,
+                              blast_2_max_target_seqs, threads, dir_cache_prj,
+                              dir_prj_ips, linfo=print):  # noqa
     if len(assemblies) > 0:
         linfo('Running BLAST on assemblies')
+    else:
+        linfo('There are no assemblies. Nothing to do, stopping.')
+        exit(0)
+
+    cache_file = opj(dir_cache_prj, 'blast_2_settings_cache')
+
+    pickled = dict()
+    settings = {'blast_2_evalue': blast_2_evalue,
+                'blast_2_max_hsps': blast_2_max_hsps,
+                'blast_2_qcov_hsp_perc': blast_2_qcov_hsp_perc,
+                'blast_2_best_hit_overhang': blast_2_best_hit_overhang,
+                'blast_2_best_hit_score_edge': blast_2_best_hit_score_edge,
+                'blast_2_max_target_seqs': blast_2_max_target_seqs,
+                'queries': read_fasta(aa_queries_file)}
+
+    linfo('evalue: ' + str(blast_2_evalue))
+    linfo('max_hsps: ' + str(blast_2_max_hsps))
+    linfo('qcov_hsp_perc: ' + str(blast_2_qcov_hsp_perc))
+    linfo('best_hit_overhang: ' + str(blast_2_best_hit_overhang))
+    linfo('best_hit_score_edge: ' + str(blast_2_best_hit_score_edge))
+    linfo('max_target_seqs: ' + str(blast_2_max_target_seqs))
 
     for a in assemblies:
-
         assmbl_name = a['name']
         assmbl_blast_db_path = a['blast_db_path']
         assmbl_genetic_code = a['gc_id']
 
-        __ = opj(dir_prj_assmbl_blast_results, assmbl_name + '.tsv')
+        ips_json_dump_path = opj(dir_prj_ips, assmbl_name + '_ann_ips.json')
 
-        if ope(__):
-            linfo('BLAST results for assembly ' + assmbl_name +
-                  ' already exist')
+        _ = opj(dir_prj_assmbl_blast_results, assmbl_name + '.tsv')
+
+        if ope(_) and ope(cache_file):
+            with open(cache_file, 'rb') as f:
+                pickled = pickle.load(f)
+
+        if ope(_) and pickled == settings:
+            linfo('The provided BLAST settings and query sequences did not ' +
+                  'change since the previous run. BLAST results for the ' +
+                  'assembly "' + assmbl_name + '" already exist')
+
         else:
             linfo('Running tblastn on: ' + assmbl_name)
+
+            if ope(ips_json_dump_path):
+                osremove(ips_json_dump_path)
 
             run_blast(exec_file=tblastn,
                       task='tblastn',
                       threads=threads,
                       db_path=assmbl_blast_db_path,
                       queries_file=aa_queries_file,
-                      out_file=__,
+                      out_file=_,
                       evalue=blast_2_evalue,
+                      max_hsps=blast_2_max_hsps,
                       qcov_hsp_perc=blast_2_qcov_hsp_perc,
-                      culling_limit=blast_2_culling_limit,
+                      best_hit_overhang=blast_2_best_hit_overhang,
+                      best_hit_score_edge=blast_2_best_hit_score_edge,
                       max_target_seqs=blast_2_max_target_seqs,
                       db_genetic_code=assmbl_genetic_code,
                       out_cols=BLST_RES_COLS_2)
 
-        a['blast_hits_aa'] = parse_blast_results_file(__, BLST_RES_COLS_2)
+        a['blast_hits_aa'] = parse_blast_results_file(_, BLST_RES_COLS_2)
+
+    with open(cache_file, 'wb') as f:
+        pickle.dump(settings, f, protocol=PICKLE_PROTOCOL)
 
 
 def find_orfs_translate(assemblies, dir_prj_transcripts, seqtk,
                         dir_temp, prepend_assmbl, min_target_orf_len,
                         max_target_orf_len, allow_non_aug, allow_no_strt_cod,
                         allow_no_stop_cod, tax, tax_group, tax_ids_user,
-                        linfo=print):  # noqa
+                        min_overlap, linfo=print):  # noqa
     if len(assemblies) > 0:
         linfo('Analyzing BLAST hits for assemblies')
 
@@ -1486,26 +1602,31 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, seqtk,
                             ids_file=temp_s_file)
 
         with open(temp_a_file, 'r') as f:
-            __ = f.read()
+            _ = f.read()
 
-        if __.strip() == '':
+        if _.strip() == '':
             continue
 
         linfo(assmbl_name)
 
-        __ = trim_desc_to_first_space_in_fasta_text(__)
+        _ = trim_desc_to_first_space_in_fasta_text(_)
 
-        parsed_fasta = read_fasta(StringIO(__))
+        parsed_fasta = read_fasta(StringIO(_))
         ######################################################################
 
         all_kakapo_results = {}
         json_dump_file_path = opj(dir_prj_transcripts, assmbl_name +
                                   '_ann_kakapo.json')
 
+        if len(collated) > 0:
+            print('\n' + '-' * 90 + '\n')
+
         for hit in collated:
 
             target_name = hit['sseqid']
             target_seq = parsed_fasta[target_name]
+            query_name = hit['qseqid']
+            hit_evalue = hit['evalue']
 
             # Prepend assembly name to the sequence name:
             if prepend_assmbl is True:
@@ -1559,6 +1680,13 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, seqtk,
             cntx_r = atg_contexts[cntx_r_key]
             ##################################################################
 
+            orf_log_str = target_name.center(90) + '\n'
+            orf_log_str += query_name.center(90) + '\n\n'
+
+            orf_log_str += ('grade'.rjust(6) + 'ovrlp'.rjust(7) +
+                            'cntx'.rjust(6) + 'length'.center(9) +
+                            'cntx_l'.rjust(7) + 'cntx_r'.rjust(15) + '\n')
+
             orf = find_orf_for_blast_hit(
                 seq=target_seq,
                 frame=hit_frame,
@@ -1567,8 +1695,12 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, seqtk,
                 stop_codons=stop_codons,
                 start_codons=start_codons,
                 context_l=cntx_l,
-                context_r=cntx_r)
+                context_r=cntx_r,
+                min_overlap=min_overlap)
 
+            orf_log_str += orf[2]
+
+            rev_comp_def_str = ''
             if hit_frame > 0:
                 ann_hit_b = hit_start
                 ann_hit_e = hit_end
@@ -1576,15 +1708,16 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, seqtk,
                 target_seq = reverse_complement(target_seq)
                 ann_hit_b = len(target_seq) - hit_start
                 ann_hit_e = len(target_seq) - hit_end
-                target_name = target_name + '__revcomp'
+                rev_comp_def_str = '; RevComp'
+
+            target_def = target_name + ' ' + query_name + rev_comp_def_str
 
             a['annotations'][target_name] = {}
 
             good_orf = orf[0]
             bad_orfs = orf[1]
-            if good_orf is not None:
 
-                print(' :: ' + target_name, end='')
+            if good_orf is not None:
 
                 if hit_frame > 0:
                     ann_orf_b = good_orf[0]
@@ -1597,45 +1730,59 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, seqtk,
 
                 ##############################################################
                 valid_orf = True
+                invalid_orf_reason = ''
 
                 if allow_non_aug is False and \
                         orf_seq[0:3] != 'ATG':
                     valid_orf = False
+                    invalid_orf_reason = 'Start codon is not ATG.'
 
                 elif allow_no_strt_cod is False and \
                         orf_seq[0:3] not in start_codons:
                     valid_orf = False
+                    invalid_orf_reason = 'No start codon.'
 
                 elif allow_no_stop_cod is False and \
                         orf_seq[-3:] not in stop_codons:
                     valid_orf = False
+                    invalid_orf_reason = 'No stop codon.'
 
                 elif len(orf_seq) < min_target_orf_len:
                     valid_orf = False
+                    invalid_orf_reason = 'ORF is not long enough.'
 
                 elif len(orf_seq) > max_target_orf_len:
                     valid_orf = False
+                    invalid_orf_reason = 'ORF is too long.'
 
                 ##############################################################
 
                 if valid_orf is True:
 
-                    print(' VALID')
+                    orf_log_str += '\n' + 'VALID'.center(90) + '\n'
 
                     a['annotations'][target_name]['orf_begin'] = ann_orf_b
                     a['annotations'][target_name]['orf_end'] = ann_orf_e
+                    a['annotations'][target_name]['orf_grade'] = good_orf[3]
 
-                    transcripts_nt_orf[target_name] = orf_seq
+                    transcripts_nt_orf[target_def] = orf_seq
 
                     transl_seq = translate(orf_seq,
                                            gc_tt.table_ambiguous,
                                            start_codons)
 
-                    transcripts_aa_orf[target_name] = transl_seq[:-1]
+                    transcripts_aa_orf[target_def] = transl_seq[:-1]
 
                 else:
-                    print(' INVALID')
+                    msg = 'INVALID: ' + invalid_orf_reason
+                    orf_log_str += '\n' + msg.center(90) + '\n'
                     bad_orfs.append(good_orf)
+
+            else:
+                orf_log_str += '\n' + 'INVALID'.center(90) + '\n'
+
+            orf_log_str += '\n' + '-' * 90 + '\n'
+            print(orf_log_str)
 
             if len(bad_orfs) > 0:
                 a['annotations'][target_name]['orfs_bad'] = list()
@@ -1658,11 +1805,14 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, seqtk,
                 orf_bad_dict['orf_begin'] = ann_orf_b
                 orf_bad_dict['orf_end'] = ann_orf_e
                 orf_bad_dict['orf_frame'] = abs(bad_orf_frame)
+                orf_bad_dict['orf_grade'] = bad_orf[3]
 
                 orfs_bad_list.append(orf_bad_dict)
 
-            transcripts_nt[target_name] = target_seq
+            transcripts_nt[target_def] = target_seq
 
+            a['annotations'][target_name]['query_name'] = query_name
+            a['annotations'][target_name]['evalue'] = hit_evalue
             a['annotations'][target_name]['frame'] = abs(hit_frame)
             a['annotations'][target_name]['blast_hit_begin'] = ann_hit_b
             a['annotations'][target_name]['blast_hit_end'] = ann_hit_e
@@ -1709,7 +1859,7 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, seqtk,
 
 def run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj,
                        linfo=print):  # noqa
-    delay = 1
+    delay = 0.25
 
     if len(assemblies) > 0:
         linfo('Running InterProScan on translated transcripts')
@@ -1734,28 +1884,54 @@ def run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj,
             continue
 
         seqs = read_fasta(aa_file)
+        seqs = OrderedDict(sorted(seqs.items(),
+                                  key=lambda x: x[0].split(' ')[1],
+                                  reverse=True))
 
-        __ = opj(dir_cache_prj, assmbl_name + '_ips_jobs')
+        _ = opj(dir_cache_prj, assmbl_name + '_ips_jobs')
 
-        if ope(__):
-            with open(__, 'rb') as f:
+        if ope(_):
+            with open(_, 'rb') as f:
                 jobs = pickle.load(f)
 
         else:
             jobs = job_runner(email=email, dir_cache=dir_cache_prj,
                               seqs=seqs, logger=linfo)
 
-            with open(__, 'wb') as f:
+            with open(_, 'wb') as f:
                 pickle.dump(jobs, f, protocol=PICKLE_PROTOCOL)
 
+        print()
         linfo('Downloading InterProScan results for transcripts in ' +
               assmbl_name)
+        print()
 
         all_ips_results = {}
 
+        # Nicer printing
+        max_title_a_len = 2 + max([len(split_seq_defn(x)[0]) for x in list(jobs['finished'].keys())])
+        max_title_b_len = 2 + max([len(split_seq_defn(x)[1]) for x in list(jobs['finished'].keys())])
+
         for i, job in enumerate(jobs['finished']):
-            sleep(delay)
+
             job_id = jobs['finished'][job]
+
+            titles_ab = split_seq_defn(job)
+            title_a = titles_ab[0]
+            title_b = titles_ab[1]
+
+            progress = round(((i + 1) / len(jobs['finished'])) * 100)
+            progress_str = '{:3d}'.format(progress) + '%'
+
+            msg = (' ' * 12 +
+                   title_a.ljust(max_title_a_len) +
+                   title_b.ljust(max_title_b_len) +
+                   progress_str + ' ' + job_id)
+
+            linfo(msg)
+
+            sleep(delay)
+
             ips_json = result_json(job_id)
             # ips_version = ips_json['interproscan-version']
             ips_json = ips_json['results']
@@ -1764,17 +1940,20 @@ def run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj,
             # Delete them
             del ips_json[0]['xref']
 
-            # kakapo annotations
-            ips_json[0]['kakapo_annotations'] = a['annotations'][job]
+            job_no_def = job.split(' ')[0]
 
-            all_ips_results[job] = ips_json
+            # kakapo annotations
+            ips_json[0]['kakapo_annotations'] = a['annotations'][job_no_def]
+
+            all_ips_results[job_no_def] = ips_json
+
+        print()
 
         with open(json_dump_file_path, 'w') as f:
             json.dump(all_ips_results, f, sort_keys=True, indent=4)
 
         # Removes cached jobs file.
-        # ToDo: Check if there are no failed jobs, before deleting
-        osremove(__)
+        osremove(_)
 
 
 def gff_from_json(assemblies, dir_prj_ips, dir_prj_transcripts_combined,
@@ -1832,52 +2011,71 @@ def gff_from_json(assemblies, dir_prj_ips, dir_prj_transcripts_combined,
     combine_text_files(all_gff_paths, combined_gff_path)
 
 
-def dnld_cds_for_ncbi_prot_acc(prot_acc_user, nt_prot_ncbi_file, tax,
-                               linfo=print):  # noqa
-    linfo('Downloading CDS for user provided NCBI protein accessions')
-    cds_acc_dict = cds_acc_for_prot_acc(prot_acc_user)
+def dnld_cds_for_ncbi_prot_acc(prot_acc_user, prot_cds_ncbi_file, tax,
+                               dir_cache_prj, linfo=print):  # noqa
 
-    cds_accessions = []
-    for prot_acc in cds_acc_dict:
-        cds_acc = cds_acc_dict[prot_acc]
-        cds_accessions.append(cds_acc)
+    pickle_file = opj(dir_cache_prj, 'ncbi_prot_cds_cache')
+    acc_old = set()
+    if ope(pickle_file):
+        with open(pickle_file, 'rb') as f:
+            pickled = pickle.load(f)
+            acc_old = set(pickled[0].keys())
 
-    temp = dnld_ncbi_cds_nt_fasta(cds_accessions)
+    if acc_old == set(prot_acc_user):
+        cds_fasta = pickled[1]
+        taxids = pickled[2]
+    else:
+        linfo('Downloading CDS for the dereplicated set of the user-provided '
+              'NCBI protein accessions')
+        cds_acc_dict = cds_acc_for_prot_acc(prot_acc_user)
+        cds_accessions = []
+        for prot_acc in cds_acc_dict:
+            cds_acc = cds_acc_dict[prot_acc]
+            cds_accessions.append(cds_acc)
+        cds_accessions = sorted(set(cds_accessions))
+        cds_fasta = dnld_ncbi_cds_nt_fasta(cds_accessions)
+        taxids = taxids_for_accs(prot_acc_user, 'protein')
+        with open(pickle_file, 'wb') as f:
+            pickle.dump((cds_acc_dict, cds_fasta, taxids), f,
+                        protocol=PICKLE_PROTOCOL)
 
-    taxids = taxids_for_acc(prot_acc_user, 'protein')
-
+    prot_ids_used = []
     cds_seqs_fasta_list = []
+    for rec in cds_fasta:
+        description = rec.split('|')[1]
+        prot_id = re.findall(r'\[protein_id=(.*?)\]', rec)
 
-    for x in temp:
-        description = x.split('\n')[0]
-        description = description.split('|')[1]
-        prot_id = re.findall(r'\[protein_id=(.*?)\]', x)
         if len(prot_id) == 1:
+
             prot_id = prot_id[0]
+
             if prot_id in prot_acc_user:
-                tax_id = taxids[prot_id]
-                taxon = tax.scientific_name_for_taxid(tax_id)
+                if prot_id in prot_ids_used:
+                    continue
+
+                prot_ids_used.append(prot_id)
+
+                taxid = taxids[prot_id]
+                taxon = tax.scientific_name_for_taxid(taxid)
+                seq = cds_fasta[rec]
                 cds_acc = re.findall(r'^(.*?)\s',
                                      description)[0].split('_cds_')[0]
-                prot_name = re.findall(r'\[protein=(.*?)\]', x)[0]
-                gene_name = re.findall(r'\[gene=(.*?)\]', x)
-                if len(gene_name) == 0:
-                    gene_name = ''
-                else:
-                    gene_name = '__' + gene_name[0]
-                x_seq = ''.join(x.split('\n')[1:])
-                x_desc = ('>' + taxon + gene_name + '__' + prot_name +
-                          '__QUERY__' + cds_acc + '__' + prot_id)
-                x_desc = x_desc.replace(',', '')
-                x_desc = x_desc.replace(';', '')
-                x_desc = x_desc.replace(':', '')
-                x_desc = x_desc.replace(' ', '_')
-                x = x_desc + '\n' + x_seq
-                cds_seqs_fasta_list.append(x)
+                prot_name = re.findall(r'\[protein=(.*?)\]', rec)[0]
+
+                prot_name = prot_name.lower().strip()
+                prot_name = prot_name.replace(' ', '_').replace('-', '_')
+                prot_name = prot_name.replace(',', '')
+                prot_name = prot_name[0].upper() + prot_name[1:]
+
+                defn = prot_name + '__' + prot_id + '__QUERY'
+                defn = defn + ' ' + prot_name.replace('_', ' ')
+                defn = defn + '; ' + taxon + ', ' + str(taxid)
+                defn = defn + '; ' + prot_id + '; ' + cds_acc
+
+                rec_new = '>' + defn + '\n' + seq
+                cds_seqs_fasta_list.append(rec_new)
 
     cds_seqs_fasta_text = '\n'.join(cds_seqs_fasta_list)
 
-    with open(nt_prot_ncbi_file, 'w') as f:
+    with open(prot_cds_ncbi_file, 'w') as f:
         f.write(cds_seqs_fasta_text)
-
-    return cds_seqs_fasta_text
