@@ -22,7 +22,7 @@ def prepare_logger(console=True, stream=None, file=None):  # noqa
     for h in handlers:
         logging.getLogger().removeHandler(h)
 
-    format_console = CONYELL + '%(asctime)s' + CONSDFL + ' - %(message)s'
+    format_console = CONYELL + '%(asctime)s' + CONSDFL + ' %(message)s'
     format_file = '%(asctime)s - %(message)s'
     date_time_format = '%Y/%m/%d %H:%M:%S'
 
