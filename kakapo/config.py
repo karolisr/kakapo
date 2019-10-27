@@ -34,6 +34,7 @@ PICKLE_PROTOCOL = 2
 CONSRED = '\033[0;91m'
 CONGREE = '\033[0;92m'
 CONYELL = '\033[0;93m'
+CONBLUE = '\033[0;94m'
 CONSDFL = '\033[0m'
 
 MT_PT_KRKN_DB = 'mitochondrion_and_plastid'
