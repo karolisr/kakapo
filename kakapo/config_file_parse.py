@@ -186,6 +186,7 @@ def config_file_parse(file_path, taxonomy, linfo=print):  # noqa
             assmbl_temp[i] = [genus, val[0]]
 
     taxa_temp = [x[0] for x in assmbl_temp]
+    taxa_temp = [x.split('.')[0] for x in taxa_temp]
 
     tax_ids = _parse_taxa(taxa=taxa_temp,
                           tax_group=tax_group,
