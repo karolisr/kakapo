@@ -1634,15 +1634,13 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, seqtk,
                 # Also prepend taxonomic info to the sequence name:
                 if tax_id is not None:
                     fm = tax.higher_rank_for_taxid(tax_id, rank='family')
-                    cn = tax.genbank_common_name_for_taxid(tax_id)
-
                     if fm is not None:
                         target_name = fm + '__' + target_name
-
-                    if cn is not None:
-                        cn = cn.lower()
-                        cn = cn.replace(' ', '_')
-                        target_name = cn + '__' + target_name
+                    # cn = tax.genbank_common_name_for_taxid(tax_id)
+                    # if cn is not None:
+                    #     cn = cn.lower()
+                    #     cn = cn.replace(' ', '_')
+                    #     target_name = cn + '__' + target_name
 
             hit_start = hit['start']
             hit_end = hit['end']
