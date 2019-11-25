@@ -17,7 +17,7 @@ from kakapo import __script_name__, __version__
 from kakapo.helpers import sys_ram
 from kakapo.os_diffs import check_os
 from kakapo.py_v_diffs import python_version
-from multiprocessing import cpu_count
+from kakapo.py_v_diffs import cpu_count
 
 DEBUG_MODE = True
 DEBUG_PROCESSES = False

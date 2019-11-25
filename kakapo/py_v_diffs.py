@@ -36,6 +36,7 @@ if _py_v_hex >= 0x03000000:
     from io import StringIO # noqa
     from functools import singledispatch # noqa
     from itertools import zip_longest # noqa
+    from os import cpu_count # noqa
 
     maketrans = str.maketrans
 
@@ -53,6 +54,7 @@ elif _py_v_hex < 0x03000000:
     from StringIO import StringIO # noqa
     from singledispatch import singledispatch # noqa
     from itertools import izip_longest as zip_longest # noqa
+    from multiprocessing import cpu_count # noqa
 
     unicode = unicode
     bytes = str
