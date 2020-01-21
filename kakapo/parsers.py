@@ -40,7 +40,6 @@ def parse_efetch_sra_csv_text(efetch_sra_csv_text):  # noqa
 
 def parse_gbseq_xml_text(gbseq_xml_text):
     """
-
     Parse GBSeq XML text.
 
     :param gbseq_xml_text: XML text to parse.

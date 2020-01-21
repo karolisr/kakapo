@@ -55,7 +55,10 @@ def _check_for_api_key():
 term = '"RefSeq"[Keyword] AND "arabidopsis"[Primary Organism] AND "chloroplast"[filter]'
 db = 'nuccore'
 
-def esearch(term, db, api_key=None):  # noqa
+def esearch(term, db, api_key=None, ret_type='uilist'):  # noqa
+
+    # rettype='uilist'
+    # rettype='acc'
 
     if api_key is None:
         api_key = _check_for_api_key()
@@ -63,7 +66,7 @@ def esearch(term, db, api_key=None):  # noqa
     eutil = 'esearch.fcgi'
     url = ENTREZ_BASE_URL + eutil
 
-    params = {'db': db, 'term': term, 'idtype': 'acc', 'rettype': 'uilist',
+    params = {'db': db, 'term': term, 'idtype': 'acc', 'rettype': ret_type,
               'retmode': 'json', 'usehistory': 'y', 'api_key': api_key,
               'retmax': 0}
 
