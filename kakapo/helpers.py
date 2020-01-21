@@ -107,8 +107,24 @@ def combine_text_files(paths, out_path):  # noqa
         f.write(ret)
 
 
-def sys_ram():  # noqa
-    ram_b = os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES')
+def sys_ram(os_id):  # noqa
+    ram_b = 0
+    try:
+        page_size = os.sysconf('SC_PAGE_SIZE')
+        page_count = os.sysconf('SC_PHYS_PAGES')
+        if page_size < 0 or page_count < 0:
+            raise SystemError
+        ram_b = os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES')
+
+    except ValueError:
+        if os_id == 'mac':
+            ram_b = int(float(os.popen("sysctl hw.memsize").readlines()[0].split()[1]))
+        elif os_id == 'linux':
+            ram_b = int(float(os.popen("free").readlines()[1].split()[1]) * 1024)
+        else:
+            print('The OS:' + os_id + ' was not recognized.')
+            raise NotImplementedError
+
     ram_g = ram_b / (1024 ** 3)
     return ram_g
 

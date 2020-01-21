@@ -26,7 +26,7 @@ DEBUG_PROCESSES = False
 OS_ID, OS_STR, DIST_ID = check_os()
 _, PY_V_STR = python_version()
 THREADS = cpu_count()
-RAM = sys_ram()
+RAM = sys_ram(OS_ID)
 
 # Other ----------------------------------------------------------------------
 PICKLE_PROTOCOL = 2
