@@ -100,9 +100,12 @@ def epost(ids, db, api_key=None):  # noqa
     counts = list()
     query_keys = list()
     web_env = None
-    max_count = 500
+    max_count = 100
 
     for strt in range(0, ids_count, max_count):
+
+        # print('epost ->', strt + 1, ids_count)
+
         end = strt + min(ids_count - strt, max_count)
         counts.append(end - strt)
         ids_temp = ids[strt:end]
@@ -133,6 +136,8 @@ def epost(ids, db, api_key=None):  # noqa
 
 def efetch(data, parser, ret_type=None, ret_mode='xml', api_key=None):  # noqa
 
+    # TODO: Print progress.
+
     if api_key is None:
         api_key = _check_for_api_key()
 
@@ -144,7 +149,7 @@ def efetch(data, parser, ret_type=None, ret_mode='xml', api_key=None):  # noqa
     query_keys = data['query_keys']
     web_env = data['web_env']
 
-    ret_max = 500
+    ret_max = 10
     ret_start = 0
 
     return_list = []
@@ -154,6 +159,8 @@ def efetch(data, parser, ret_type=None, ret_mode='xml', api_key=None):  # noqa
         count = counts[i]
 
         for ret_start in range(0, count, ret_max):
+
+            # print('efetch ->', i + 1, len(query_keys), ret_start, count)
 
             if ret_start > 0:
                 sleep(DELAY)
@@ -168,6 +175,7 @@ def efetch(data, parser, ret_type=None, ret_mode='xml', api_key=None):  # noqa
             parsed = parser(response.text)
 
             for item in parsed:
+                # print(item)
                 return_list.append(item)
 
     return return_list

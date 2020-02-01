@@ -2012,6 +2012,10 @@ def gff_from_json(assemblies, dir_prj_ips, dir_prj_transcripts_combined,
 def dnld_cds_for_ncbi_prot_acc(prot_acc_user, prot_cds_ncbi_file, tax,
                                dir_cache_prj, linfo=print):  # noqa
 
+    # TODO: The function downloads more CDS than are strictly required,
+    #       then filters out the unneeded ones. Sometimes this causes
+    #       large amounts of data to be downloaded unnecessarily.
+
     pickle_file = opj(dir_cache_prj, 'ncbi_prot_cds_cache')
     acc_old = set()
     if ope(pickle_file):
@@ -2039,6 +2043,7 @@ def dnld_cds_for_ncbi_prot_acc(prot_acc_user, prot_cds_ncbi_file, tax,
 
     prot_ids_used = []
     cds_seqs_fasta_list = []
+
     for rec in cds_fasta:
         description = rec.split('|')[1]
         prot_id = re.findall(r'\[protein_id=(.*?)\]', rec)
