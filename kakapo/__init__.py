@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 __script_name__ = 'kakapo'
-__version__ = '0.0.1'
+__version__ = '0.0.2'
 __description__ = ('Extract and annotate protein family members from '
                    'transcriptomes.')
 __author__ = 'Karolis Ramanauskas'
