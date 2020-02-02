@@ -16,10 +16,6 @@ from kakapo.iupac import RNA_ONLY_CHARS
 from kakapo.iupac import AA_AMBIGUOUS
 from kakapo.iupac import DNA_COMPLEMENT_TABLE
 
-from kakapo.py_v_diffs import python_version
-
-_PY_V_HEX, _ = python_version()
-
 SEQ_TYPE_NT = 'NT'
 SEQ_TYPE_DNA = 'DNA'
 SEQ_TYPE_RNA = 'RNA'
@@ -44,9 +40,6 @@ def reverse(seq):  # noqa
 
 def complement(seq):  # noqa
     seq = seq.upper()
-
-    if _PY_V_HEX < 0x03000000:
-        seq = seq.encode('ascii')
 
     seq_contains_uracil = False
     if 'U' in seq:

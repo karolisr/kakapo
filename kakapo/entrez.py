@@ -20,9 +20,10 @@ from __future__ import with_statement
 import re
 import os
 
+from io import StringIO
+from math import ceil
 from time import sleep
 from xml.etree import ElementTree
-from math import ceil
 
 from kakapo.http_k import get
 from kakapo.http_k import post
@@ -31,7 +32,6 @@ from kakapo.parsers import parse_efetch_sra_csv_text
 from kakapo.parsers import parse_gbseq_xml_text
 from kakapo.parsers import parse_esummary_xml_text
 from kakapo.bioio import read_fasta
-from kakapo.py_v_diffs import StringIO
 
 ENTREZ_BASE_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/'
 DELAY = 0.5

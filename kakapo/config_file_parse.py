@@ -12,19 +12,59 @@ from __future__ import print_function
 from __future__ import with_statement
 
 import re
+
+from configparser import ConfigParser as _CP
 from copy import copy
 from os.path import abspath
 from os.path import basename
 from os.path import dirname
+from os.path import exists as ope
 from os.path import expanduser
 from os.path import join
-from os.path import exists as ope
 from sys import exit
 
-from kakapo.py_v_diffs import ConfigParser
 from kakapo.helpers import list_of_files
 from kakapo.helpers import replace_line_in_file
 from kakapo.ebi_domain_search import pfam_entry
+
+
+class ConfigParser(_CP):
+    """
+    ConfigParser that does not allow ':'. as a separator.
+
+    This is not necessary in Python 3 because it is possible to set the
+    separators as optional arguments. In Python 2, this is impossible.
+    """
+
+    # OPTCRE = re.compile(
+    #     r'(?P<option>[^:=\s][^:=]*)'          # very permissive!
+    #     r'\s*(?P<vi>[:=])\s*'                 # any number of space/tab,
+    #                                           # followed by separator
+    #                                           # (either : or =), followed
+    #                                           # by any # space/tab
+    #     r'(?P<value>.*)$'                     # everything up to eol
+    #     )
+
+    # OPTCRE_NV = re.compile(
+    #     r'(?P<option>[^:=\s][^:=]*)'          # very permissive!
+    #     r'\s*(?:'                             # any number of space/tab,
+    #     r'(?P<vi>[:=])\s*'                    # optionally followed by
+    #                                           # separator (either : or
+    #                                           # =), followed by any #
+    #                                           # space/tab
+    #     r'(?P<value>.*))?$'                   # everything up to eol
+    #     )
+
+    OPTCRE_NV = re.compile(
+        r'(?P<option>[^=\s][^=]*)'              # very permissive!
+        r'\s*(?:'                               # any number of space/tab,
+        r'(?P<vi>[=])\s*'                       # optionally followed by
+                                                # separator (=),
+                                                # followed by any #
+                                                # space/tab
+        r'(?P<value>.*))?$')                    # everything up to eol
+
+    OPTCRE = OPTCRE_NV
 
 
 def _parse_taxa(taxa, tax_group, taxonomy, config_file_path, linfo=print):

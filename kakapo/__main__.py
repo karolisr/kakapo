@@ -24,6 +24,7 @@ sys.path.insert(0, KAKAPO_DIR_PATH)
 import argparse
 
 from collections import OrderedDict
+from io import StringIO
 from operator import itemgetter
 from os.path import basename
 from os.path import exists as ope
@@ -45,7 +46,6 @@ from kakapo.config_file_parse import config_file_parse
 from kakapo.helpers import make_dir
 from kakapo.helpers import time_stamp
 from kakapo.logging_k import prepare_logger
-from kakapo.py_v_diffs import StringIO
 from kakapo.translation_tables import TranslationTable
 from kakapo.workflow import combine_aa_fasta
 from kakapo.workflow import descending_tax_ids

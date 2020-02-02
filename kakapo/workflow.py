@@ -18,6 +18,7 @@ import re
 from collections import OrderedDict
 from copy import deepcopy
 from functools import partial
+from io import StringIO
 from os import remove as osremove
 from os import stat as osstat
 from os.path import basename
@@ -67,7 +68,6 @@ from kakapo.helpers import split_seq_defn_for_printing as split_seq_defn
 from kakapo.helpers import splitext_gz
 from kakapo.kraken import run_kraken_filters
 from kakapo.orf import find_orf_for_blast_hit
-from kakapo.py_v_diffs import StringIO
 from kakapo.rcorrector import filter_unc_se, filter_unc_pe
 from kakapo.rcorrector import run_rcorrector_se, run_rcorrector_pe
 from kakapo.seq import reverse_complement, translate, untranslate

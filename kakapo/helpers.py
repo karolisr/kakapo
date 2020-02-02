@@ -11,18 +11,36 @@ from __future__ import nested_scopes
 from __future__ import print_function
 from __future__ import with_statement
 
-from datetime import datetime
-from ftplib import FTP
-from operator import itemgetter
-from os.path import splitext
-from urllib.parse import urlparse
 import fileinput
 import gzip
 import hashlib
 import os
+import sys
+
+from datetime import datetime
+from ftplib import FTP
+from itertools import zip_longest
+from operator import itemgetter
+from os.path import splitext
+from urllib.parse import urlparse
 
 from kakapo.http_k import download_file as download_file_http
-from kakapo.py_v_diffs import zip_longest
+
+
+def python_version():
+    """
+    Determine the Python version.
+    """
+    py_v_hex = sys.hexversion
+
+    py_v_1 = sys.version_info[0]
+    py_v_2 = sys.version_info[1]
+    py_v_3 = sys.version_info[2]
+
+    py_v_str = '{v0}.{v1}.{v2}'.format(v0=py_v_1, v1=py_v_2, v2=py_v_3)
+
+    return py_v_hex, py_v_str
+
 
 def debug_print(msg=''): # noqa
     from kakapo.config import DEBUG_MODE

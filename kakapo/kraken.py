@@ -16,7 +16,6 @@ from os.path import splitext, basename
 from shutil import move
 
 from kakapo.helpers import sys_ram, splitext_gz, plain_or_gzip, make_dir
-from kakapo.py_v_diffs import basestring
 from kakapo.shell import call
 
 
@@ -83,7 +82,7 @@ def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,
             dbs_ordered[db_name] = dbs[db_name]
 
     # SE
-    if isinstance(in_files, basestring):
+    if isinstance(in_files, (str, bytes)):
         in_file = in_files
         _, in_file_ext, _ = splitext_gz(in_file)
         for i, db in enumerate(dbs_ordered):

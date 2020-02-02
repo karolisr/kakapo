@@ -8,8 +8,6 @@ from __future__ import nested_scopes
 from __future__ import print_function
 from __future__ import with_statement
 
-from kakapo.py_v_diffs import maketrans
-
 NT_SHARED_CHARS = set('ACG')
 NT_AMBIGUOUS_CHARS = set('BDHKMNRSVWY')
 NT_GAPS_STRING = '-.'
@@ -43,8 +41,8 @@ AA_AMBIGUOUS_GAPS = AA_AMBIGUOUS | AA_GAPS_CHARS
 
 DNA_COMPLEMENT_CHARS_1 = 'ACGTRYMKWSBDHV'
 DNA_COMPLEMENT_CHARS_2 = 'TGCAYRKMWSVHDB'
-DNA_COMPLEMENT_TABLE = maketrans(DNA_COMPLEMENT_CHARS_1,
-                                 DNA_COMPLEMENT_CHARS_2)
+DNA_COMPLEMENT_TABLE = str.maketrans(DNA_COMPLEMENT_CHARS_1,
+                                     DNA_COMPLEMENT_CHARS_2)
 
 IUPAC_DNA_DICT = {
     'A': 'A',

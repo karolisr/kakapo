@@ -15,10 +15,9 @@ from operator import add, contains, itemgetter, mul, ne, not_, sub
 from statistics import stdev
 
 from kakapo.helpers import overlap
-from kakapo.py_v_diffs import maketrans
 from kakapo.seq import reverse_complement
 
-CONTEXT_NT_CODES = maketrans('ACGTUBDHKMNRSVWY', '0123344444444444')
+CONTEXT_NT_CODES = str.maketrans('ACGTUBDHKMNRSVWY', '0123344444444444')
 
 
 def get_codons(seq):

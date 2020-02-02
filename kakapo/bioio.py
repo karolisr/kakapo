@@ -8,12 +8,15 @@ from __future__ import nested_scopes
 from __future__ import print_function
 from __future__ import with_statement
 
+import io
 import re
-from functools import reduce
-from operator import add
-from collections import OrderedDict
 
-from kakapo.py_v_diffs import HANDLE_TYPES, StringIO
+from collections import OrderedDict
+from functools import reduce
+from io import StringIO
+from operator import add
+
+HANDLE_TYPES = (io.IOBase, StringIO)
 
 
 def read_fasta(f, return_type='dict', upper=True, def_to_first_space=False):
