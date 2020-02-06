@@ -38,13 +38,13 @@ def gff_text(gff_dict):  # noqa
     return '\t'.join(list(gff_dict.values())) + '\n'
 
 
-def gff_orf_blast_hit(json_dict):  # noqa
+def gff_orf_blast_hit(ss, json_dict):  # noqa
     gff = ''
 
     for rec_key in json_dict:
 
         rec = json_dict[rec_key][0]
-        ann = rec['kakapo_annotations']
+        ann = rec['kakapo_annotations__' + ss]
 
         # BLAST Hit annotation -----------------------------------------------
         if 'blast_hit_begin' not in ann or \
@@ -91,13 +91,13 @@ def gff_orf_blast_hit(json_dict):  # noqa
     return gff
 
 
-def gff_orf_bad_blast_hit(json_dict):  # noqa
+def gff_orf_bad_blast_hit(ss, json_dict):  # noqa
     gff = ''
 
     for rec_key in json_dict:
 
         rec = json_dict[rec_key][0]
-        ann = rec['kakapo_annotations']
+        ann = rec['kakapo_annotations__' + ss]
 
         # ORF bad annotation -------------------------------------------------
         if 'orfs_bad' not in ann:
@@ -128,12 +128,12 @@ def gff_orf_bad_blast_hit(json_dict):  # noqa
     return gff
 
 
-def gff_pfam(json_dict):  # noqa
+def gff_pfam(ss, json_dict):  # noqa
     gff = ''
 
     for rec_key in json_dict:
         rec = json_dict[rec_key][0]
-        ann = rec['kakapo_annotations']
+        ann = rec['kakapo_annotations__' + ss]
 
         if 'orf_begin' not in ann or \
            'matches' not in rec:
@@ -191,7 +191,7 @@ def gff_pfam(json_dict):  # noqa
     return gff
 
 
-def gff_phobius(json_dict):  # noqa
+def gff_phobius(ss, json_dict):  # noqa
     gff = ''
 
     phobius_translations = {'SIGNAL_PEPTIDE': 'SigPept',
@@ -204,7 +204,7 @@ def gff_phobius(json_dict):  # noqa
 
     for rec_key in json_dict:
         rec = json_dict[rec_key][0]
-        ann = rec['kakapo_annotations']
+        ann = rec['kakapo_annotations__' + ss]
 
         if 'orf_begin' not in ann or \
            'matches' not in rec:
@@ -245,12 +245,12 @@ def gff_phobius(json_dict):  # noqa
     return gff
 
 
-def gff_panther(json_dict):  # noqa
+def gff_panther(ss, json_dict):  # noqa
     gff = ''
 
     for rec_key in json_dict:
         rec = json_dict[rec_key][0]
-        ann = rec['kakapo_annotations']
+        ann = rec['kakapo_annotations__' + ss]
 
         if 'orf_begin' not in ann or \
            'matches' not in rec:
@@ -304,18 +304,18 @@ def gff_panther(json_dict):  # noqa
     return gff
 
 
-def gff_from_kakapo_ips5_json_file(json_path, gff_path=None):  # noqa
+def gff_from_kakapo_ips5_json_file(ss, json_path, gff_path=None):  # noqa
 
     with open(json_path, 'r') as f:
         json_dict = json.load(f)
 
     # gff = '##gff-version 3\n'
 
-    gff = (gff_orf_blast_hit(json_dict) +
-           gff_orf_bad_blast_hit(json_dict) +
-           gff_pfam(json_dict) +
-           gff_phobius(json_dict) +
-           gff_panther(json_dict))
+    gff = (gff_orf_blast_hit(ss, json_dict) +
+           gff_orf_bad_blast_hit(ss, json_dict) +
+           gff_pfam(ss, json_dict) +
+           gff_phobius(ss, json_dict) +
+           gff_panther(ss, json_dict))
 
     if gff_path is not None:
         with open(gff_path, 'w') as f:
