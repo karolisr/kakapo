@@ -17,13 +17,12 @@ from os import remove
 from os.path import exists as ope
 from os.path import join as opj
 from time import sleep
-
 from xml.etree import ElementTree
 
-from kakapo.http_k import get
-from kakapo.http_k import post
 from kakapo.config import PICKLE_PROTOCOL
 from kakapo.helpers import split_seq_defn_for_printing as split_seq_defn
+from kakapo.http_k import get
+from kakapo.http_k import post
 
 IPS_URL = 'https://www.ebi.ac.uk/Tools/services/rest/iprscan5'
 

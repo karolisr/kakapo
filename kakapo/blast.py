@@ -5,9 +5,9 @@
 import csv
 import os.path
 
-from operator import itemgetter
-from collections import OrderedDict
 from collections import Counter
+from collections import OrderedDict
+from operator import itemgetter
 
 from kakapo.shell import call
 

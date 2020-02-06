@@ -2,15 +2,15 @@
 # -*- coding: utf-8 -*-
 """Generate start codon context Python files"""
 
+import autopep8
 import inspect
 import os
 import sys
 
-import autopep8
-from pprint import pprint
 from csv import reader
 from itertools import starmap
 from operator import truediv
+from pprint import pprint
 
 ##############################################################################
 SCRIPT_FILE_PATH = inspect.getfile(inspect.currentframe())

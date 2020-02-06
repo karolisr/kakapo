@@ -1,10 +1,10 @@
 import setuptools  # noqa
 
-from kakapo import __version__ as kakapo_version
-from kakapo import __script_name__ as kakapo_script_name
 from kakapo import __author__ as kakapo_author
 from kakapo import __author_email__ as kakapo_author_email
 from kakapo import __description__ as kakapo_description
+from kakapo import __script_name__ as kakapo_script_name
+from kakapo import __version__ as kakapo_version
 
 with open('requirements.txt', 'r') as f:
     reqs = f.read()

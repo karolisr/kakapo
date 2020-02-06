@@ -67,9 +67,9 @@ from kakapo.workflow import run_tblastn_on_reads
 from kakapo.workflow import run_trimmomatic
 from kakapo.workflow import run_vsearch_on_reads
 from kakapo.workflow import user_aa_fasta
+from kakapo.workflow import user_entrez_search
 from kakapo.workflow import user_fastq_files
 from kakapo.workflow import user_protein_accessions
-from kakapo.workflow import user_entrez_search
 
 # Command line arguments -----------------------------------------------------
 USAGE = '{} --cfg path/to/configuration_file.ini' + \

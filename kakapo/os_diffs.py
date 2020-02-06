@@ -4,8 +4,8 @@
 Accounts for differences between operating systems.
 """
 
-import sys
 import distro
+import sys
 
 DEBIAN_DISTS = ['debian', 'ubuntu']
 REDHAT_DISTS = ['centos', 'fedora', 'rhel', 'scientific']

@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """Translation Tables"""
 
-from collections import OrderedDict
 from collections import defaultdict
+from collections import OrderedDict
 from difflib import SequenceMatcher
 
-from kakapo.iupac import IUPAC_DNA_DICT
 from kakapo.iupac import IUPAC_AMBIGUOUS_SECOND_ORDER_DNA_DICT_REVERSE
+from kakapo.iupac import IUPAC_DNA_DICT
 
 
 GC_ID_NAME_MAP = {

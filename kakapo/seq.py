@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 """seq"""
 
-from kakapo.iupac import NT_AMBIGUOUS
+from kakapo.iupac import AA_AMBIGUOUS
 from kakapo.iupac import DNA_AMBIGUOUS
+from kakapo.iupac import DNA_COMPLEMENT_TABLE
 from kakapo.iupac import DNA_ONLY_CHARS
+from kakapo.iupac import NT_AMBIGUOUS
 from kakapo.iupac import RNA_AMBIGUOUS
 from kakapo.iupac import RNA_ONLY_CHARS
-from kakapo.iupac import AA_AMBIGUOUS
-from kakapo.iupac import DNA_COMPLEMENT_TABLE
 
 SEQ_TYPE_NT = 'NT'
 SEQ_TYPE_DNA = 'DNA'

@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """Parsers."""
 
-from xml.etree import ElementTree
 import csv
+
+from xml.etree import ElementTree
 
 
 def parse_esummary_xml_text(esummary_xml_text):  # noqa

@@ -6,6 +6,7 @@ Parse kakapo project configuration (.ini) file
 
 import re
 
+from collections import OrderedDict
 from configparser import ConfigParser
 from copy import copy
 from os.path import abspath
@@ -15,11 +16,10 @@ from os.path import exists as ope
 from os.path import expanduser
 from os.path import join
 from sys import exit
-from collections import OrderedDict
 
+from kakapo.ebi_domain_search import pfam_entry
 from kakapo.helpers import list_of_files
 from kakapo.helpers import replace_line_in_file
-from kakapo.ebi_domain_search import pfam_entry
 
 
 def _parse_taxa(taxa, tax_group, taxonomy, config_file_path, linfo=print):

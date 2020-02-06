@@ -2,9 +2,9 @@
 
 """rcorrector"""
 
+from kakapo.helpers import grouper
 from kakapo.helpers import plain_or_gzip
 from kakapo.shell import call
-from kakapo.helpers import grouper
 
 
 def run_rcorrector_se(rcorrector, in_file, out_dir, threads, dir_temp):  # noqa
