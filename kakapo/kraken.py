@@ -15,13 +15,14 @@ from os.path import join as opj
 from os.path import splitext, basename
 from shutil import move
 
-from kakapo.helpers import sys_ram, splitext_gz, plain_or_gzip, make_dir
+from kakapo.config import RAM
+from kakapo.helpers import splitext_gz, plain_or_gzip, make_dir
 from kakapo.shell import call
 
 
 def _use_memory_mapping(db_path, linfo=print):
     db_size = stat(opj(db_path, 'hash.k2d')).st_size / (1024 ** 3)
-    mem_max = sys_ram() / 3
+    mem_max = RAM / 3
     if mem_max < db_size:
         db_name = splitext(basename(db_path))[0]
         linfo('Not enough memory for Kraken2 database {}. '
