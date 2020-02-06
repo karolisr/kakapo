@@ -13,7 +13,7 @@ from __future__ import with_statement
 
 import re
 
-from configparser import ConfigParser as _CP
+from configparser import ConfigParser
 from copy import copy
 from os.path import abspath
 from os.path import basename
@@ -22,49 +22,11 @@ from os.path import exists as ope
 from os.path import expanduser
 from os.path import join
 from sys import exit
+from collections import OrderedDict
 
 from kakapo.helpers import list_of_files
 from kakapo.helpers import replace_line_in_file
 from kakapo.ebi_domain_search import pfam_entry
-
-
-class ConfigParser(_CP):
-    """
-    ConfigParser that does not allow ':'. as a separator.
-
-    This is not necessary in Python 3 because it is possible to set the
-    separators as optional arguments. In Python 2, this is impossible.
-    """
-
-    # OPTCRE = re.compile(
-    #     r'(?P<option>[^:=\s][^:=]*)'          # very permissive!
-    #     r'\s*(?P<vi>[:=])\s*'                 # any number of space/tab,
-    #                                           # followed by separator
-    #                                           # (either : or =), followed
-    #                                           # by any # space/tab
-    #     r'(?P<value>.*)$'                     # everything up to eol
-    #     )
-
-    # OPTCRE_NV = re.compile(
-    #     r'(?P<option>[^:=\s][^:=]*)'          # very permissive!
-    #     r'\s*(?:'                             # any number of space/tab,
-    #     r'(?P<vi>[:=])\s*'                    # optionally followed by
-    #                                           # separator (either : or
-    #                                           # =), followed by any #
-    #                                           # space/tab
-    #     r'(?P<value>.*))?$'                   # everything up to eol
-    #     )
-
-    OPTCRE_NV = re.compile(
-        r'(?P<option>[^=\s][^=]*)'              # very permissive!
-        r'\s*(?:'                               # any number of space/tab,
-        r'(?P<vi>[=])\s*'                       # optionally followed by
-                                                # separator (=),
-                                                # followed by any #
-                                                # space/tab
-        r'(?P<value>.*))?$')                    # everything up to eol
-
-    OPTCRE = OPTCRE_NV
 
 
 def _parse_taxa(taxa, tax_group, taxonomy, config_file_path, linfo=print):
@@ -102,7 +64,7 @@ def _parse_pfam(pfam_entries, config_file_path):
     pfam_acc = list()
 
     for pf in pfam_entries:
-        pf_match = re.match('PF\d+', pf, flags=re.IGNORECASE)
+        pf_match = re.match('^\s*PF\d+$', pf, flags=re.IGNORECASE)
         if pf_match is not None:
             pfam_acc.append(pf)
         else:
@@ -112,20 +74,130 @@ def _parse_pfam(pfam_entries, config_file_path):
                 replace_line_in_file(
                     file_path=config_file_path,
                     line_str=pf_orig,
-                    replace_str='; Pfam accession not found: ' + pf)
+                    replace_str='    ; Pfam accession not found: ' + pf)
             else:
                 acc = pf_entry[0]['acc']
                 pfam_acc.append(acc)
                 replace_line_in_file(
                     file_path=config_file_path,
                     line_str=pf_orig,
-                    replace_str='; ' + pf + '\n' + str(acc))
+                    replace_str='    ; ' + pf + '\n    ' + str(acc))
 
     return pfam_acc
 
 
+def ss_file_parse(file_path, linfo=print):  # noqa
+    cfg = ConfigParser(delimiters=('='), allow_no_value=True,
+                       empty_lines_in_values=True)
+    cfg.optionxform = str
+    cfg.SECTCRE = re.compile(r'\[\s*(?P<header>[^]]+?)\s*\]')
+    cfg.read(file_path)
+
+    required_options = set(('min_query_length',
+                            'max_query_length',
+                            'max_query_identity',
+                            'min_target_orf_length',
+                            'max_target_orf_length'))
+
+    ret_dict = OrderedDict()
+
+    sections = cfg.sections()
+
+    for s in sections:
+
+        o = cfg.options(s)
+
+        if not required_options <= set(o):
+            missing = required_options - (required_options & set(o))
+            print('Missing required option(s):', ', '.join(missing),
+                  'for search strategy', s + '.')
+            exit(1)
+
+        min_query_length = int(cfg[s]['min_query_length'])
+        max_query_length = int(cfg[s]['max_query_length'])
+        max_query_identity = float(cfg[s]['max_query_identity'])
+        min_target_orf_length = int(cfg[s]['min_target_orf_length'])
+        max_target_orf_length = int(cfg[s]['max_target_orf_length'])
+
+        evalue = None
+        max_hsps = None
+        qcov_hsp_perc = None
+        best_hit_overhang = None
+        best_hit_score_edge = None
+        max_target_seqs = None
+
+        pfam_families = None
+        ncbi_accessions_aa = None
+        entrez_search_queries = None
+        fasta_files_aa = None
+
+        if cfg.has_option(s, 'evalue'):
+            evalue = float(cfg[s]['evalue'])
+
+        if cfg.has_option(s, 'max_hsps'):
+            max_hsps = int(cfg[s]['max_hsps'])
+
+        if cfg.has_option(s, 'qcov_hsp_perc'):
+            qcov_hsp_perc = float(cfg[s]['qcov_hsp_perc'])
+
+        if cfg.has_option(s, 'best_hit_overhang'):
+            best_hit_overhang = float(cfg[s]['best_hit_overhang'])
+
+        if cfg.has_option(s, 'best_hit_score_edge'):
+            best_hit_score_edge = float(cfg[s]['best_hit_score_edge'])
+
+        if cfg.has_option(s, 'max_target_seqs'):
+            max_target_seqs = int(cfg[s]['max_target_seqs'])
+
+        if cfg.has_option(s, 'pfam_families'):
+            pfam_families = str(cfg[s]['pfam_families'])
+            pfam_families = set(pfam_families.split('\n')) - \
+                set(('', 'None'))
+            pfam_families = _parse_pfam(pfam_entries=pfam_families,
+                                        config_file_path=file_path)
+            pfam_families = sorted(pfam_families)
+
+        if cfg.has_option(s, 'ncbi_accessions_aa'):
+            ncbi_accessions_aa = str(cfg[s]['ncbi_accessions_aa'])
+            ncbi_accessions_aa = sorted(set(ncbi_accessions_aa.split('\n')) -
+                                        set(('', 'None')))
+
+        if cfg.has_option(s, 'entrez_search_queries'):
+            entrez_search_queries = str(cfg[s]['entrez_search_queries'])
+            entrez_search_queries = sorted(
+                set(entrez_search_queries.split('\n')) - set(('', 'None')))
+
+        if cfg.has_option(s, 'fasta_files_aa'):
+            fasta_files_aa = str(cfg[s]['fasta_files_aa'])
+            fasta_files_aa = set(fasta_files_aa.split('\n')) - \
+                set(('', 'None'))
+            fasta_files_aa = [abspath(expanduser(x)) for x in fasta_files_aa]
+            fasta_files_aa = sorted(fasta_files_aa)
+
+        section_dict = OrderedDict(
+            {'min_query_length': min_query_length,
+             'max_query_length': max_query_length,
+             'max_query_identity': max_query_identity,
+             'min_target_orf_length': min_target_orf_length,
+             'max_target_orf_length': max_target_orf_length,
+             'blast_2_evalue': evalue,
+             'blast_2_max_hsps': max_hsps,
+             'blast_2_qcov_hsp_perc': qcov_hsp_perc,
+             'blast_2_best_hit_overhang': best_hit_overhang,
+             'blast_2_best_hit_score_edge': best_hit_score_edge,
+             'blast_2_max_target_seqs': max_target_seqs,
+             'pfam_families': pfam_families,
+             'ncbi_accessions_aa': ncbi_accessions_aa,
+             'entrez_search_queries': entrez_search_queries,
+             'fasta_files_aa': fasta_files_aa})
+
+        ret_dict[s] = section_dict
+
+    return ret_dict
+
+
 def config_file_parse(file_path, taxonomy, linfo=print):  # noqa
-    cfg = ConfigParser()
+    cfg = ConfigParser(delimiters=('='), allow_no_value=True)
     cfg.optionxform = str
     cfg.read(file_path)
 
@@ -140,8 +212,8 @@ def config_file_parse(file_path, taxonomy, linfo=print):  # noqa
     kraken_confidence = cfg.getfloat('General', 'kraken_2_confidence')
 
     # Target filters
-    min_target_orf_len = cfg.getint('Target filters', 'min_target_orf_length')
-    max_target_orf_len = cfg.getint('Target filters', 'max_target_orf_length')
+    # min_target_orf_len = cfg.getint('Target filters', 'min_target_orf_length')
+    # max_target_orf_len = cfg.getint('Target filters', 'max_target_orf_length')
     allow_non_aug = cfg.getboolean('Target filters',
                                    'allow_non_aug_start_codon')
     allow_no_strt_cod = cfg.getboolean('Target filters',
@@ -259,26 +331,26 @@ def config_file_parse(file_path, taxonomy, linfo=print):  # noqa
         krkn_order = cfg.items(krkn_sctn)
 
     # Query filters
-    min_query_length = cfg.getint('Query filters', 'min_query_length')
-    max_query_length = cfg.getint('Query filters', 'max_query_length')
-    max_query_identity = cfg.getfloat('Query filters', 'max_query_identity')
+    # min_query_length = cfg.getint('Query filters', 'min_query_length')
+    # max_query_length = cfg.getint('Query filters', 'max_query_length')
+    # max_query_identity = cfg.getfloat('Query filters', 'max_query_identity')
 
     # Query Pfam families
-    pfam_temp = cfg.items('Query Pfam families')
-    pfam_temp = [x[0] for x in pfam_temp]
-    pfam_acc = _parse_pfam(pfam_entries=pfam_temp, config_file_path=file_path)
+    # pfam_temp = cfg.items('Query Pfam families')
+    # pfam_temp = [x[0] for x in pfam_temp]
+    # pfam_acc = _parse_pfam(pfam_entries=pfam_temp, config_file_path=file_path)
 
     # Query NCBI Entrez search
-    entrez_queries = cfg.items('Query NCBI Entrez search')
-    entrez_queries = [x[0] for x in entrez_queries]
+    # entrez_queries = cfg.items('Query NCBI Entrez search')
+    # entrez_queries = [x[0] for x in entrez_queries]
 
     # Query NCBI protein accessions
-    prot_acc = cfg.items('Query NCBI protein accessions')
-    prot_acc = [x[0] for x in prot_acc]
+    # prot_acc = cfg.items('Query NCBI protein accessions')
+    # prot_acc = [x[0] for x in prot_acc]
 
     # Query FASTA files (Amino Acid)
-    user_queries = cfg.items('Query FASTA files (Amino Acid)')
-    user_queries = [abspath(expanduser(x[0])) for x in user_queries]
+    # user_queries = cfg.items('Query FASTA files (Amino Acid)')
+    # user_queries = [abspath(expanduser(x[0])) for x in user_queries]
 
     # BLAST SRA/FASTQ
     blast_1_evalue = cfg.getfloat('BLAST SRA/FASTQ', 'evalue')
@@ -323,21 +395,22 @@ def config_file_parse(file_path, taxonomy, linfo=print):  # noqa
                 'inter_pro_scan': inter_pro_scan,
                 'kraken_confidence': kraken_confidence,
                 'krkn_order': krkn_order,
-                'max_query_length': max_query_length,
-                'max_target_orf_len': max_target_orf_len,
-                'min_query_length': min_query_length,
-                'max_query_identity': max_query_identity,
-                'min_target_orf_len': min_target_orf_len,
+                # 'max_query_length': max_query_length,
+                # 'max_target_orf_len': max_target_orf_len,
+                # 'min_query_length': min_query_length,
+                # 'max_query_identity': max_query_identity,
+                # 'min_target_orf_len': min_target_orf_len,
                 'output_directory': output_directory,
-                'pfam_acc': pfam_acc,
+                # 'pfam_acc': pfam_acc,
                 'prepend_assmbl': prepend_assmbl,
                 'project_name': project_name,
-                'entrez_queries': entrez_queries,
-                'prot_acc': prot_acc,
+                # 'entrez_queries': entrez_queries,
+                # 'prot_acc': prot_acc,
                 'sras': sras,
                 'tax_group': tax_group,
                 'tax_group_name': tax_group_name,
                 'tax_ids': all_tax_ids,
-                'user_queries': user_queries}
+                # 'user_queries': user_queries
+                }
 
     return ret_dict

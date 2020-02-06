@@ -226,7 +226,7 @@ def descending_tax_ids(tax_ids_user, taxonomy, linfo=print):  # noqa
     return tax_ids
 
 
-def pfam_uniprot_accessions(pfam_acc, tax_ids, dir_cache_pfam_acc,
+def pfam_uniprot_accessions(ss, pfam_acc, tax_ids, dir_cache_pfam_acc,
                             linfo=print):  # noqa
     if len(pfam_acc) > 0:
         linfo('Downloading UniProt accessions for Pfam families')
@@ -234,7 +234,7 @@ def pfam_uniprot_accessions(pfam_acc, tax_ids, dir_cache_pfam_acc,
     for pa in pfam_acc:
         pfam_id = pfam_entry(pa)[0]['id']
         linfo(pa + ': ' + pfam_id)
-        __ = opj(dir_cache_pfam_acc, pa)
+        __ = opj(dir_cache_pfam_acc, pa + '__' + ss)
         if ope(__):
             with open(__, 'rb') as f:
                 acc = pickle.load(f)
@@ -249,10 +249,10 @@ def pfam_uniprot_accessions(pfam_acc, tax_ids, dir_cache_pfam_acc,
     return pfam_uniprot_acc
 
 
-def dnld_pfam_uniprot_seqs(uniprot_acc, aa_uniprot_file, dir_cache_prj,
+def dnld_pfam_uniprot_seqs(ss, uniprot_acc, aa_uniprot_file, dir_cache_prj,
                            linfo=print):  # noqa
     if len(uniprot_acc) != 0:
-        __ = opj(dir_cache_prj, 'aa_uniprot_acc_cache')
+        __ = opj(dir_cache_prj, 'aa_uniprot_acc_cache__' + ss)
         prev_uniprot_acc = []
         if ope(__):
             with open(__, 'rb') as f:
@@ -275,10 +275,10 @@ def dnld_pfam_uniprot_seqs(uniprot_acc, aa_uniprot_file, dir_cache_prj,
             osremove(aa_uniprot_file)
 
 
-def user_protein_accessions(prot_acc_user, dir_cache_prj, linfo=print):  # noqa
+def user_protein_accessions(ss, prot_acc_user, dir_cache_prj, linfo=print):  # noqa
     if len(prot_acc_user) > 0:
         linfo('Reading user provided protein accessions')
-        pickle_file = opj(dir_cache_prj, 'ncbi_prot_metadata_cache')
+        pickle_file = opj(dir_cache_prj, 'ncbi_prot_metadata_cache__' + ss)
         acc_old = set()
         if ope(pickle_file):
             with open(pickle_file, 'rb') as f:
@@ -323,14 +323,14 @@ def user_protein_accessions(prot_acc_user, dir_cache_prj, linfo=print):  # noqa
         return prot_acc_user
 
 
-def user_entrez_search(queries, dir_cache_prj, linfo=print):  # noqa
+def user_entrez_search(ss, queries, dir_cache_prj, linfo=print):  # noqa
     accs = []
     if len(queries) != 0:
         linfo('Searching for protein sequences on NCBI')
         for q in queries:
             accs = accs + accessions_ncbi(esearch(term=q, db='protein'))
 
-    return user_protein_accessions(accs, dir_cache_prj, linfo=linfo)
+    return user_protein_accessions(ss, accs, dir_cache_prj, linfo=linfo)
 
 
 def dnld_prot_seqs(prot_acc_user, aa_prot_ncbi_file, linfo=print):  # noqa
@@ -1170,7 +1170,7 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                          tblastn, blast_1_evalue, blast_1_max_hsps,
                          blast_1_qcov_hsp_perc, blast_1_best_hit_overhang,
                          blast_1_best_hit_score_edge, blast_1_max_target_seqs,
-                         dir_blast_results_fa_trim, fpatt, threads,
+                         dir_blast_results_fa_trim, fpatt, ss, threads,
                          seqtk, vsearch, linfo=print): # noqa
     ident = 0.85
 
@@ -1178,14 +1178,14 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
         dir_results = opj(dir_blast_results_fa_trim, se)
         blast_db_path = se_fastq_files[se]['blast_db_path']
         fq_path = se_fastq_files[se]['filter_path_fq']
-        out_f = opj(dir_results, se + '.txt')
+        out_f = opj(dir_results, se + '__' + ss + '.txt')
         out_f_fastq = out_f.replace('.txt', '.fastq')
         out_f_fasta = out_f.replace('.txt', '.fasta')
-        se_fastq_files[se]['blast_results_path'] = out_f_fasta
+        se_fastq_files[se]['blast_results_path' + '__' + ss] = out_f_fasta
         genetic_code = se_fastq_files[se]['gc_id']
 
-        if ope(dir_results):
-            linfo('BLAST results for sample ' + se + ' already exists')
+        if ope(out_f_fasta):
+            linfo('BLAST results for sample ' + se + ' - ' + ss + ' already exists')
         else:
             make_dir(dir_results)
             linfo('Running tblastn on: ' + blast_db_path)
@@ -1225,14 +1225,15 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
         fq_paths = pe_fastq_files[pe]['filter_path_fq']
         out_fs = [x.replace('@D@', dir_results) for x in fpatt]
         out_fs = [x.replace('@N@', pe) for x in out_fs]
+        out_fs = [x.replace('@Q@', ss) for x in out_fs]
         out_fs_fastq = [x.replace('.txt', '.fastq') for x in out_fs]
         out_fs_fasta = [x.replace('.txt', '.fasta') for x in out_fs]
-        out_f_fasta = opj(dir_results, pe + '.fasta')
-        pe_fastq_files[pe]['blast_results_path'] = out_f_fasta
+        out_f_fasta = opj(dir_results, pe + '__' + ss + '.fasta')
+        pe_fastq_files[pe]['blast_results_path' + '__' + ss] = out_f_fasta
         genetic_code = pe_fastq_files[pe]['gc_id']
 
-        if ope(dir_results):
-            linfo('BLAST results for sample ' + pe + ' already exist')
+        if ope(out_f_fasta):
+            linfo('BLAST results for sample ' + pe + ' - ' + ss + ' already exist')
         else:
             make_dir(dir_results)
             pe_trim_files = zip(blast_db_paths, out_fs, fq_paths, out_fs_fastq,
@@ -1276,21 +1277,21 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
 
 
 def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
-                         dir_vsearch_results_fa_trim, fpatt, seqtk,
+                         dir_vsearch_results_fa_trim, fpatt, ss, seqtk,
                          linfo=print): # noqa
     ident = 0.85
 
     for se in se_fastq_files:
         dir_results = opj(dir_vsearch_results_fa_trim, se)
         min_acc_len = se_fastq_files[se]['min_acc_len']
-        blast_results_fa_path = se_fastq_files[se]['blast_results_path']
+        blast_results_fa_path = se_fastq_files[se]['blast_results_path' + '__' + ss]
         fq_path = se_fastq_files[se]['filter_path_fq']
-        out_f = opj(dir_results, se + '.txt')
+        out_f = opj(dir_results, se + '__' + ss + '.txt')
         out_f_fastq = out_f.replace('.txt', '.fastq')
-        se_fastq_files[se]['vsearch_results_path'] = out_f_fastq
+        se_fastq_files[se]['vsearch_results_path' + '__' + ss] = out_f_fastq
 
-        if ope(dir_results):
-            linfo('Vsearch results for sample ' + se + ' already exists')
+        if ope(out_f_fastq):
+            linfo('Vsearch results for sample ' + se + ' - ' + ss + ' already exists')
         else:
             make_dir(dir_results)
             linfo('Running vsearch on: ' + fq_path)
@@ -1309,15 +1310,17 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
     for pe in pe_fastq_files:
         dir_results = opj(dir_vsearch_results_fa_trim, pe)
         min_acc_len = pe_fastq_files[pe]['min_acc_len']
-        blast_results_fa_path = pe_fastq_files[pe]['blast_results_path']
+        blast_results_fa_path = pe_fastq_files[pe]['blast_results_path' + '__' + ss]
         fq_paths = pe_fastq_files[pe]['filter_path_fq']
         out_fs = [x.replace('@D@', dir_results) for x in fpatt]
         out_fs = [x.replace('@N@', pe) for x in out_fs]
+        out_fs = [x.replace('@Q@', ss) for x in out_fs]
         out_fs_fastq = [x.replace('.txt', '.fastq') for x in out_fs]
-        pe_fastq_files[pe]['vsearch_results_path'] = out_fs_fastq
+        pe_fastq_files[pe]['vsearch_results_path' + '__' + ss] = out_fs_fastq
 
-        if ope(dir_results):
-            linfo('Vsearch results for sample ' + pe + ' already exist')
+        if ope(out_fs_fastq[0]) and ope(out_fs_fastq[1]) and \
+           ope(out_fs_fastq[2]) and ope(out_fs_fastq[3]):
+            linfo('Vsearch results for sample ' + pe + ' - ' + ss + ' already exist')
         else:
             make_dir(dir_results)
             pe_trim_files = zip(fq_paths, out_fs, out_fs_fastq)
@@ -1342,7 +1345,7 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
             p1fq_out = out_fs_fastq[0]
             p2fq_out = out_fs_fastq[1]
 
-            p12txt_temp = opj(dir_results, pe + '_paired.txt')
+            p12txt_temp = opj(dir_results, pe + '__' + ss + '_paired.txt')
 
             combine_text_files([p1txt, p2txt], p12txt_temp)
             keep_unique_lines_in_file(p12txt_temp)
@@ -1377,17 +1380,17 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
 
 
 def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
-               spades, dir_temp, threads, ram, linfo=print):  # noqa
+               spades, dir_temp, ss, threads, ram, linfo=print):  # noqa
     for se in se_fastq_files:
-        dir_results = opj(dir_spades_assemblies, se)
-        fq_path = se_fastq_files[se]['vsearch_results_path']
-        se_fastq_files[se]['spades_assembly'] = None
+        dir_results = opj(dir_spades_assemblies, se + '__' + ss)
+        fq_path = se_fastq_files[se]['vsearch_results_path' + '__' + ss]
+        se_fastq_files[se]['spades_assembly' + '__' + ss] = None
 
         if ope(dir_results):
-            linfo('SPAdes results for sample ' + se + ' already exist')
+            linfo('SPAdes results for sample ' + se + ' - ' + ss + ' already exist')
         else:
             make_dir(dir_results)
-            linfo('Running SPAdes on: ' + se)
+            linfo('Running SPAdes on: ' + se + ' - ' + ss)
             run_spades_se(spades,
                           out_dir=dir_results,
                           input_file=fq_path,
@@ -1402,20 +1405,20 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
             if count == 1:
                 tr_str = ' transcript'
             linfo('SPAdes produced ' + str(count) + tr_str)
-            se_fastq_files[se]['spades_assembly'] = assmbl_path
+            se_fastq_files[se]['spades_assembly' + '__' + ss] = assmbl_path
         else:
             linfo('SPAdes produced no transcripts')
 
     for pe in pe_fastq_files:
-        dir_results = opj(dir_spades_assemblies, pe)
-        fq_paths = pe_fastq_files[pe]['vsearch_results_path']
-        pe_fastq_files[pe]['spades_assembly'] = None
+        dir_results = opj(dir_spades_assemblies, pe + '__' + ss)
+        fq_paths = pe_fastq_files[pe]['vsearch_results_path' + '__' + ss]
+        pe_fastq_files[pe]['spades_assembly' + '__' + ss] = None
 
         if ope(dir_results):
-            linfo('SPAdes results for sample ' + pe + ' already exist')
+            linfo('SPAdes results for sample ' + pe + ' - ' + ss + ' already exist')
         else:
             make_dir(dir_results)
-            linfo('Running SPAdes on: ' + pe)
+            linfo('Running SPAdes on: ' + pe + ' - ' + ss)
 
             if osstat(fq_paths[0]).st_size > 0 and \
                osstat(fq_paths[1]).st_size > 0:
@@ -1445,7 +1448,7 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
             if count == 1:
                 tr_str = ' transcript'
             linfo('SPAdes produced ' + str(count) + tr_str)
-            pe_fastq_files[pe]['spades_assembly'] = assmbl_path
+            pe_fastq_files[pe]['spades_assembly' + '__' + ss] = assmbl_path
         else:
             linfo('SPAdes produced no transcripts')
 
@@ -1473,7 +1476,7 @@ def makeblastdb_assemblies(assemblies, dir_prj_blast_assmbl, makeblastdb,
                           title=assmbl_name)
 
 
-def run_tblastn_on_assemblies(assemblies, aa_queries_file, tblastn,
+def run_tblastn_on_assemblies(ss, assemblies, aa_queries_file, tblastn,
                               dir_prj_assmbl_blast_results, blast_2_evalue,
                               blast_2_max_hsps, blast_2_qcov_hsp_perc,
                               blast_2_best_hit_overhang,
@@ -1486,7 +1489,7 @@ def run_tblastn_on_assemblies(assemblies, aa_queries_file, tblastn,
         linfo('There are no assemblies. Nothing to do, stopping.')
         exit(0)
 
-    cache_file = opj(dir_cache_prj, 'blast_2_settings_cache')
+    cache_file = opj(dir_cache_prj, 'blast_2_settings_cache__' + ss)
 
     pickled = dict()
     settings = {'blast_2_evalue': blast_2_evalue,
@@ -1505,13 +1508,22 @@ def run_tblastn_on_assemblies(assemblies, aa_queries_file, tblastn,
     linfo('max_target_seqs: ' + str(blast_2_max_target_seqs))
 
     for a in assemblies:
+        assmbl_src = a['src']
         assmbl_name = a['name']
+
+        if assmbl_src != 'user_fasta':
+            if assmbl_name.endswith('__' + ss):
+                assmbl_name = assmbl_name.replace('__' + ss, '')
+            else:
+                continue
+
         assmbl_blast_db_path = a['blast_db_path']
         assmbl_genetic_code = a['gc_id']
 
-        ips_json_dump_path = opj(dir_prj_ips, assmbl_name + '_ann_ips.json')
+        ips_json_dump_path = opj(dir_prj_ips, assmbl_name + '_ann_ips__' + ss +
+                                 '.json')
 
-        _ = opj(dir_prj_assmbl_blast_results, assmbl_name + '.tsv')
+        _ = opj(dir_prj_assmbl_blast_results, assmbl_name + '__' + ss + '.tsv')
 
         if ope(_) and ope(cache_file):
             with open(cache_file, 'rb') as f:
@@ -1543,13 +1555,13 @@ def run_tblastn_on_assemblies(assemblies, aa_queries_file, tblastn,
                       db_genetic_code=assmbl_genetic_code,
                       out_cols=BLST_RES_COLS_2)
 
-        a['blast_hits_aa'] = parse_blast_results_file(_, BLST_RES_COLS_2)
+        a['blast_hits_aa__' + ss] = parse_blast_results_file(_, BLST_RES_COLS_2)
 
     with open(cache_file, 'wb') as f:
         pickle.dump(settings, f, protocol=PICKLE_PROTOCOL)
 
 
-def find_orfs_translate(assemblies, dir_prj_transcripts, seqtk,
+def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,
                         dir_temp, prepend_assmbl, min_target_orf_len,
                         max_target_orf_len, allow_non_aug, allow_no_strt_cod,
                         allow_no_stop_cod, tax, tax_group, tax_ids_user,
@@ -1559,27 +1571,31 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, seqtk,
 
     for a in assemblies:
 
+        if ('blast_hits_aa__' + ss) not in a:
+            continue
+
         assmbl_name = a['name']
         tax_id = a['tax_id']
 
-        parsed_hits = a['blast_hits_aa']
+        parsed_hits = a['blast_hits_aa__' + ss]
+
         a_path = a['path']
         gc_tt = a['gc_tt']
 
         transcripts_nt_fasta_file = opj(
-            dir_prj_transcripts, assmbl_name + '_transcripts_nt.fasta')
+            dir_prj_transcripts, assmbl_name + '_transcripts_nt__' + ss + '.fasta')
 
         transcripts_nt_orf_fasta_file = opj(
-            dir_prj_transcripts, assmbl_name + '_transcripts_nt_orf.fasta')
+            dir_prj_transcripts, assmbl_name + '_transcripts_nt_orf__' + ss + '.fasta')
 
         transcripts_aa_orf_fasta_file = opj(
-            dir_prj_transcripts, assmbl_name + '_transcripts_aa_orf.fasta')
+            dir_prj_transcripts, assmbl_name + '_transcripts_aa_orf__' + ss + '.fasta')
 
         transcripts_nt = {}
         transcripts_nt_orf = {}
         transcripts_aa_orf = {}
 
-        a['annotations'] = {}
+        a['annotations__' + ss] = {}
 
         collated = collate_blast_results(parsed_hits)
 
@@ -1587,8 +1603,8 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, seqtk,
         # Use seqtk to sample the assembly FASTA file for sequences with
         # BLAST hits. This increases the speed substantially when the assembly
         # file is large.
-        temp_a_file = opj(dir_temp, 'temp.fasta')
-        temp_s_file = opj(dir_temp, 'temp.txt')
+        temp_a_file = opj(dir_temp, 'temp__' + ss + '.fasta')
+        temp_s_file = opj(dir_temp, 'temp__' + ss + '.txt')
         sseqids_subsample = []
         for hit in collated:
             target_name = hit['sseqid']
@@ -1616,7 +1632,7 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, seqtk,
 
         all_kakapo_results = {}
         json_dump_file_path = opj(dir_prj_transcripts, assmbl_name +
-                                  '_ann_kakapo.json')
+                                  '_ann_kakapo__' + ss + '.json')
 
         if len(collated) > 0:
             print('\n' + '-' * 90 + '\n')
@@ -1710,7 +1726,7 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, seqtk,
 
             target_def = target_name + ' ' + query_name + rev_comp_def_str
 
-            a['annotations'][target_name] = {}
+            a['annotations__' + ss][target_name] = {}
 
             good_orf = orf[0]
             bad_orfs = orf[1]
@@ -1759,9 +1775,9 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, seqtk,
 
                     orf_log_str += '\n' + 'VALID'.center(90) + '\n'
 
-                    a['annotations'][target_name]['orf_begin'] = ann_orf_b
-                    a['annotations'][target_name]['orf_end'] = ann_orf_e
-                    a['annotations'][target_name]['orf_grade'] = good_orf[3]
+                    a['annotations__' + ss][target_name]['orf_begin'] = ann_orf_b
+                    a['annotations__' + ss][target_name]['orf_end'] = ann_orf_e
+                    a['annotations__' + ss][target_name]['orf_grade'] = good_orf[3]
 
                     transcripts_nt_orf[target_def] = orf_seq
 
@@ -1783,8 +1799,8 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, seqtk,
             print(orf_log_str)
 
             if len(bad_orfs) > 0:
-                a['annotations'][target_name]['orfs_bad'] = list()
-                orfs_bad_list = a['annotations'][target_name]['orfs_bad']
+                a['annotations__' + ss][target_name]['orfs_bad'] = list()
+                orfs_bad_list = a['annotations__' + ss][target_name]['orfs_bad']
 
             for bad_orf in bad_orfs:
 
@@ -1809,17 +1825,17 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, seqtk,
 
             transcripts_nt[target_def] = target_seq
 
-            a['annotations'][target_name]['query_name'] = query_name
-            a['annotations'][target_name]['evalue'] = hit_evalue
-            a['annotations'][target_name]['frame'] = abs(hit_frame)
-            a['annotations'][target_name]['blast_hit_begin'] = ann_hit_b
-            a['annotations'][target_name]['blast_hit_end'] = ann_hit_e
+            a['annotations__' + ss][target_name]['query_name'] = query_name
+            a['annotations__' + ss][target_name]['evalue'] = hit_evalue
+            a['annotations__' + ss][target_name]['frame'] = abs(hit_frame)
+            a['annotations__' + ss][target_name]['blast_hit_begin'] = ann_hit_b
+            a['annotations__' + ss][target_name]['blast_hit_end'] = ann_hit_e
 
             ##################################################################
             # Collect ORF and BLAST hit annotations for downstream use.
             kakapo_json = [{}]
-            kakapo_json[0]['kakapo_annotations'] = (
-                a['annotations'][target_name])
+            kakapo_json[0]['kakapo_annotations__' + ss] = (
+                a['annotations__' + ss][target_name])
             all_kakapo_results[target_name] = kakapo_json
             ##################################################################
 
@@ -1829,24 +1845,24 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, seqtk,
 
         if len(transcripts_nt) > 0:
             write_fasta(transcripts_nt, transcripts_nt_fasta_file)
-            a['transcripts_nt_fasta_file'] = transcripts_nt_fasta_file
+            a['transcripts_nt_fasta_file__' + ss] = transcripts_nt_fasta_file
         else:
-            a['transcripts_nt_fasta_file'] = None
+            a['transcripts_nt_fasta_file__' + ss] = None
 
         linfo('Transcripts with acceptable ORFs: ' +
               str(len(transcripts_nt_orf)))
 
         if len(transcripts_nt_orf) > 0:
             write_fasta(transcripts_nt_orf, transcripts_nt_orf_fasta_file)
-            a['transcripts_nt_orf_fasta_file'] = transcripts_nt_orf_fasta_file
+            a['transcripts_nt_orf_fasta_file__' + ss] = transcripts_nt_orf_fasta_file
         else:
-            a['transcripts_nt_orf_fasta_file'] = None
+            a['transcripts_nt_orf_fasta_file__' + ss] = None
 
         if len(transcripts_aa_orf) > 0:
             write_fasta(transcripts_aa_orf, transcripts_aa_orf_fasta_file)
-            a['transcripts_aa_orf_fasta_file'] = transcripts_aa_orf_fasta_file
+            a['transcripts_aa_orf_fasta_file__' + ss] = transcripts_aa_orf_fasta_file
         else:
-            a['transcripts_aa_orf_fasta_file'] = None
+            a['transcripts_aa_orf_fasta_file__' + ss] = None
 
         # --------------------------------------------------------------------
         # Save ORF and BLAST hit annotations for downstream use.
@@ -1855,7 +1871,7 @@ def find_orfs_translate(assemblies, dir_prj_transcripts, seqtk,
         # --------------------------------------------------------------------
 
 
-def run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj,
+def run_inter_pro_scan(ss, assemblies, email, dir_prj_ips, dir_cache_prj,
                        linfo=print):  # noqa
     delay = 0.25
 
@@ -1864,21 +1880,21 @@ def run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj,
 
     for a in assemblies:
 
-        if 'transcripts_aa_orf_fasta_file' not in a:
+        if 'transcripts_aa_orf_fasta_file__' + ss not in a:
             continue
 
-        aa_file = a['transcripts_aa_orf_fasta_file']
+        aa_file = a['transcripts_aa_orf_fasta_file__' + ss]
 
         if aa_file is None:
             continue
 
         assmbl_name = a['name']
 
-        json_dump_file_path = opj(dir_prj_ips, assmbl_name + '_ann_ips.json')
+        json_dump_file_path = opj(dir_prj_ips, assmbl_name + '_ann_ips__' + ss + '.json')
 
         if ope(json_dump_file_path):
-            linfo('InterProScan results for assembly ' + assmbl_name +
-                  ' have already been downloaded')
+            linfo('InterProScan results for assembly ' + assmbl_name + ', ' +
+                  ss + ' have already been downloaded')
             continue
 
         seqs = read_fasta(aa_file)
@@ -1886,7 +1902,7 @@ def run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj,
                                   key=lambda x: x[0].split(' ')[1],
                                   reverse=True))
 
-        _ = opj(dir_cache_prj, assmbl_name + '_ips_jobs')
+        _ = opj(dir_cache_prj, assmbl_name + '_ips_jobs__' + ss)
 
         if ope(_):
             with open(_, 'rb') as f:
@@ -1941,7 +1957,7 @@ def run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj,
             job_no_def = job.split(' ')[0]
 
             # kakapo annotations
-            ips_json[0]['kakapo_annotations'] = a['annotations'][job_no_def]
+            ips_json[0]['kakapo_annotations__' + ss] = a['annotations__' + ss][job_no_def]
 
             all_ips_results[job_no_def] = ips_json
 
@@ -1954,7 +1970,7 @@ def run_inter_pro_scan(assemblies, email, dir_prj_ips, dir_cache_prj,
         osremove(_)
 
 
-def gff_from_json(assemblies, dir_prj_ips, dir_prj_transcripts_combined,
+def gff_from_json(ss, assemblies, dir_prj_ips, dir_prj_transcripts_combined,
                   prj_name, linfo=print):  # noqa
     if len(assemblies) > 0:
         linfo('Producing GFF3 files')
@@ -1962,20 +1978,20 @@ def gff_from_json(assemblies, dir_prj_ips, dir_prj_transcripts_combined,
     all_fas_paths = []
     all_gff_paths = []
 
-    combined_fas_path = opj(dir_prj_transcripts_combined, prj_name + '.fasta')
-    combined_gff_path = opj(dir_prj_transcripts_combined, prj_name + '.gff')
+    combined_fas_path = opj(dir_prj_transcripts_combined, prj_name + '__' + ss + '.fasta')
+    combined_gff_path = opj(dir_prj_transcripts_combined, prj_name + '__' + ss + '.gff')
 
     for a in assemblies:
 
-        if 'transcripts_nt_fasta_file' not in a:
+        if 'transcripts_nt_fasta_file__' + ss not in a:
             continue
 
         assmbl_name = a['name']
-        transcripts_nt_path = a['transcripts_nt_fasta_file']
+        transcripts_nt_path = a['transcripts_nt_fasta_file__' + ss]
 
-        kakapo_json_path = opj(dir_prj_ips, assmbl_name + '_ann_kakapo.json')
-        ips_json_path = opj(dir_prj_ips, assmbl_name + '_ann_ips.json')
-        json_path = opj(dir_prj_ips, assmbl_name + '_ann.json')
+        kakapo_json_path = opj(dir_prj_ips, assmbl_name + '_ann_kakapo__' + ss + '.json')
+        ips_json_path = opj(dir_prj_ips, assmbl_name + '_ann_ips__' + ss + '.json')
+        json_path = opj(dir_prj_ips, assmbl_name + '_ann__' + ss + '.json')
 
         gff_path = transcripts_nt_path.replace('.fasta', '.gff')
 
@@ -1998,7 +2014,7 @@ def gff_from_json(assemblies, dir_prj_ips, dir_prj_transcripts_combined,
 
         if ope(json_path):
             linfo(assmbl_name)
-            gff_from_kakapo_ips5_json_file(json_path, gff_path)
+            gff_from_kakapo_ips5_json_file(ss, json_path, gff_path)
 
             osremove(json_path)
 
@@ -2009,14 +2025,14 @@ def gff_from_json(assemblies, dir_prj_ips, dir_prj_transcripts_combined,
     combine_text_files(all_gff_paths, combined_gff_path)
 
 
-def dnld_cds_for_ncbi_prot_acc(prot_acc_user, prot_cds_ncbi_file, tax,
+def dnld_cds_for_ncbi_prot_acc(ss, prot_acc_user, prot_cds_ncbi_file, tax,
                                dir_cache_prj, linfo=print):  # noqa
 
     # TODO: The function downloads more CDS than are strictly required,
     #       then filters out the unneeded ones. Sometimes this causes
     #       large amounts of data to be downloaded unnecessarily.
 
-    pickle_file = opj(dir_cache_prj, 'ncbi_prot_cds_cache')
+    pickle_file = opj(dir_cache_prj, 'ncbi_prot_cds_cache__' + ss)
     acc_old = set()
     if ope(pickle_file):
         with open(pickle_file, 'rb') as f:
@@ -2063,7 +2079,16 @@ def dnld_cds_for_ncbi_prot_acc(prot_acc_user, prot_cds_ncbi_file, tax,
                 seq = cds_fasta[rec]
                 cds_acc = re.findall(r'^(.*?)\s',
                                      description)[0].split('_cds_')[0]
-                prot_name = re.findall(r'\[protein=(.*?)\]', rec)[0]
+
+                prot_name = re.findall(r'\[protein=(.*?)\]', rec)
+                if len(prot_name) > 0:
+                    prot_name = prot_name[0]
+                else:
+                    prot_name = re.findall(r'\[gene=(.*?)\]', rec)
+                    if len(prot_name) > 0:
+                        prot_name = prot_name[0]
+                    else:
+                        prot_name = ''
 
                 prot_name = prot_name.lower().strip()
                 prot_name = prot_name.replace(' ', '_').replace('-', '_')

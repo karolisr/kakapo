@@ -54,11 +54,11 @@ def debug_print(msg=''): # noqa
 
 def replace_line_in_file(file_path, line_str, replace_str):  # noqa
     for line in fileinput.input(file_path, inplace=1):
-        line_strip = line.strip('\n')
+        line_strip = line.strip('\n ')
         if line_strip == line_str:
             print(replace_str)
         else:
-            print(line_strip)
+            print(line.strip('\n'))
 
 
 def make_dir(path):  # noqa
