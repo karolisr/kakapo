@@ -1,13 +1,6 @@
 # -*- coding: utf-8 -*-
 """IUPAC"""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import generators
-from __future__ import nested_scopes
-from __future__ import print_function
-from __future__ import with_statement
-
 NT_SHARED_CHARS = set('ACG')
 NT_AMBIGUOUS_CHARS = set('BDHKMNRSVWY')
 NT_GAPS_STRING = '-.'

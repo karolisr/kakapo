@@ -6,13 +6,6 @@ EMBL-EBI InterProScan 5
 Documentation: https://www.ebi.ac.uk/seqdb/confluence/display/JDSAT/InterProScan+5+Help+and+Documentation#InterProScan5HelpandDocumentation-OpenAPIInterface  # noqa
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import generators
-from __future__ import nested_scopes
-from __future__ import print_function
-from __future__ import with_statement
-
 import io
 import pickle
 import sys

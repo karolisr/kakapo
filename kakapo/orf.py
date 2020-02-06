@@ -2,13 +2,6 @@
 
 """ORF Finder"""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import generators
-from __future__ import nested_scopes
-from __future__ import print_function
-from __future__ import with_statement
-
 from functools import partial, reduce
 from itertools import accumulate, chain, compress, dropwhile, groupby, starmap
 from operator import add, contains, itemgetter, mul, ne, not_, sub
