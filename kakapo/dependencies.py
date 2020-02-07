@@ -86,7 +86,7 @@ def rcorrector_dir_name(path): # noqa
 
 def get_version_seqtk(seqtk):  # noqa
     _, err = call(seqtk)
-    if type(err) not in (bytes, str) or out == b'':
+    if type(err) not in (bytes, str) or err == b'':
         return VER_UNK
     v = re.findall(r'Version\:\s([\d\w\.\-]*)', err.decode(),
                    flags=re.MULTILINE)
@@ -126,7 +126,7 @@ def get_version_blast(any_blast_bin):  # noqa
 
 def get_version_vsearch(vsearch):  # noqa
     _, err = call([vsearch, '-version'])
-    if type(err) not in (bytes, str) or out == b'':
+    if type(err) not in (bytes, str) or err == b'':
         return VER_UNK
     v = re.findall(r'^vsearch\sv([\d\.]*)', err.decode(), flags=re.MULTILINE)
     if len(v) > 0:
