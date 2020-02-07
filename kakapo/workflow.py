@@ -531,6 +531,13 @@ def dnld_sra_info(sras, dir_cache_prj, linfo=print):  # noqa
 
 def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
                          threads, dir_temp, linfo=print): # noqa
+
+    if len(sras) > 0:
+        if fasterq_dump is None:
+            linfo('fasterq-dump from SRA Toolkit is not available. ' +
+                  'Cannot continue. Exiting.')
+            exit(0)
+
     se_fastq_files = {}
     pe_fastq_files = {}
 
@@ -663,6 +670,10 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
 
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
         linfo('Calculating minimum acceptable read length')
+        if vsearch is None:
+            linfo('vsearch is not available. ' +
+                  'Cannot continue. Exiting.')
+            exit(0)
     else:
         return None
 
@@ -743,6 +754,11 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
 
 def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
                    threads, dir_temp, linfo=print):  # noqa
+    if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
+        if rcorrector is None:
+            linfo('Rcorrector is not available. ' +
+                  'Cannot continue. Exiting.')
+            exit(0)
     for se in se_fastq_files:
         dir_fq_cor_data_sample = opj(dir_fq_cor_data, se)
         fq_path = se_fastq_files[se]['path']
@@ -836,6 +852,11 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
 
 def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
                     trimmomatic, adapters, fpatt, threads, linfo=print):  # noqa
+    if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
+        if trimmomatic is None:
+            linfo('trimmomatic is not available. ' +
+                  'Cannot continue. Exiting.')
+            exit(0)
     for se in se_fastq_files:
         dir_fq_trim_data_sample = opj(dir_fq_trim_data, se)
         fq_path = se_fastq_files[se]['cor_path_fq']
@@ -925,7 +946,11 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
 
 def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
                 confidence, kraken2, threads, dir_temp, fpatt, linfo=print):  # noqa
-
+    if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
+        if kraken2 is None:
+            linfo('kraken2 is not available. ' +
+                  'Cannot continue. Exiting.')
+            exit(0)
     nuclear = ''
     for nuc in order:
         if nuc[1] == 'nuclear':
@@ -984,6 +1009,17 @@ def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
 def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
                bowtie2, bowtie2_build, threads, dir_temp, filter_dir, dbs,
                fpatt, taxonomy, dir_cache_refseqs, linfo=print):  # noqa
+
+    if len(dbs) > 0:
+        if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
+            if bowtie2 is None:
+                linfo('bowtie2 is not available. ' +
+                      'Cannot continue. Exiting.')
+                exit(0)
+            if bowtie2_build is None:
+                linfo('bowtie2-build is not available. ' +
+                      'Cannot continue. Exiting.')
+                exit(0)
 
     new_se_fastq_files = dict()
     new_pe_fastq_files = dict()
@@ -1087,6 +1123,11 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
 
 def filtered_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
                       fpatt, linfo=print): # noqa
+    if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
+        if seqtk is None:
+            linfo('seqtk is not available. ' +
+                  'Cannot continue. Exiting.')
+            exit(0)
     for se in se_fastq_files:
         dir_fa_trim_data_sample = opj(dir_fa_trim_data, se)
         fq_path = se_fastq_files[se]['filter_path_fq']
@@ -1119,6 +1160,11 @@ def filtered_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
 
 def makeblastdb_fq(se_fastq_files, pe_fastq_files, dir_blast_fa_trim,
                    makeblastdb, fpatt, linfo=print): # noqa
+    if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
+        if makeblastdb is None:
+            linfo('makeblastdb is not available. ' +
+                  'Cannot continue. Exiting.')
+            exit(0)
     for se in se_fastq_files:
         dir_blast_fa_trim_sample = opj(dir_blast_fa_trim, se)
         fa_path = se_fastq_files[se]['filter_path_fa']
@@ -1165,6 +1211,21 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                          blast_1_best_hit_score_edge, blast_1_max_target_seqs,
                          dir_blast_results_fa_trim, fpatt, ss, threads,
                          seqtk, vsearch, linfo=print): # noqa
+
+    if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
+        if tblastn is None:
+            linfo('tblastn is not available. ' +
+                  'Cannot continue. Exiting.')
+            exit(0)
+        if vsearch is None:
+            linfo('vsearch is not available. ' +
+                  'Cannot continue. Exiting.')
+            exit(0)
+        if seqtk is None:
+            linfo('seqtk is not available. ' +
+                  'Cannot continue. Exiting.')
+            exit(0)
+
     ident = 0.85
 
     for se in se_fastq_files:
@@ -1272,6 +1333,17 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
 def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
                          dir_vsearch_results_fa_trim, fpatt, ss, seqtk,
                          linfo=print): # noqa
+
+    if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
+        if vsearch is None:
+            linfo('vsearch is not available. ' +
+                  'Cannot continue. Exiting.')
+            exit(0)
+        if seqtk is None:
+            linfo('seqtk is not available. ' +
+                  'Cannot continue. Exiting.')
+            exit(0)
+
     ident = 0.85
 
     for se in se_fastq_files:
@@ -1374,6 +1446,13 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
 
 def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
                spades, dir_temp, ss, threads, ram, linfo=print):  # noqa
+
+    if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
+        if spades is None:
+            linfo('spades is not available. ' +
+                  'Cannot continue. Exiting.')
+            exit(0)
+
     for se in se_fastq_files:
         dir_results = opj(dir_spades_assemblies, se + '__' + ss)
         fq_path = se_fastq_files[se]['vsearch_results_path' + '__' + ss]
@@ -1450,6 +1529,10 @@ def makeblastdb_assemblies(assemblies, dir_prj_blast_assmbl, makeblastdb,
                            linfo=print):  # noqa
     if len(assemblies) > 0:
         linfo('Building BLAST databases for assemblies')
+        if makeblastdb is None:
+            linfo('makeblastdb is not available. ' +
+                  'Cannot continue. Exiting.')
+            exit(0)
     for a in assemblies:
         assmbl_name = a['name']
 
@@ -1476,8 +1559,13 @@ def run_tblastn_on_assemblies(ss, assemblies, aa_queries_file, tblastn,
                               blast_2_best_hit_score_edge,
                               blast_2_max_target_seqs, threads, dir_cache_prj,
                               dir_prj_ips, linfo=print):  # noqa
+
     if len(assemblies) > 0:
         linfo('Running BLAST on assemblies')
+        if tblastn is None:
+            linfo('tblastn is not available. ' +
+                  'Cannot continue. Exiting.')
+            exit(0)
     else:
         linfo('There are no assemblies. Nothing to do, stopping.')
         exit(0)
@@ -1559,8 +1647,13 @@ def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,
                         max_target_orf_len, allow_non_aug, allow_no_strt_cod,
                         allow_no_stop_cod, tax, tax_group, tax_ids_user,
                         min_overlap, linfo=print):  # noqa
+
     if len(assemblies) > 0:
         linfo('Analyzing BLAST hits for assemblies')
+        if seqtk is None:
+            linfo('seqtk is not available. ' +
+                  'Cannot continue. Exiting.')
+            exit(0)
 
     for a in assemblies:
 

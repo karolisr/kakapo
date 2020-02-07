@@ -205,8 +205,6 @@ def config_file_parse(file_path, taxonomy, linfo=print):  # noqa
     kraken_confidence = cfg.getfloat('General', 'kraken_2_confidence')
 
     # Target filters
-    # min_target_orf_len = cfg.getint('Target filters', 'min_target_orf_length')
-    # max_target_orf_len = cfg.getint('Target filters', 'max_target_orf_length')
     allow_non_aug = cfg.getboolean('Target filters',
                                    'allow_non_aug_start_codon')
     allow_no_strt_cod = cfg.getboolean('Target filters',
@@ -323,28 +321,6 @@ def config_file_parse(file_path, taxonomy, linfo=print):  # noqa
     if cfg.has_section(krkn_sctn):
         krkn_order = cfg.items(krkn_sctn)
 
-    # Query filters
-    # min_query_length = cfg.getint('Query filters', 'min_query_length')
-    # max_query_length = cfg.getint('Query filters', 'max_query_length')
-    # max_query_identity = cfg.getfloat('Query filters', 'max_query_identity')
-
-    # Query Pfam families
-    # pfam_temp = cfg.items('Query Pfam families')
-    # pfam_temp = [x[0] for x in pfam_temp]
-    # pfam_acc = _parse_pfam(pfam_entries=pfam_temp, config_file_path=file_path)
-
-    # Query NCBI Entrez search
-    # entrez_queries = cfg.items('Query NCBI Entrez search')
-    # entrez_queries = [x[0] for x in entrez_queries]
-
-    # Query NCBI protein accessions
-    # prot_acc = cfg.items('Query NCBI protein accessions')
-    # prot_acc = [x[0] for x in prot_acc]
-
-    # Query FASTA files (Amino Acid)
-    # user_queries = cfg.items('Query FASTA files (Amino Acid)')
-    # user_queries = [abspath(expanduser(x[0])) for x in user_queries]
-
     # BLAST SRA/FASTQ
     blast_1_evalue = cfg.getfloat('BLAST SRA/FASTQ', 'evalue')
     blast_1_max_hsps = cfg.getint('BLAST SRA/FASTQ', 'max_hsps')
@@ -388,22 +364,13 @@ def config_file_parse(file_path, taxonomy, linfo=print):  # noqa
                 'inter_pro_scan': inter_pro_scan,
                 'kraken_confidence': kraken_confidence,
                 'krkn_order': krkn_order,
-                # 'max_query_length': max_query_length,
-                # 'max_target_orf_len': max_target_orf_len,
-                # 'min_query_length': min_query_length,
-                # 'max_query_identity': max_query_identity,
-                # 'min_target_orf_len': min_target_orf_len,
                 'output_directory': output_directory,
-                # 'pfam_acc': pfam_acc,
                 'prepend_assmbl': prepend_assmbl,
                 'project_name': project_name,
-                # 'entrez_queries': entrez_queries,
-                # 'prot_acc': prot_acc,
                 'sras': sras,
                 'tax_group': tax_group,
                 'tax_group_name': tax_group_name,
-                'tax_ids': all_tax_ids,
-                # 'user_queries': user_queries
+                'tax_ids': all_tax_ids
                 }
 
     return ret_dict
