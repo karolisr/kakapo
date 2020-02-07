@@ -72,8 +72,8 @@ from kakapo.workflow import user_fastq_files
 from kakapo.workflow import user_protein_accessions
 
 # Command line arguments -----------------------------------------------------
-USAGE = '''{} --cfg path/to/config_file''' \
-        ''' --ss path/to/search_strategies_file'''.format(__script_name__)
+USAGE = '{} --cfg path/to/config_file' \
+        '--ss path/to/search_strategies_file'.format(__script_name__)
 
 PARSER = argparse.ArgumentParser(
     prog=__script_name__,
@@ -101,6 +101,13 @@ PARSER.add_argument(
     help='Path to a {} search strategies file.'.format(__script_name__))
 
 PARSER.add_argument(
+    '--stop-after-filter',
+    action='store_true',
+    required=False,
+    dest='STOP_AFTER_FILTER',
+    help='Stop {} after Kraken2/Bowtie2 filtering step.'.format(__script_name__))
+
+PARSER.add_argument(
     '--force-deps',
     action='store_true',
     default=False,
@@ -110,11 +117,12 @@ PARSER.add_argument(
          'already available on the system.'.format(__script_name__))
 
 PARSER.add_argument(
-    '--stop-after-filter',
+    '--install-deps',
     action='store_true',
+    default=False,
     required=False,
-    dest='STOP_AFTER_FILTER',
-    help='Stop {} after Kraken2/Bowtie2 filtering step.'.format(__script_name__))
+    dest='INSTALL_DEPS',
+    help='Install {} dependencies and quit.'.format(__script_name__))
 
 PARSER.add_argument(
     '--clean-config-dir',
@@ -145,6 +153,7 @@ CONFIG_FILE_PATH = ARGS.CONFIG_FILE_PATH
 SS_FILE_PATH = ARGS.SS_FILE_PATH
 STOP_AFTER_FILTER = ARGS.STOP_AFTER_FILTER
 FORCE_DEPS = ARGS.FORCE_DEPS
+INSTALL_DEPS = ARGS.INSTALL_DEPS
 PRINT_VERSION = ARGS.PRINT_VERSION
 PRINT_HELP = ARGS.PRINT_HELP
 
@@ -169,6 +178,8 @@ if CLEAN_CONFIG_DIR is False and CONFIG_FILE_PATH is not None:
     if not ope(CONFIG_FILE_PATH):
         print('Configuration file ' + CONFIG_FILE_PATH + ' does not exist.')
         exit(0)
+elif INSTALL_DEPS is True:
+    pass
 else:
     print(SCRIPT_INFO)
     print(CONYELL +
@@ -185,11 +196,12 @@ if CLEAN_CONFIG_DIR is False and SS_FILE_PATH is not None:
     if not ope(SS_FILE_PATH):
         print('Search strategies file ' + SS_FILE_PATH + ' does not exist.')
         exit(0)
+elif INSTALL_DEPS is True:
+    pass
 else:
     print(SCRIPT_INFO)
     print(CONYELL +
-          'Search strategies file was not provided. Nothing to do.' +
-          CONSDFL)
+          'Search strategies file was not provided. Nothing to do.' + CONSDFL)
     print()
     print('-' * 80)
     PARSER.print_help()
@@ -235,7 +247,8 @@ def main():
     for db in sorted(kraken2_dbs.keys()):
         linfo('Found Kraken2 database: ' + db)
 
-    exit(0)
+    if INSTALL_DEPS is True:
+        exit(0)
 
     # Initialize NCBI taxonomy database --------------------------------------
     linfo('Loading NCBI taxonomy data')
