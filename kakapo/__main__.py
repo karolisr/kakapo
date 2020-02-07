@@ -110,6 +110,7 @@ PARSER.add_argument(
 PARSER.add_argument(
     '--force-deps',
     action='store_true',
+    default=False,
     required=False,
     dest='FORCE_DEPS',
     help='Force the use of {}-installed dependencies,\neven if they are '
@@ -143,6 +144,7 @@ CLEAN_CONFIG_DIR = ARGS.CLEAN_CONFIG_DIR
 CONFIG_FILE_PATH = ARGS.CONFIG_FILE_PATH
 SS_FILE_PATH = ARGS.SS_FILE_PATH
 STOP_AFTER_FILTER = ARGS.STOP_AFTER_FILTER
+FORCE_DEPS = ARGS.FORCE_DEPS
 PRINT_VERSION = ARGS.PRINT_VERSION
 PRINT_HELP = ARGS.PRINT_HELP
 
@@ -214,6 +216,26 @@ def main():
     else:
         linfo('Creating configuration directory: ' + DIR_CFG)
         make_dir(DIR_CFG)
+
+    # Check for dependencies -------------------------------------------------
+    linfo('Checking for dependencies')
+    make_dir(DIR_DEP)
+    make_dir(DIR_KRK)
+    seqtk = deps.dep_check_seqtk(force=FORCE_DEPS, logger=linfo)
+    trimmomatic, adapters = deps.dep_check_trimmomatic(linfo)
+    fasterq_dump = deps.dep_check_sra_toolkit(force=FORCE_DEPS, logger=linfo)
+    makeblastdb, _, tblastn = deps.dep_check_blast(force=FORCE_DEPS, logger=linfo)
+    vsearch = deps.dep_check_vsearch(force=FORCE_DEPS, logger=linfo)
+    spades = deps.dep_check_spades(force=FORCE_DEPS, logger=linfo)
+    bowtie2, bowtie2_build = deps.dep_check_bowtie2(force=FORCE_DEPS, logger=linfo)
+    rcorrector = deps.dep_check_rcorrector(force=FORCE_DEPS, logger=linfo)
+    kraken2, kraken2_build = deps.dep_check_kraken2(force=FORCE_DEPS, logger=linfo)
+    kraken2_dbs = deps.download_kraken2_dbs(DIR_KRK)
+
+    for db in sorted(kraken2_dbs.keys()):
+        linfo('Found Kraken2 database: ' + db)
+
+    exit(0)
 
     # Initialize NCBI taxonomy database --------------------------------------
     linfo('Loading NCBI taxonomy data')
@@ -296,25 +318,6 @@ def main():
         f.write(SCRIPT_INFO.strip() + '\n\n' + log_stream.getvalue())
     log, _ = prepare_logger(console=True, stream=None, file=prj_log_file)
     linfo = log.info
-
-    # Check for dependencies -------------------------------------------------
-    linfo('Checking for dependencies')
-    make_dir(DIR_DEP)
-    make_dir(DIR_KRK)
-    seqtk = deps.dep_check_seqtk(linfo)
-    trimmomatic, adapters = deps.dep_check_trimmomatic(linfo)
-    fasterq_dump = deps.dep_check_sra_toolkit(linfo)
-    makeblastdb, _, tblastn = deps.dep_check_blast(linfo)
-    vsearch = deps.dep_check_vsearch(linfo)
-    spades = deps.dep_check_spades(linfo)
-    bowtie2, bowtie2_build = deps.dep_check_bowtie2(linfo)
-    kraken2, kraken2_build = deps.dep_check_kraken2(linfo)
-    kraken2_dbs = deps.download_kraken2_dbs(DIR_KRK)
-
-    for db in sorted(kraken2_dbs.keys()):
-        linfo('Found Kraken2 database: ' + db)
-
-    rcorrector = deps.dep_check_rcorrector(linfo)
 
     # Resolve descending taxonomy nodes --------------------------------------
     tax_ids = descending_tax_ids([tax_group], tax, linfo)

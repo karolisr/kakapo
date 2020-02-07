@@ -17,6 +17,7 @@ from shutil import move
 from kakapo.config import DIR_DEP, DIR_CFG, OS_ID, DIST_ID
 from kakapo.helpers import download_file
 from kakapo.helpers import list_of_dirs
+from kakapo.helpers import replace_line_in_file
 from kakapo.os_diffs import DEBIAN_DISTS, REDHAT_DISTS
 from kakapo.shell import call
 
@@ -81,13 +82,88 @@ def rcorrector_dir_name(path): # noqa
         return ''
 
 
+def get_version_seqtk(seqtk):  # noqa
+    _, err = call(seqtk)
+    v = re.findall(r'Version\:\s([\d\w\.\-]*)', err.decode(),
+                   flags=re.MULTILINE)
+    if len(v) > 0:
+        v = v[0]
+    return v
+
+
+def get_version_trimmomatic(trimmomatic):  # noqa
+    cmd = ['java', '-jar', trimmomatic, '-version']
+    out, _ = call(cmd)
+    v = out.strip().decode()
+    return v
+
+
+def get_version_fasterq_dump(fasterq_dump):  # noqa
+    out, _ = call([fasterq_dump, '--version'])
+    v = re.findall(r'\:\s([\d\.]*)', out.decode(), flags=re.MULTILINE)
+    if len(v) > 0:
+        v = v[0]
+    return v
+
+
+def get_version_blast(any_blast_bin):  # noqa
+    out, _ = call([any_blast_bin, '-version'])
+    v = re.findall(r'\sblast\s([\d\.]*)', out.decode(), flags=re.MULTILINE)
+    if len(v) > 0:
+        v = v[0]
+    return v
+
+
+def get_version_vsearch(vsearch):  # noqa
+    _, err = call([vsearch, '-version'])
+    v = re.findall(r'^vsearch\sv([\d\.]*)', err.decode(), flags=re.MULTILINE)
+    if len(v) > 0:
+        v = v[0]
+    return v
+
+
+def get_version_spades(spades):  # noqa
+    out, _ = call([spades, '--version'])
+    v = re.findall(r'^SPAdes.*v([\d\.]*)', out.decode(), flags=re.MULTILINE)
+    if len(v) > 0:
+        v = v[0]
+    return v
+
+
+def get_version_bowtie2(bowtie2):  # noqa
+    out, _ = call([bowtie2, '--version'])
+    v = re.findall(r'^.*?version\s([\d\.]*)', out.decode(), flags=re.MULTILINE)
+    if len(v) > 0:
+        v = v[0]
+    return v
+
+
+def get_version_rcorrector(rcorrector):  # noqa
+    out, _ = call([rcorrector, '-version'])
+    v = re.findall(r'^Rcorrector\sv([\d\.]*)', out.decode(), flags=re.MULTILINE)
+    if len(v) > 0:
+        v = v[0]
+    return v
+
+
+def get_version_kraken2(kraken2):  # noqa
+    out, _ = call([kraken2, '--version'])
+    v = re.findall(r'^.*?version\s([\d\.\-A-Za-z]*)', out.decode(),
+                   flags=re.MULTILINE)
+    if len(v) > 0:
+        v = v[0]
+    return v
+
+
 # Seqtk
-def dep_check_seqtk(logger=print): # noqa
+def dep_check_seqtk(force=False, logger=print): # noqa
     url = 'https://github.com/lh3/seqtk/archive/master.zip'
     dnld_path = opj(DIR_DEP, 'seqtk.zip')
     dir_bin = opj(DIR_DEP, 'seqtk-master')
 
     try:
+        if force is True:
+            raise
         seqtk = 'seqtk'
         call(seqtk)
     except Exception:
@@ -106,26 +182,24 @@ def dep_check_seqtk(logger=print): # noqa
                 seqtk = opj(dir_bin, 'seqtk')
                 call(seqtk)
             except Exception:
-                logger('Something went wrong while trying to compile Seqtk.')
-                logger('Try downloading and installing it manually from: '
-                       'https://github.com/lh3/seqtk')
-                sys.exit(1)
+                replace_line_in_file(opj(dir_bin, 'Makefile'), 'CC=gcc', 'CC=cc')
+                try:
+                    call('make', cwd=dir_bin)
+                    seqtk = opj(dir_bin, 'seqtk')
+                    call(seqtk)
+                except Exception:
+                    logger('Something went wrong while trying to compile Seqtk.')
+                    logger('Try downloading and installing it manually from: '
+                           'https://github.com/lh3/seqtk')
+                    sys.exit(1)
 
-    logger('Seqtk is available: ' + seqtk)
+    v = get_version_seqtk(seqtk)
+    logger('Seqtk is available: ' + v + ' ' + seqtk)
 
     return seqtk
 
 
-def get_version_seqtk(seqtk):  # noqa
-    _, err = call(seqtk)
-    v = re.findall(r'Version\:\s([\d\w\.\-]*)', err.decode(),
-                   flags=re.MULTILINE)
-    if len(v) > 0:
-        v = v[0]
-    return v
-
-
-def _write_trimmomatic_adapters_file(logger=print):
+def _write_trimmomatic_adapters_file(logger=print): # noqa
 
     path_adapters = opj(DIR_DEP, 'trimmomatic_adapters.fasta')
 
@@ -175,6 +249,7 @@ def _write_trimmomatic_adapters_file(logger=print):
 
     return path_adapters
 
+
 # Trimmomatic
 def dep_check_trimmomatic(logger=print): # noqa
     url = ('http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/'
@@ -193,35 +268,32 @@ def dep_check_trimmomatic(logger=print): # noqa
         logger('Could not download Trimmomatic.')
         sys.exit(1)
 
-    logger('Trimmomatic is available: ' + trimmomatic)
+    v = get_version_trimmomatic(trimmomatic)
+    logger('Trimmomatic is available: ' + v + ' ' + trimmomatic)
+
     path_adapters = _write_trimmomatic_adapters_file(logger)
 
     return trimmomatic, path_adapters
 
 
-def get_version_trimmomatic(trimmomatic):  # noqa
-    cmd = ['java', '-jar', trimmomatic, '-version']
-    out, _ = call(cmd)
-    v = out.strip().decode()
-    return v
-
-
 # SRA Toolkit
-def dep_check_sra_toolkit(logger=print): # noqa
+def dep_check_sra_toolkit(force=False, logger=print): # noqa
     if OS_ID == 'mac':
         url = ('https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.9.6/'
                'sratoolkit.2.9.6-mac64.tar.gz')
     elif OS_ID == 'linux':
         if DIST_ID in DEBIAN_DISTS:
-            url = ('https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.10.0/'
-                   'sratoolkit.2.10.0-ubuntu64.tar.gz')
+            url = ('https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.10.2/'
+                   'sratoolkit.2.10.2-ubuntu64.tar.gz')
         elif DIST_ID in REDHAT_DISTS:
-            url = ('https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.10.0/'
-                   'sratoolkit.2.10.0-centos_linux64.tar.gz')
+            url = ('https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.10.2/'
+                   'sratoolkit.2.10.2-centos_linux64.tar.gz')
 
     dnld_path = opj(DIR_DEP, 'sra-toolkit.tar.gz')
 
     try:
+        if force is True:
+            raise
         fasterq_dump = 'fasterq-dump'
         call(fasterq_dump)
     except Exception:
@@ -244,35 +316,30 @@ def dep_check_sra_toolkit(logger=print): # noqa
                 logger('Could not download SRA Toolkit.')
                 sys.exit(1)
 
-    logger('SRA Toolkit is available: ' + fasterq_dump)
+    v = get_version_fasterq_dump(fasterq_dump)
+    logger('fasterq-dump is available: ' + v + ' ' + fasterq_dump)
 
     return fasterq_dump
 
 
-def get_version_fasterq_dump(fasterq_dump):  # noqa
-    out, _ = call([fasterq_dump, '--version'])
-    v = re.findall(r'\:\s([\d\.]*)', out.decode(), flags=re.MULTILINE)
-    if len(v) > 0:
-        v = v[0]
-    return v
-
-
 # BLAST+
-def dep_check_blast(logger=print): # noqa
+def dep_check_blast(force=False, logger=print): # noqa
     if OS_ID == 'mac':
-        url = ('https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.9.0/'
-               'ncbi-blast-2.9.0+-x64-macosx.tar.gz')
+        url = ('https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.10.0/'
+               'ncbi-blast-2.10.0+-x64-macosx.tar.gz')
     elif OS_ID == 'linux':
         if DIST_ID in DEBIAN_DISTS:
-            url = ('https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.9.0/'
-                   'ncbi-blast-2.9.0+-x64-linux.tar.gz')
+            url = ('https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.10.0/'
+                   'ncbi-blast-2.10.0+-x64-linux.tar.gz')
         elif DIST_ID in REDHAT_DISTS:
-            url = ('https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.9.0/'
-                   'ncbi-blast-2.9.0+-x64-linux.tar.gz')
+            url = ('https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.10.0/'
+                   'ncbi-blast-2.10.0+-x64-linux.tar.gz')
 
     dnld_path = opj(DIR_DEP, 'ncbi-blast.tar.gz')
 
     try:
+        if force is True:
+            raise
         makeblastdb = 'makeblastdb'
         blastn = 'blastn'
         tblastn = 'tblastn'
@@ -302,28 +369,25 @@ def dep_check_blast(logger=print): # noqa
                 logger('Could not download BLAST+.')
                 sys.exit(1)
 
-    logger('makeblastdb is available: ' + makeblastdb)
-    logger('blastn is available: ' + blastn)
-    logger('tblastn is available: ' + tblastn)
+    v = get_version_blast(makeblastdb)
+    logger('makeblastdb is available: ' + v + ' ' + makeblastdb)
+    v = get_version_blast(blastn)
+    logger('blastn is available: ' + v + ' ' + blastn)
+    v = get_version_blast(tblastn)
+    logger('tblastn is available: ' + v + ' ' + tblastn)
 
     return makeblastdb, blastn, tblastn
 
 
-def get_version_blast(any_blast_bin):  # noqa
-    out, _ = call([any_blast_bin, '-version'])
-    v = re.findall(r'\sblast\s([\d\.]*)', out.decode(), flags=re.MULTILINE)
-    if len(v) > 0:
-        v = v[0]
-    return v
-
-
 # VSEARCH
-def dep_check_vsearch(logger=print): # noqa
+def dep_check_vsearch(force=False, logger=print): # noqa
     url = 'https://github.com/torognes/vsearch/archive/master.tar.gz'
     dnld_path = opj(DIR_DEP, 'vsearch.tar.gz')
     dir_bin = opj(DIR_DEP, 'vsearch-master')
 
     try:
+        if force is True:
+            raise
         vsearch = 'vsearch'
         call(vsearch)
     except Exception:
@@ -349,31 +413,26 @@ def dep_check_vsearch(logger=print): # noqa
                        'https://github.com/torognes/vsearch')
                 sys.exit(1)
 
-    logger('Vsearch is available: ' + vsearch)
+    v = get_version_vsearch(vsearch)
+    logger('Vsearch is available: ' + v + ' ' + vsearch)
 
     return vsearch
 
 
-def get_version_vsearch(vsearch):  # noqa
-    _, err = call([vsearch, '-version'])
-    v = re.findall(r'^vsearch\sv([\d\.]*)', err.decode(), flags=re.MULTILINE)
-    if len(v) > 0:
-        v = v[0]
-    return v
-
-
 # SPAdes
-def dep_check_spades(logger=print): # noqa
+def dep_check_spades(force=False, logger=print): # noqa
     if OS_ID == 'mac':
-        url = ('http://cab.spbu.ru/files/release3.13.1/'
-               'SPAdes-3.13.1-Darwin.tar.gz')
+        url = ('http://cab.spbu.ru/files/release3.14.0/'
+               'SPAdes-3.14.0-Darwin.tar.gz')
     elif OS_ID == 'linux':
-        url = ('http://cab.spbu.ru/files/release3.13.1/'
-               'SPAdes-3.13.1-Linux.tar.gz')
+        url = ('http://cab.spbu.ru/files/release3.14.0/'
+               'SPAdes-3.14.0-Linux.tar.gz')
 
     dnld_path = opj(DIR_DEP, 'SPAdes.tar.gz')
 
     try:
+        if force is True:
+            raise
         spades = 'spades.py'
         call(spades)
     except Exception:
@@ -395,21 +454,14 @@ def dep_check_spades(logger=print): # noqa
                 logger('Could not download SPAdes.')
                 sys.exit(1)
 
-    logger('SPAdes is available: ' + spades)
+    v = get_version_spades(spades)
+    logger('SPAdes is available: ' + v + ' ' + spades)
 
     return spades
 
 
-def get_version_spades(spades):  # noqa
-    out, _ = call([spades, '--version'])
-    v = re.findall(r'^SPAdes\sv([\d\.]*)', out.decode(), flags=re.MULTILINE)
-    if len(v) > 0:
-        v = v[0]
-    return v
-
-
 # Bowtie 2
-def dep_check_bowtie2(logger=print): # noqa
+def dep_check_bowtie2(force=False, logger=print): # noqa
     if OS_ID == 'mac':
         url = ('https://sourceforge.net/projects/bowtie-bio/files/bowtie2/'
                '2.3.5.1/bowtie2-2.3.5.1-macos-x86_64.zip/download')
@@ -420,6 +472,8 @@ def dep_check_bowtie2(logger=print): # noqa
     dnld_path = opj(DIR_DEP, 'bowtie2.zip')
 
     try:
+        if force is True:
+            raise
         bowtie2 = 'bowtie2'
         bowtie2_build = 'bowtie2-build'
         call(bowtie2)
@@ -467,27 +521,66 @@ def dep_check_bowtie2(logger=print): # noqa
                 logger('Could not download Bowtie 2.')
                 sys.exit(1)
 
-    logger('bowtie2 is available: ' + bowtie2)
-    logger('bowtie2-build is available: ' + bowtie2_build)
+    v = get_version_bowtie2(bowtie2)
+    logger('bowtie2 is available: ' + v + ' ' + bowtie2)
+    v = get_version_bowtie2(bowtie2_build)
+    logger('bowtie2-build is available: ' + v + ' ' + bowtie2_build)
 
     return bowtie2, bowtie2_build
 
 
-def get_version_bowtie2(bowtie2):  # noqa
-    out, _ = call([bowtie2, '--version'])
-    v = re.findall(r'^.*?version\s([\d\.]*)', out.decode(), flags=re.MULTILINE)
-    if len(v) > 0:
-        v = v[0]
-    return v
+# Rcorrector
+def dep_check_rcorrector(force=False, logger=print): # noqa
+    url = 'https://github.com/mourisl/Rcorrector/archive/master.tar.gz'
+    dnld_path = opj(DIR_DEP, 'rcorrector.tar.gz')
+
+    try:
+        if force is True:
+            raise
+        rcorrector = 'run_rcorrector.pl'
+        call(rcorrector)
+    except Exception:
+        try:
+            dir_bin = opj(DIR_DEP, rcorrector_dir_name(path=DIR_DEP))
+            rcorrector = opj(dir_bin, 'run_rcorrector.pl')
+            call(rcorrector)
+        except Exception:
+            logger('Rcorrector was not found on this system, trying to '
+                   'download.')
+            download_file(url, dnld_path)
+            tar_ref = tarfile.open(dnld_path, 'r:gz')
+            tar_ref.extractall(DIR_DEP)
+            tar_ref.close()
+            dir_bin = opj(DIR_DEP, rcorrector_dir_name(path=DIR_DEP))
+            try:
+                logger('Compiling Rcorrector.')
+                call('make', cwd=dir_bin)
+                rcorrector = opj(dir_bin, 'run_rcorrector.pl')
+                os.chmod(rcorrector, stat.S_IRWXU | stat.S_IRGRP |
+                         stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+                call(rcorrector)
+            except Exception:
+                logger('Something went wrong while trying to compile '
+                       'Rcorrector.')
+                logger('Try downloading and installing it manually from: '
+                       'https://github.com/mourisl/Rcorrector')
+                sys.exit(1)
+
+    v = get_version_rcorrector(rcorrector)
+    logger('Rcorrector is available: ' + v + ' ' + rcorrector)
+
+    return rcorrector
 
 
 # Kraken2
-def dep_check_kraken2(logger=print): # noqa
+def dep_check_kraken2(force=False, logger=print): # noqa
     url = ('https://github.com/karolisr/kraken2/archive/master.tar.gz')
 
     dnld_path = opj(DIR_DEP, 'kraken2.tar.gz')
 
     try:
+        if force is True:
+            raise
         kraken2 = 'kraken2'
         kraken2_build = 'kraken2-build'
         call(kraken2)
@@ -515,28 +608,21 @@ def dep_check_kraken2(logger=print): # noqa
                 logger('Compiling Kraken2')
                 call(['./install_kraken2.sh', 'bin'], cwd=dir_bin)
             except Exception:
+                pass
+
+            if not os.path.exists(kraken2):
                 logger('Something went wrong while trying to compile '
                        'Kraken2.')
                 logger('Try downloading and installing it manually from: '
                        'https://github.com/DerrickWood/kraken2')
-
-            if not os.path.exists(kraken2):
-                logger('Could not download Kraken2.')
                 sys.exit(1)
 
-    logger('kraken2 is available: ' + kraken2)
-    logger('kraken2-build is available: ' + kraken2_build)
+    v = get_version_kraken2(kraken2)
+    logger('kraken2 is available: ' + v + ' ' + kraken2)
+    v = get_version_kraken2(kraken2_build)
+    logger('kraken2-build is available: ' + v + ' ' + kraken2_build)
 
     return kraken2, kraken2_build
-
-
-def get_version_kraken2(kraken2):  # noqa
-    out, _ = call([kraken2, '--version'])
-    v = re.findall(r'^.*?version\s([\d\.\-A-Za-z]*)', out.decode(),
-                   flags=re.MULTILINE)
-    if len(v) > 0:
-        v = v[0]
-    return v
 
 
 def download_kraken2_dbs(dbs_path):  # noqa
@@ -649,47 +735,3 @@ def download_kraken2_dbs(dbs_path):  # noqa
 
     kraken2_dbs = {k: opj(dbs_path, k) for k in list_of_dirs(dbs_path)}
     return kraken2_dbs
-
-
-# Rcorrector
-def dep_check_rcorrector(logger=print): # noqa
-    url = 'https://github.com/mourisl/Rcorrector/archive/v1.0.4.tar.gz'
-    dnld_path = opj(DIR_DEP, 'rcorrector.tar.gz')
-
-    try:
-        rcorrector = 'run_rcorrector.pl'
-        call(rcorrector)
-    except Exception:
-        try:
-            dir_bin = opj(DIR_DEP, rcorrector_dir_name(path=DIR_DEP))
-            rcorrector = opj(dir_bin, 'run_rcorrector.pl')
-            call(rcorrector)
-        except Exception:
-            logger('Rcorrector was not found on this system, trying to '
-                   'download.')
-            download_file(url, dnld_path)
-            tar_ref = tarfile.open(dnld_path, 'r:gz')
-            tar_ref.extractall(DIR_DEP)
-            tar_ref.close()
-            dir_bin = opj(DIR_DEP, rcorrector_dir_name(path=DIR_DEP))
-            try:
-                logger('Compiling Rcorrector.')
-                call('make', cwd=dir_bin)
-                rcorrector = opj(dir_bin, 'run_rcorrector.pl')
-                os.chmod(rcorrector, stat.S_IRWXU | stat.S_IRGRP |
-                         stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
-                call(rcorrector)
-            except Exception:
-                logger('Something went wrong while trying to compile '
-                       'Rcorrector.')
-                logger('Try downloading and installing it manually from: '
-                       'https://github.com/mourisl/Rcorrector')
-                sys.exit(1)
-
-    logger('Rcorrector is available: ' + rcorrector)
-
-    return rcorrector
-
-
-def get_version_rcorrector(kraken2):  # noqa
-    return 'undetermined'
