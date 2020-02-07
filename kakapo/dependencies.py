@@ -21,6 +21,8 @@ from kakapo.helpers import replace_line_in_file
 from kakapo.os_diffs import DEBIAN_DISTS, REDHAT_DISTS
 from kakapo.shell import call
 
+VER_UNK = '[version could not be determined]'
+
 
 def sra_toolkit_dir_name(path): # noqa
     ld = list_of_dirs(path=path)
@@ -84,6 +86,8 @@ def rcorrector_dir_name(path): # noqa
 
 def get_version_seqtk(seqtk):  # noqa
     _, err = call(seqtk)
+    if err is None:
+        return VER_UNK
     v = re.findall(r'Version\:\s([\d\w\.\-]*)', err.decode(),
                    flags=re.MULTILINE)
     if len(v) > 0:
@@ -94,12 +98,16 @@ def get_version_seqtk(seqtk):  # noqa
 def get_version_trimmomatic(trimmomatic):  # noqa
     cmd = ['java', '-jar', trimmomatic, '-version']
     out, _ = call(cmd)
+    if out is None:
+        return VER_UNK
     v = out.strip().decode()
     return v
 
 
 def get_version_fasterq_dump(fasterq_dump):  # noqa
     out, _ = call([fasterq_dump, '--version'])
+    if out is None:
+        return VER_UNK
     v = re.findall(r'\:\s([\d\.]*)', out.decode(), flags=re.MULTILINE)
     if len(v) > 0:
         v = v[0]
@@ -108,6 +116,8 @@ def get_version_fasterq_dump(fasterq_dump):  # noqa
 
 def get_version_blast(any_blast_bin):  # noqa
     out, _ = call([any_blast_bin, '-version'])
+    if out is None:
+        return VER_UNK
     v = re.findall(r'\sblast\s([\d\.]*)', out.decode(), flags=re.MULTILINE)
     if len(v) > 0:
         v = v[0]
@@ -116,6 +126,8 @@ def get_version_blast(any_blast_bin):  # noqa
 
 def get_version_vsearch(vsearch):  # noqa
     _, err = call([vsearch, '-version'])
+    if err is None:
+        return VER_UNK
     v = re.findall(r'^vsearch\sv([\d\.]*)', err.decode(), flags=re.MULTILINE)
     if len(v) > 0:
         v = v[0]
@@ -124,6 +136,8 @@ def get_version_vsearch(vsearch):  # noqa
 
 def get_version_spades(spades):  # noqa
     out, _ = call([spades, '--version'])
+    if out is None:
+        return VER_UNK
     v = re.findall(r'^SPAdes.*v([\d\.]*)', out.decode(), flags=re.MULTILINE)
     if len(v) > 0:
         v = v[0]
@@ -132,6 +146,8 @@ def get_version_spades(spades):  # noqa
 
 def get_version_bowtie2(bowtie2):  # noqa
     out, _ = call([bowtie2, '--version'])
+    if out is None:
+        return VER_UNK
     v = re.findall(r'^.*?version\s([\d\.]*)', out.decode(), flags=re.MULTILINE)
     if len(v) > 0:
         v = v[0]
@@ -140,6 +156,8 @@ def get_version_bowtie2(bowtie2):  # noqa
 
 def get_version_rcorrector(rcorrector):  # noqa
     out, _ = call([rcorrector, '-version'])
+    if out is None:
+        return VER_UNK
     v = re.findall(r'^Rcorrector\sv([\d\.]*)', out.decode(), flags=re.MULTILINE)
     if len(v) > 0:
         v = v[0]
@@ -148,6 +166,8 @@ def get_version_rcorrector(rcorrector):  # noqa
 
 def get_version_kraken2(kraken2):  # noqa
     out, _ = call([kraken2, '--version'])
+    if out is None:
+        return VER_UNK
     v = re.findall(r'^.*?version\s([\d\.\-A-Za-z]*)', out.decode(),
                    flags=re.MULTILINE)
     if len(v) > 0:
