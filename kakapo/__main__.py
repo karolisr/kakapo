@@ -72,8 +72,8 @@ from kakapo.workflow import user_fastq_files
 from kakapo.workflow import user_protein_accessions
 
 # Command line arguments -----------------------------------------------------
-USAGE = '{} --cfg path/to/configuration_file.ini' + \
-        ' --ss path/to/search_strategies_file.ini'.format(__script_name__)
+USAGE = '''{} --cfg path/to/config_file''' \
+        ''' --ss path/to/search_strategies_file'''.format(__script_name__)
 
 PARSER = argparse.ArgumentParser(
     prog=__script_name__,
@@ -101,13 +101,6 @@ PARSER.add_argument(
     help='Path to a {} search strategies file.'.format(__script_name__))
 
 PARSER.add_argument(
-    '--stop-after-filter',
-    action='store_true',
-    required=False,
-    dest='STOP_AFTER_FILTER',
-    help='Stop {} after Kraken2/Bowtie2 filtering step.'.format(__script_name__))
-
-PARSER.add_argument(
     '--force-deps',
     action='store_true',
     default=False,
@@ -115,6 +108,13 @@ PARSER.add_argument(
     dest='FORCE_DEPS',
     help='Force the use of {}-installed dependencies,\neven if they are '
          'already available on the system.'.format(__script_name__))
+
+PARSER.add_argument(
+    '--stop-after-filter',
+    action='store_true',
+    required=False,
+    dest='STOP_AFTER_FILTER',
+    help='Stop {} after Kraken2/Bowtie2 filtering step.'.format(__script_name__))
 
 PARSER.add_argument(
     '--clean-config-dir',
