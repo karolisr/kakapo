@@ -12,7 +12,7 @@ from kakapo import __script_name__, __version__
 from kakapo.helpers import sys_ram, python_version
 from kakapo.os_diffs import check_os
 
-DEBUG_MODE = True
+DEBUG_MODE = False
 DEBUG_PROCESSES = False
 
 # System information ---------------------------------------------------------

@@ -244,6 +244,8 @@ def main():
     kraken2, kraken2_build = deps.dep_check_kraken2(force=FORCE_DEPS, logger=linfo)
     kraken2_dbs = deps.download_kraken2_dbs(DIR_KRK)
 
+    # TODO: Check if any of the above are None and determine if it is OK to continue.
+
     for db in sorted(kraken2_dbs.keys()):
         linfo('Found Kraken2 database: ' + db)
 

@@ -211,7 +211,7 @@ def dep_check_seqtk(force=False, logger=print): # noqa
                     logger('Something went wrong while trying to compile Seqtk.')
                     logger('Try downloading and installing it manually from: '
                            'https://github.com/lh3/seqtk')
-                    sys.exit(1)
+                    return None
 
     v = get_version_seqtk(seqtk)
     logger('Seqtk is available: ' + v + ' ' + seqtk)
@@ -286,7 +286,7 @@ def dep_check_trimmomatic(logger=print): # noqa
 
     if not os.path.exists(trimmomatic):
         logger('Could not download Trimmomatic.')
-        sys.exit(1)
+        return None, None
 
     v = get_version_trimmomatic(trimmomatic)
     logger('Trimmomatic is available: ' + v + ' ' + trimmomatic)
@@ -334,7 +334,7 @@ def dep_check_sra_toolkit(force=False, logger=print): # noqa
 
             if not os.path.exists(fasterq_dump):
                 logger('Could not download SRA Toolkit.')
-                sys.exit(1)
+                return None
 
     v = get_version_fasterq_dump(fasterq_dump)
     logger('fasterq-dump is available: ' + v + ' ' + fasterq_dump)
@@ -387,7 +387,7 @@ def dep_check_blast(force=False, logger=print): # noqa
                not os.path.exists(blastn) or \
                not os.path.exists(tblastn):
                 logger('Could not download BLAST+.')
-                sys.exit(1)
+                return None, None, None
 
     v = get_version_blast(makeblastdb)
     logger('makeblastdb is available: ' + v + ' ' + makeblastdb)
@@ -431,7 +431,7 @@ def dep_check_vsearch(force=False, logger=print): # noqa
                 logger('Something went wrong while trying to compile Vsearch.')
                 logger('Try downloading and installing it manually from: '
                        'https://github.com/torognes/vsearch')
-                sys.exit(1)
+                return None
 
     v = get_version_vsearch(vsearch)
     logger('Vsearch is available: ' + v + ' ' + vsearch)
@@ -472,7 +472,7 @@ def dep_check_spades(force=False, logger=print): # noqa
                 call(spades)
             except Exception:
                 logger('Could not download SPAdes.')
-                sys.exit(1)
+                return None
 
     v = get_version_spades(spades)
     logger('SPAdes is available: ' + v + ' ' + spades)
@@ -539,7 +539,7 @@ def dep_check_bowtie2(force=False, logger=print): # noqa
 
             if not os.path.exists(bowtie2):
                 logger('Could not download Bowtie 2.')
-                sys.exit(1)
+                return None, None
 
     v = get_version_bowtie2(bowtie2)
     logger('bowtie2 is available: ' + v + ' ' + bowtie2)
@@ -584,7 +584,7 @@ def dep_check_rcorrector(force=False, logger=print): # noqa
                        'Rcorrector.')
                 logger('Try downloading and installing it manually from: '
                        'https://github.com/mourisl/Rcorrector')
-                sys.exit(1)
+                return None
 
     v = get_version_rcorrector(rcorrector)
     logger('Rcorrector is available: ' + v + ' ' + rcorrector)
@@ -635,7 +635,7 @@ def dep_check_kraken2(force=False, logger=print): # noqa
                        'Kraken2.')
                 logger('Try downloading and installing it manually from: '
                        'https://github.com/DerrickWood/kraken2')
-                sys.exit(1)
+                return None, None
 
     v = get_version_kraken2(kraken2)
     logger('kraken2 is available: ' + v + ' ' + kraken2)
