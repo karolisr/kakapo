@@ -33,7 +33,7 @@ def check_os():
         dist_id = distro.id()
         dist_name = distro.distro_release_attr('name')
         if dist_id == 'ubuntu' and dist_name == '':
-            dist_name = dist_id
+            dist_name = dist_id.capitalize()
         os_str = 'Linux ({dist_name})'.format(dist_name=dist_name)
 
         supported_dists = DEBIAN_DISTS + REDHAT_DISTS
