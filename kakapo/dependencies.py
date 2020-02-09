@@ -108,7 +108,7 @@ def get_version_fasterq_dump(fasterq_dump):  # noqa
     out, _ = call([fasterq_dump, '--version'])
     if type(out) not in (bytes, str) or out == b'':
         return VER_UNK
-    v = re.findall(r'\:\s([\d\.]*)', out.decode(), flags=re.MULTILINE)
+    v = re.findall(r'[\:n]\s([\d\.]*)', out.decode(), flags=re.MULTILINE)
     if len(v) > 0:
         v = v[0]
     return v
