@@ -1,4 +1,6 @@
-"""Kakapo setup."""
+"""
+Kakapo setup.
+"""
 
 # This is a workaround. pip, in some cases, will not find dependencies
 # on GitHub, so we install them directly.

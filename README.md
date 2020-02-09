@@ -9,17 +9,17 @@ Kakapo can be flexibly employed to extract arbitrary loci, such as those commonl
 Installation:
 
 ```bash
-pip install --upgrade git+https://github.com/karolisr/kakapo
+pip3 install --upgrade git+https://github.com/karolisr/kakapo
 ```
 
 In case this fails you may try:
 
 ```bash
-sudo -H pip install --upgrade git+https://github.com/karolisr/kakapo
+sudo -H pip3 install --upgrade git+https://github.com/karolisr/kakapo
 ```
 
 or:
 
 ```bash
-pip install --user --upgrade git+https://github.com/karolisr/kakapo
+pip3 install --user --upgrade git+https://github.com/karolisr/kakapo
 ```
