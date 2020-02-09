@@ -136,7 +136,7 @@ def get_version_vsearch(vsearch):  # noqa
 
 def get_version_spades(spades):  # noqa
     out, err = call([spades, '--version'])
-    if err is not None:
+    if err is not None and err != b'':
         out = err
     if type(out) not in (bytes, str) or out == b'':
         return VER_UNK
