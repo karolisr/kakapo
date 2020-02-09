@@ -135,10 +135,12 @@ def get_version_vsearch(vsearch):  # noqa
 
 
 def get_version_spades(spades):  # noqa
-    out, _ = call([spades, '--version'])
+    out, err = call([spades, '--version'])
+    if err is not None:
+        out = err
     if type(out) not in (bytes, str) or out == b'':
         return VER_UNK
-    v = re.findall(r'^SPAdes.*v([\d\.]*)', out.decode(), flags=re.MULTILINE)
+    v = re.findall(r'^.*SPAdes.*v([\d\.]*)', out.decode(), flags=re.MULTILINE)
     if len(v) > 0:
         v = v[0]
     return v
