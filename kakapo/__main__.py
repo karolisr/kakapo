@@ -125,6 +125,14 @@ PARSER.add_argument(
     help='Install {} dependencies and quit.'.format(__script_name__))
 
 PARSER.add_argument(
+    '--dnld-kraken-dbs',
+    action='store_true',
+    default=False,
+    required=False,
+    dest='DNLD_KRAKEN_DBS',
+    help='Download Kraken2 databases and quit.')
+
+PARSER.add_argument(
     '--clean-config-dir',
     action='store_true',
     required=False,
@@ -154,6 +162,7 @@ SS_FILE_PATH = ARGS.SS_FILE_PATH
 STOP_AFTER_FILTER = ARGS.STOP_AFTER_FILTER
 FORCE_DEPS = ARGS.FORCE_DEPS
 INSTALL_DEPS = ARGS.INSTALL_DEPS
+DNLD_KRAKEN_DBS = ARGS.DNLD_KRAKEN_DBS
 PRINT_VERSION = ARGS.PRINT_VERSION
 PRINT_HELP = ARGS.PRINT_HELP
 
@@ -242,12 +251,13 @@ def main():
     bowtie2, bowtie2_build = deps.dep_check_bowtie2(force=FORCE_DEPS, logger=linfo)
     rcorrector = deps.dep_check_rcorrector(force=FORCE_DEPS, logger=linfo)
     kraken2, kraken2_build = deps.dep_check_kraken2(force=FORCE_DEPS, logger=linfo)
-    kraken2_dbs = deps.download_kraken2_dbs(DIR_KRK)
+
+    kraken2_dbs = deps.download_kraken2_dbs(DIR_KRK, DNLD_KRAKEN_DBS)
 
     for db in sorted(kraken2_dbs.keys()):
         linfo('Found Kraken2 database: ' + db)
 
-    if INSTALL_DEPS is True:
+    if INSTALL_DEPS is True or DNLD_KRAKEN_DBS is True:
         exit(0)
 
     # Initialize NCBI taxonomy database --------------------------------------

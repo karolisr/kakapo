@@ -645,113 +645,115 @@ def dep_check_kraken2(force=False, logger=print): # noqa
     return kraken2, kraken2_build
 
 
-def download_kraken2_dbs(dbs_path):  # noqa
+def download_kraken2_dbs(dbs_path, dnld):  # noqa
 
     base_kraken2_url = 'ftp://ftp.ccb.jhu.edu/pub/data/kraken2_dbs/'
 
-    # ------------------------------------------------------------------------
+    if dnld is True:
 
-    base = '16S_Silva_20190418'
-    url = base_kraken2_url + base + '.tgz'
-    tgz = opj(dbs_path, base + '.tgz')
-    p_orig = opj(dbs_path, base)
-    db_name = '16S_Silva'
-    p_new = opj(dbs_path, db_name)
+        # --------------------------------------------------------------------
 
-    if not os.path.exists(p_new):
-        download_file(url=url, local_path=tgz, protocol='ftp')
-        tar_ref = tarfile.open(tgz, 'r:gz')
-        tar_ref.extractall(dbs_path)
-        tar_ref.close()
-        os.remove(tgz)
-        move(p_orig, p_new)
+        base = '16S_Silva_20190418'
+        url = base_kraken2_url + base + '.tgz'
+        tgz = opj(dbs_path, base + '.tgz')
+        p_orig = opj(dbs_path, base)
+        db_name = '16S_Silva'
+        p_new = opj(dbs_path, db_name)
 
-    # ------------------------------------------------------------------------
+        if not os.path.exists(p_new):
+            download_file(url=url, local_path=tgz, protocol='ftp')
+            tar_ref = tarfile.open(tgz, 'r:gz')
+            tar_ref.extractall(dbs_path)
+            tar_ref.close()
+            os.remove(tgz)
+            move(p_orig, p_new)
 
-    base = 'minikraken2_v2_8GB_201904_UPDATE'
-    url = base_kraken2_url + base + '.tgz'
-    tgz = opj(dbs_path, base + '.tgz')
-    p_orig = opj(dbs_path, base)
-    db_name = 'minikraken2_v2'
-    p_new = opj(dbs_path, db_name)
+        # --------------------------------------------------------------------
 
-    if not os.path.exists(p_new):
-        download_file(url=url, local_path=tgz, protocol='ftp')
-        tar_ref = tarfile.open(tgz, 'r:gz')
-        tar_ref.extractall(dbs_path)
-        tar_ref.close()
-        os.remove(tgz)
-        move(p_orig, p_new)
+        base = 'minikraken2_v2_8GB_201904_UPDATE'
+        url = base_kraken2_url + base + '.tgz'
+        tgz = opj(dbs_path, base + '.tgz')
+        p_orig = opj(dbs_path, base)
+        db_name = 'minikraken2_v2'
+        p_new = opj(dbs_path, db_name)
 
-    # ------------------------------------------------------------------------
+        if not os.path.exists(p_new):
+            download_file(url=url, local_path=tgz, protocol='ftp')
+            tar_ref = tarfile.open(tgz, 'r:gz')
+            tar_ref.extractall(dbs_path)
+            tar_ref.close()
+            os.remove(tgz)
+            move(p_orig, p_new)
 
-    base_dropbox_url = 'https://www.dropbox.com/s/'
+        # --------------------------------------------------------------------
 
-    base = 'mitochondrion_and_plastid'
-    garb = 'vkbp7iys6s76tvf/'
-    url = base_dropbox_url + garb + base + '.tar.gz?dl=1'
-    tgz = opj(dbs_path, base + '.tar.gz')
-    p = opj(dbs_path, base)
+        base_dropbox_url = 'https://www.dropbox.com/s/'
 
-    if not os.path.exists(p):
-        download_file(url=url, local_path=tgz, protocol='http')
-        tar_ref = tarfile.open(tgz, 'r:gz')
-        tar_ref.extractall(dbs_path)
-        tar_ref.close()
-        os.remove(tgz)
+        base = 'mitochondrion_and_plastid'
+        garb = 'vkbp7iys6s76tvf/'
+        url = base_dropbox_url + garb + base + '.tar.gz?dl=1'
+        tgz = opj(dbs_path, base + '.tar.gz')
+        p = opj(dbs_path, base)
 
-    # ------------------------------------------------------------------------
+        if not os.path.exists(p):
+            download_file(url=url, local_path=tgz, protocol='http')
+            tar_ref = tarfile.open(tgz, 'r:gz')
+            tar_ref.extractall(dbs_path)
+            tar_ref.close()
+            os.remove(tgz)
 
-    base_dropbox_url = 'https://www.dropbox.com/s/'
+        # --------------------------------------------------------------------
 
-    base = 'mitochondrion'
-    garb = '6liwneb26uvjuec/'
-    url = base_dropbox_url + garb + base + '.tar.gz?dl=1'
-    tgz = opj(dbs_path, base + '.tar.gz')
-    p = opj(dbs_path, base)
+        base_dropbox_url = 'https://www.dropbox.com/s/'
 
-    if not os.path.exists(p):
-        download_file(url=url, local_path=tgz, protocol='http')
-        tar_ref = tarfile.open(tgz, 'r:gz')
-        tar_ref.extractall(dbs_path)
-        tar_ref.close()
-        os.remove(tgz)
+        base = 'mitochondrion'
+        garb = '6liwneb26uvjuec/'
+        url = base_dropbox_url + garb + base + '.tar.gz?dl=1'
+        tgz = opj(dbs_path, base + '.tar.gz')
+        p = opj(dbs_path, base)
 
-    # ------------------------------------------------------------------------
+        if not os.path.exists(p):
+            download_file(url=url, local_path=tgz, protocol='http')
+            tar_ref = tarfile.open(tgz, 'r:gz')
+            tar_ref.extractall(dbs_path)
+            tar_ref.close()
+            os.remove(tgz)
 
-    base_dropbox_url = 'https://www.dropbox.com/s/'
+        # --------------------------------------------------------------------
 
-    base = 'plastid'
-    garb = 's9vdg4mxrfy1szn/'
-    url = base_dropbox_url + garb + base + '.tar.gz?dl=1'
-    tgz = opj(dbs_path, base + '.tar.gz')
-    p = opj(dbs_path, base)
+        base_dropbox_url = 'https://www.dropbox.com/s/'
 
-    if not os.path.exists(p):
-        download_file(url=url, local_path=tgz, protocol='http')
-        tar_ref = tarfile.open(tgz, 'r:gz')
-        tar_ref.extractall(dbs_path)
-        tar_ref.close()
-        os.remove(tgz)
+        base = 'plastid'
+        garb = 's9vdg4mxrfy1szn/'
+        url = base_dropbox_url + garb + base + '.tar.gz?dl=1'
+        tgz = opj(dbs_path, base + '.tar.gz')
+        p = opj(dbs_path, base)
 
-    # ------------------------------------------------------------------------
+        if not os.path.exists(p):
+            download_file(url=url, local_path=tgz, protocol='http')
+            tar_ref = tarfile.open(tgz, 'r:gz')
+            tar_ref.extractall(dbs_path)
+            tar_ref.close()
+            os.remove(tgz)
 
-    base_dropbox_url = 'https://www.dropbox.com/s/'
+        # --------------------------------------------------------------------
 
-    base = 'viral'
-    garb = '7xz31c7vw088n27/'
-    url = base_dropbox_url + garb + base + '.tar.gz?dl=1'
-    tgz = opj(dbs_path, base + '.tar.gz')
-    p = opj(dbs_path, base)
+        base_dropbox_url = 'https://www.dropbox.com/s/'
 
-    if not os.path.exists(p):
-        download_file(url=url, local_path=tgz, protocol='http')
-        tar_ref = tarfile.open(tgz, 'r:gz')
-        tar_ref.extractall(dbs_path)
-        tar_ref.close()
-        os.remove(tgz)
+        base = 'viral'
+        garb = '7xz31c7vw088n27/'
+        url = base_dropbox_url + garb + base + '.tar.gz?dl=1'
+        tgz = opj(dbs_path, base + '.tar.gz')
+        p = opj(dbs_path, base)
 
-    # ------------------------------------------------------------------------
+        if not os.path.exists(p):
+            download_file(url=url, local_path=tgz, protocol='http')
+            tar_ref = tarfile.open(tgz, 'r:gz')
+            tar_ref.extractall(dbs_path)
+            tar_ref.close()
+            os.remove(tgz)
+
+        # --------------------------------------------------------------------
 
     kraken2_dbs = {k: opj(dbs_path, k) for k in list_of_dirs(dbs_path)}
     return kraken2_dbs
