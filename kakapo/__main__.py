@@ -72,7 +72,7 @@ from kakapo.workflow import user_fastq_files
 from kakapo.workflow import user_protein_accessions
 
 # Command line arguments -----------------------------------------------------
-USAGE = '{} --cfg path/to/config_file' \
+USAGE = '{} --cfg path/to/config_file ' \
         '--ss path/to/search_strategies_file'.format(__script_name__)
 
 PARSER = argparse.ArgumentParser(
@@ -105,7 +105,8 @@ PARSER.add_argument(
     action='store_true',
     required=False,
     dest='STOP_AFTER_FILTER',
-    help='Stop {} after Kraken2/Bowtie2 filtering step.'.format(__script_name__))
+    help='Stop {} after Kraken2/Bowtie2 filtering '
+         'step.'.format(__script_name__))
 
 PARSER.add_argument(
     '--force-deps',
@@ -242,15 +243,15 @@ def main():
     linfo('Checking for dependencies')
     make_dir(DIR_DEP)
     make_dir(DIR_KRK)
-    seqtk = deps.dep_check_seqtk(force=FORCE_DEPS, logger=linfo)
+    seqtk = deps.dep_check_seqtk(FORCE_DEPS, linfo)
     trimmomatic, adapters = deps.dep_check_trimmomatic(linfo)
-    fasterq_dump = deps.dep_check_sra_toolkit(force=FORCE_DEPS, logger=linfo)
-    makeblastdb, _, tblastn = deps.dep_check_blast(force=FORCE_DEPS, logger=linfo)
-    vsearch = deps.dep_check_vsearch(force=FORCE_DEPS, logger=linfo)
-    spades = deps.dep_check_spades(force=FORCE_DEPS, logger=linfo)
-    bowtie2, bowtie2_build = deps.dep_check_bowtie2(force=FORCE_DEPS, logger=linfo)
-    rcorrector = deps.dep_check_rcorrector(force=FORCE_DEPS, logger=linfo)
-    kraken2, kraken2_build = deps.dep_check_kraken2(force=FORCE_DEPS, logger=linfo)
+    fasterq_dump = deps.dep_check_sra_toolkit(FORCE_DEPS, linfo)
+    makeblastdb, _, tblastn = deps.dep_check_blast(FORCE_DEPS, linfo)
+    vsearch = deps.dep_check_vsearch(FORCE_DEPS, linfo)
+    spades = deps.dep_check_spades(FORCE_DEPS, linfo)
+    bowtie2, bowtie2_build = deps.dep_check_bowtie2(FORCE_DEPS, linfo)
+    rcorrector = deps.dep_check_rcorrector(FORCE_DEPS, linfo)
+    kraken2, kraken2_build = deps.dep_check_kraken2(FORCE_DEPS, linfo)
 
     kraken2_dbs = deps.download_kraken2_dbs(DIR_KRK, DNLD_KRAKEN_DBS)
 
@@ -301,7 +302,7 @@ def main():
     user_assemblies = _['assmbl']
 
     # Parse search strategies file -------------------------------------------
-    search_strategies = ss_file_parse(SS_FILE_PATH, linfo)
+    sss = ss_file_parse(SS_FILE_PATH, linfo)
 
     # Create output directory with all the subdirectories --------------------
     if dir_out is not None:
@@ -344,75 +345,80 @@ def main():
 
     # Resolve descending taxonomy nodes --------------------------------------
     tax_ids = descending_tax_ids([tax_group], tax, linfo)
-    # tax_ids = descending_tax_ids(tax_ids_user, tax, linfo)
-    # if tax_ids is None:
-    #     tax_ids = [tax_group]
 
     # Pfam uniprot accessions ------------------------------------------------
     pfam_uniprot_acc = OrderedDict()
-    for ss in search_strategies:
-        pfam_acc = search_strategies[ss]['pfam_families']
+    for ss in sss:
+        pfam_acc = sss[ss]['pfam_families']
         pfam_uniprot_acc[ss] = pfam_uniprot_accessions(ss, pfam_acc, tax_ids,
-                                                       dir_cache_pfam_acc, linfo)
+                                                       dir_cache_pfam_acc,
+                                                       linfo)
 
     # Download Pfam uniprot sequences if needed ------------------------------
     aa_uniprot_files = OrderedDict()
-    for ss in search_strategies:
-        aa_uniprot_files[ss] = opj(dir_prj_queries, 'aa_uniprot__' + ss + '.fasta')
+    for ss in sss:
+        aa_uniprot_files[ss] = opj(dir_prj_queries, 'aa_uniprot__' + ss +
+                                   '.fasta')
         dnld_pfam_uniprot_seqs(ss, pfam_uniprot_acc[ss], aa_uniprot_files[ss],
                                dir_cache_prj, linfo)
 
     # User provided entrez query ---------------------------------------------
-    prot_acc_user_1 = OrderedDict()
-    for ss in search_strategies:
-        entrez_queries = search_strategies[ss]['entrez_search_queries']
-        prot_acc_user_1[ss] = user_entrez_search(ss, entrez_queries, dir_cache_prj,
-                                                 linfo)
+    prot_acc_user_from_query = OrderedDict()
+    for ss in sss:
+        entrez_queries = sss[ss]['entrez_search_queries']
+        prot_acc_user_from_query[ss] = user_entrez_search(ss, entrez_queries,
+                                                          dir_cache_prj, linfo)
 
     # User provided protein accessions ---------------------------------------
-    prot_acc_user_2 = OrderedDict()
-    for ss in search_strategies:
-        prot_acc_user = search_strategies[ss]['ncbi_accessions_aa']
-        prot_acc_user_2[ss] = user_protein_accessions(ss, prot_acc_user,
-                                                      dir_cache_prj, linfo)
-
     prot_acc_user = OrderedDict()
-    for ss in search_strategies:
-        prot_acc_user[ss] = prot_acc_user_1[ss] + prot_acc_user_2[ss]
-        prot_acc_user[ss] = sorted(set(prot_acc_user[ss]))
+    for ss in sss:
+        prot_acc_all = sorted(set(sss[ss]['ncbi_accessions_aa'] +
+                                  prot_acc_user_from_query[ss]))
+        prot_acc_user[ss] = user_protein_accessions(ss, prot_acc_all,
+                                                    dir_cache_prj, linfo)
 
     # Download from NCBI if needed -------------------------------------------
     aa_prot_ncbi_files = OrderedDict()
-    for ss in search_strategies:
+    for ss in sss:
         aa_prot_ncbi_files[ss] = opj(dir_prj_queries, 'aa_prot_ncbi__' + ss +
                                      '.fasta')
-        prot_acc_user[ss] = dnld_prot_seqs(prot_acc_user[ss],
+        prot_acc_user[ss] = dnld_prot_seqs(ss, prot_acc_user[ss],
                                            aa_prot_ncbi_files[ss], linfo)
 
     # User provided protein sequences ----------------------------------------
     aa_prot_user_files = OrderedDict()
-    for ss in search_strategies:
-        user_queries = search_strategies[ss]['fasta_files_aa']
+    for ss in sss:
+        user_queries = sss[ss]['fasta_files_aa']
         aa_prot_user_files[ss] = opj(dir_prj_queries, 'aa_prot_user__' + ss +
                                      '.fasta')
-        user_aa_fasta(user_queries, aa_prot_user_files[ss], linfo)
+        user_aa_fasta(ss, user_queries, aa_prot_user_files[ss], linfo)
 
     # Combine all AA queries -------------------------------------------------
     aa_queries_files = OrderedDict()
-    for ss in search_strategies:
+    for ss in sss:
         aa_queries_files[ss] = opj(dir_prj_queries, 'aa_all__' + ss + '.fasta')
-        combine_aa_fasta([aa_uniprot_files[ss],
-                          aa_prot_ncbi_files[ss],
-                          aa_prot_user_files[ss]], aa_queries_files[ss], linfo)
+        combine_aa_fasta(ss, [aa_uniprot_files[ss], aa_prot_ncbi_files[ss],
+                              aa_prot_user_files[ss]], aa_queries_files[ss],
+                         linfo)
 
     # Filter AA queries ------------------------------------------------------
-    for ss in search_strategies:
-        min_query_length = search_strategies[ss]['min_query_length']
-        max_query_length = search_strategies[ss]['max_query_length']
-        max_query_identity = search_strategies[ss]['max_query_identity']
-        prot_acc_user[ss] = filter_queries(aa_queries_files[ss], min_query_length,
-                                           max_query_length, max_query_identity,
-                                           vsearch, prot_acc_user[ss], linfo)
+    prot_acc_user_filtered = OrderedDict()
+    for ss in sss:
+        min_query_length = sss[ss]['min_query_length']
+        max_query_length = sss[ss]['max_query_length']
+        max_query_identity = sss[ss]['max_query_identity']
+
+        # Dereplicate all queries
+        filter_queries(ss, aa_queries_files[ss], min_query_length,
+                       max_query_length, max_query_identity,
+                       vsearch, prot_acc_user[ss], overwrite=True, linfo=linfo)
+
+        # Dereplicate only NCBI queries. CDS for these will be downloaded
+        # later for reference.
+        prot_acc_user_filtered[ss] = filter_queries(
+            ss, aa_prot_ncbi_files[ss], min_query_length, max_query_length,
+            max_query_identity, vsearch, prot_acc_user[ss], overwrite=False,
+            linfo=lambda x: x)
 
     # Download SRA run metadata if needed ------------------------------------
     sra_runs_info, sras_acceptable = dnld_sra_info(sras, dir_cache_prj, linfo)
@@ -489,16 +495,17 @@ def main():
 
     # Run Kraken2 ------------------------------------------------------------
     run_kraken2(krkn_order, kraken2_dbs, se_fastq_files, pe_fastq_files,
-                dir_fq_filter_data, kraken_confidence, kraken2, THREADS, dir_temp,
-                pe_trim_fq_file_patterns, linfo)
+                dir_fq_filter_data, kraken_confidence, kraken2, THREADS,
+                dir_temp, pe_trim_fq_file_patterns, linfo)
 
     # Run Bowtie 2 -----------------------------------------------------------
     krkn_dbs_used = [x[0] for x in krkn_order]
     if MT_PT_KRKN_DB in krkn_dbs_used:
         dbs = ('mitochondrion', 'chloroplast')
         run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
-                   bowtie2, bowtie2_build, THREADS, dir_temp, MT_PT_KRKN_DB, dbs,
-                   pe_trim_fq_file_patterns, tax, dir_cache_refseqs, linfo)
+                   bowtie2, bowtie2_build, THREADS, dir_temp, MT_PT_KRKN_DB,
+                   dbs, pe_trim_fq_file_patterns, tax, dir_cache_refseqs,
+                   linfo)
 
     se_fastq_files = OrderedDict(se_fastq_files)
     pe_fastq_files = OrderedDict(pe_fastq_files)
@@ -522,30 +529,33 @@ def main():
                    makeblastdb, pe_blast_db_file_patterns, linfo)
 
     # Run tblastn on reads ---------------------------------------------------
-    for ss in search_strategies:
-        run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_files[ss],
-                             tblastn, blast_1_evalue, blast_1_max_hsps,
-                             blast_1_qcov_hsp_perc, blast_1_best_hit_overhang,
-                             blast_1_best_hit_score_edge, blast_1_max_target_seqs,
+    for ss in sss:
+        run_tblastn_on_reads(se_fastq_files, pe_fastq_files,
+                             aa_queries_files[ss], tblastn, blast_1_evalue,
+                             blast_1_max_hsps, blast_1_qcov_hsp_perc,
+                             blast_1_best_hit_overhang,
+                             blast_1_best_hit_score_edge,
+                             blast_1_max_target_seqs,
                              dir_prj_blast_results_fa_trim,
-                             pe_blast_results_file_patterns, ss, THREADS, seqtk,
-                             vsearch, linfo)
+                             pe_blast_results_file_patterns, ss, THREADS,
+                             seqtk, vsearch, linfo)
 
     # Run vsearch on reads ---------------------------------------------------
-    for ss in search_strategies:
+    for ss in sss:
         run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
                              dir_prj_vsearch_results_fa_trim,
-                             pe_vsearch_results_file_patterns, ss, seqtk, linfo)
+                             pe_vsearch_results_file_patterns, ss, seqtk,
+                             linfo)
 
     # Run SPAdes -------------------------------------------------------------
-    for ss in search_strategies:
+    for ss in sss:
         run_spades(se_fastq_files, pe_fastq_files, dir_prj_spades_assemblies,
                    spades, dir_temp, ss, THREADS, RAM, linfo)
 
     # Collate SPAdes and user provided assemblies ----------------------------
     assemblies = []
 
-    for ss in search_strategies:
+    for ss in sss:
         for se in se_fastq_files:
             a_path = se_fastq_files[se]['spades_assembly' + '__' + ss]
             if a_path is None:
@@ -591,14 +601,14 @@ def main():
                            linfo)
 
     # Run tblastn on assemblies ----------------------------------------------
-    for ss in search_strategies:
+    for ss in sss:
 
-        blast_2_evalue_ss = search_strategies[ss]['blast_2_evalue']
-        blast_2_max_hsps_ss = search_strategies[ss]['blast_2_max_hsps']
-        blast_2_qcov_hsp_perc_ss = search_strategies[ss]['blast_2_qcov_hsp_perc']
-        blast_2_best_hit_overhang_ss = search_strategies[ss]['blast_2_best_hit_overhang']
-        blast_2_best_hit_score_edge_ss = search_strategies[ss]['blast_2_best_hit_score_edge']
-        blast_2_max_target_seqs_ss = search_strategies[ss]['blast_2_max_target_seqs']
+        blast_2_evalue_ss = sss[ss]['blast_2_evalue']
+        blast_2_max_hsps_ss = sss[ss]['blast_2_max_hsps']
+        blast_2_qcov_hsp_perc_ss = sss[ss]['blast_2_qcov_hsp_perc']
+        blast_2_best_hit_overhang_ss = sss[ss]['blast_2_best_hit_overhang']
+        blast_2_best_hit_score_edge_ss = sss[ss]['blast_2_best_hit_score_edge']
+        blast_2_max_target_seqs_ss = sss[ss]['blast_2_max_target_seqs']
 
         if blast_2_evalue_ss is None:
             blast_2_evalue_ss = blast_2_evalue
@@ -613,21 +623,22 @@ def main():
         if blast_2_max_target_seqs_ss is None:
             blast_2_max_target_seqs_ss = blast_2_max_target_seqs
 
-        run_tblastn_on_assemblies(ss, assemblies, aa_queries_files[ss], tblastn,
-                                  dir_prj_assmbl_blast_results, blast_2_evalue_ss,
-                                  blast_2_max_hsps_ss, blast_2_qcov_hsp_perc_ss,
+        run_tblastn_on_assemblies(ss, assemblies, aa_queries_files[ss],
+                                  tblastn, dir_prj_assmbl_blast_results,
+                                  blast_2_evalue_ss, blast_2_max_hsps_ss,
+                                  blast_2_qcov_hsp_perc_ss,
                                   blast_2_best_hit_overhang_ss,
                                   blast_2_best_hit_score_edge_ss,
                                   blast_2_max_target_seqs_ss, THREADS,
                                   dir_cache_prj, dir_prj_ips, linfo)
 
     # Prepare BLAST hits for analysis: find ORFs, translate ------------------
-    for ss in search_strategies:
+    for ss in sss:
 
-        min_target_orf_len_ss = search_strategies[ss]['min_target_orf_length']
-        max_target_orf_len_ss = search_strategies[ss]['max_target_orf_length']
+        min_target_orf_len_ss = sss[ss]['min_target_orf_length']
+        max_target_orf_len_ss = sss[ss]['max_target_orf_length']
 
-        blast_2_qcov_hsp_perc_ss = search_strategies[ss]['blast_2_qcov_hsp_perc']
+        blast_2_qcov_hsp_perc_ss = sss[ss]['blast_2_qcov_hsp_perc']
 
         if blast_2_qcov_hsp_perc_ss is None:
             blast_2_qcov_hsp_perc_ss = blast_2_qcov_hsp_perc
@@ -641,30 +652,30 @@ def main():
 
     # Download CDS for NCBI protein queries ----------------------------------
     prot_cds_ncbi_files = OrderedDict()
-    for ss in search_strategies:
+    for ss in sss:
         prot_cds_ncbi_files[ss] = opj(dir_prj_transcripts_combined, prj_name +
                                       '_ncbi_query_cds__' + ss + '.fasta')
-        if len(prot_acc_user[ss]) > 0:
-            dnld_cds_for_ncbi_prot_acc(ss, prot_acc_user[ss],
-                                       prot_cds_ncbi_files[ss], tax, dir_cache_prj,
-                                       linfo)
+        if len(prot_acc_user_filtered[ss]) > 0:
+            dnld_cds_for_ncbi_prot_acc(ss, prot_acc_user_filtered[ss],
+                                       prot_cds_ncbi_files[ss], tax,
+                                       dir_cache_prj, linfo)
 
     # GFF3 files from kakapo results JSON files ------------------------------
-    for ss in search_strategies:
-        gff_from_json(ss, assemblies, dir_prj_ips, dir_prj_transcripts_combined,
-                      prj_name, linfo)
+    for ss in sss:
+        gff_from_json(ss, assemblies, dir_prj_ips,
+                      dir_prj_transcripts_combined, prj_name, linfo)
 
     # Run InterProScan 5 -----------------------------------------------------
     if inter_pro_scan is True:
-        for ss in search_strategies:
-            run_inter_pro_scan(ss, assemblies, email, dir_prj_ips, dir_cache_prj,
-                               linfo)
+        for ss in sss:
+            run_inter_pro_scan(ss, assemblies, email, dir_prj_ips,
+                               dir_cache_prj, linfo)
 
     # GFF3 files from kakapo and InterProScan 5 results JSON files -----------
     if inter_pro_scan is True:
-        for ss in search_strategies:
-            gff_from_json(ss, assemblies, dir_prj_ips, dir_prj_transcripts_combined,
-                          prj_name, linfo)
+        for ss in sss:
+            gff_from_json(ss, assemblies, dir_prj_ips,
+                          dir_prj_transcripts_combined, prj_name, linfo)
 
 # ----------------------------------------------------------------------------
 
