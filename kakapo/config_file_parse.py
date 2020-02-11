@@ -17,6 +17,10 @@ from os.path import expanduser
 from os.path import join
 from sys import exit
 
+from configparser import MissingSectionHeaderError
+from configparser import NoSectionError
+from configparser import NoOptionError
+
 from kakapo.ebi_domain_search import pfam_entry
 from kakapo.helpers import list_of_files
 from kakapo.helpers import replace_line_in_file
@@ -80,11 +84,20 @@ def _parse_pfam(pfam_entries, config_file_path):
 
 
 def ss_file_parse(file_path, linfo=print):  # noqa
+
+    linfo('Reading search strategies file: ' + file_path)
+
     cfg = ConfigParser(delimiters=('='), allow_no_value=True,
                        empty_lines_in_values=True)
     cfg.optionxform = str
     cfg.SECTCRE = re.compile(r'\[\s*(?P<header>[^]]+?)\s*\]')
-    cfg.read(file_path)
+
+    try:
+        cfg.read(file_path)
+    except MissingSectionHeaderError:
+        linfo('Error: Missing section header(s) in the provided "Search Strategies" file: ' +
+              file_path)
+        exit(1)
 
     required_options = set(('min_query_length',
                             'max_query_length',
@@ -190,69 +203,115 @@ def ss_file_parse(file_path, linfo=print):  # noqa
 
 
 def config_file_parse(file_path, taxonomy, linfo=print):  # noqa
+
+    linfo('Reading configuration file: ' + file_path)
+
     cfg = ConfigParser(delimiters=('='), allow_no_value=True)
     cfg.optionxform = str
-    cfg.read(file_path)
 
-    # General
-    project_name = cfg.get('General', 'project_name')
-    email = cfg.get('General', 'email')
-    output_directory = abspath(expanduser(cfg.get(
-        'General', 'output_directory')))
-    inter_pro_scan = cfg.getboolean('General', 'run_inter_pro_scan')
-    prepend_assmbl = cfg.getboolean('General',
-                                    'prepend_assembly_name_to_sequence_name')
-    kraken_confidence = cfg.getfloat('General', 'kraken_2_confidence')
+    try:
+        cfg.read(file_path)
+    except MissingSectionHeaderError:
+        linfo('Error: Missing section header(s) in the provided configuration file: ' + file_path)
+        exit(1)
 
-    # Target filters
-    allow_non_aug = cfg.getboolean('Target filters',
-                                   'allow_non_aug_start_codon')
-    allow_no_strt_cod = cfg.getboolean('Target filters',
-                                       'allow_missing_start_codon')
-    allow_no_stop_cod = cfg.getboolean('Target filters',
-                                       'allow_missing_stop_codon')
+    try:
+        # General
+        project_name = cfg.get('General', 'project_name')
+        email = cfg.get('General', 'email')
+        output_directory = abspath(expanduser(cfg.get(
+            'General', 'output_directory')))
+        inter_pro_scan = cfg.getboolean('General', 'run_inter_pro_scan')
+        prepend_assmbl = cfg.getboolean('General',
+                                        'prepend_assembly_name_to_sequence_name')
+        kraken_confidence = cfg.getfloat('General', 'kraken_2_confidence')
 
-    # Query taxonomic group
-    tax_group_raw = cfg.items('Query taxonomic group')
+        # Target filters
+        allow_non_aug = cfg.getboolean('Target filters',
+                                       'allow_non_aug_start_codon')
+        allow_no_strt_cod = cfg.getboolean('Target filters',
+                                           'allow_missing_start_codon')
+        allow_no_stop_cod = cfg.getboolean('Target filters',
+                                           'allow_missing_stop_codon')
 
-    if len(tax_group_raw) != 1:
-        raise Exception('One taxonomic group should be listed.')
+        # Query taxonomic group
+        tax_group_raw = cfg.items('Query taxonomic group')
 
-    tax_group = tax_group_raw[0][0].lower()
-    tax_group_name = tax_group.title()
+        if len(tax_group_raw) != 1:
+            raise Exception('One taxonomic group should be listed.')
 
-    group_tax_ids = {'animals': 33208,
-                     'archaea': 2157,
-                     'bacteria': 2,
-                     'fungi': 4751,
-                     'plants': 33090,
-                     'viruses': 10239}
+        tax_group = tax_group_raw[0][0].lower()
+        tax_group_name = tax_group.title()
 
-    tax_group = group_tax_ids[tax_group]
+        group_tax_ids = {'animals': 33208,
+                         'archaea': 2157,
+                         'bacteria': 2,
+                         'fungi': 4751,
+                         'plants': 33090,
+                         'viruses': 10239}
 
-    # Target SRA accessions
-    sras = cfg.items('Target SRA accessions')
-    sras = [x[0] for x in sras]
+        tax_group = group_tax_ids[tax_group]
 
-    all_tax_ids = set()
+        # Target SRA accessions
+        sras = cfg.items('Target SRA accessions')
+        sras = [x[0] for x in sras]
 
-    # Target FASTQ files
-    fastq_temp = cfg.items('Target FASTQ files')
+        all_tax_ids = set()
 
-    fq_pe = []
-    fq_se = []
+        # Target FASTQ files
+        fastq_temp = cfg.items('Target FASTQ files')
 
-    for entry in fastq_temp:
+        fq_pe = []
+        fq_se = []
 
-        key = entry[0]
-        val = entry[1]
+        for entry in fastq_temp:
 
-        val = val.split(':')
-        if len(val) == 1:
-            genus = basename(val[0]).split('_')[0]
-            val = [genus, val[0]]
+            key = entry[0]
+            val = entry[1]
 
-        taxa_temp = [val[0]]
+            val = val.split(':')
+            if len(val) == 1:
+                genus = basename(val[0]).split('_')[0]
+                val = [genus, val[0]]
+
+            taxa_temp = [val[0]]
+
+            tax_ids = _parse_taxa(taxa=taxa_temp,
+                                  tax_group=tax_group,
+                                  taxonomy=taxonomy,
+                                  config_file_path=file_path,
+                                  linfo=linfo)
+
+            if key.startswith('pe_'):
+                f_name = basename(val[1])
+                d_path = abspath(expanduser(dirname(val[1])))
+                pattern = re.escape(f_name).replace('\\*', '.')
+                try:
+                    files = list_of_files(d_path, linfo=linfo)
+                except Exception:
+                    exit(1)
+                pe = [f for f in files if re.match(pattern, f) is not None]
+                pe.sort()
+                pe = [join(d_path, f) for f in pe]
+                fq_pe.append([tax_ids[0], pe])
+
+            elif key.startswith('se_'):
+                se = abspath(expanduser(val[1]))
+                fq_se.append([tax_ids[0], se])
+
+            all_tax_ids.add(tax_ids[0])
+
+        # Target assemblies: FASTA files (DNA)
+        assmbl_temp = cfg.items('Target assemblies: FASTA files (DNA)')
+        assmbl_temp = [x[0].split(':') for x in assmbl_temp]
+
+        for i, val in enumerate(copy(assmbl_temp)):
+            if len(val) == 1:
+                genus = basename(val[0]).split('_')[0]
+                assmbl_temp[i] = [genus, val[0]]
+
+        taxa_temp = [x[0] for x in assmbl_temp]
+        taxa_temp = [x.split('.')[0] for x in taxa_temp]
 
         tax_ids = _parse_taxa(taxa=taxa_temp,
                               tax_group=tax_group,
@@ -260,82 +319,54 @@ def config_file_parse(file_path, taxonomy, linfo=print):  # noqa
                               config_file_path=file_path,
                               linfo=linfo)
 
-        if key.startswith('pe_'):
-            f_name = basename(val[1])
-            d_path = abspath(expanduser(dirname(val[1])))
-            pattern = re.escape(f_name).replace('\\*', '.')
-            try:
-                files = list_of_files(d_path, linfo=linfo)
-            except Exception:
-                exit(1)
-            pe = [f for f in files if re.match(pattern, f) is not None]
-            pe.sort()
-            pe = [join(d_path, f) for f in pe]
-            fq_pe.append([tax_ids[0], pe])
+        assmbl = [abspath(expanduser(x[1])) for x in assmbl_temp]
+        assmbl = list(zip(tax_ids, assmbl))
 
-        elif key.startswith('se_'):
-            se = abspath(expanduser(val[1]))
-            fq_se.append([tax_ids[0], se])
+        all_assemblies_found = True
+        for a in assmbl:
+            a_path = a[1]
+            if not ope(a_path):
+                linfo('Cannot find the assembly file: ' + a_path)
+                all_assemblies_found = False
 
-        all_tax_ids.add(tax_ids[0])
+        if all_assemblies_found is False:
+            linfo('Stopping.')
+            exit(1)
 
-    # Target assemblies: FASTA files (DNA)
-    assmbl_temp = cfg.items('Target assemblies: FASTA files (DNA)')
-    assmbl_temp = [x[0].split(':') for x in assmbl_temp]
+        for tax_id in tax_ids:
+            all_tax_ids.add(tax_id)
+        all_tax_ids = tuple(sorted(all_tax_ids))
 
-    for i, val in enumerate(copy(assmbl_temp)):
-        if len(val) == 1:
-            genus = basename(val[0]).split('_')[0]
-            assmbl_temp[i] = [genus, val[0]]
+        # Kraken2 filter order
+        krkn_sctn = 'Kraken2 filter order'
+        krkn_order = []
+        if cfg.has_section(krkn_sctn):
+            krkn_order = cfg.items(krkn_sctn)
 
-    taxa_temp = [x[0] for x in assmbl_temp]
-    taxa_temp = [x.split('.')[0] for x in taxa_temp]
+        # BLAST SRA/FASTQ
+        blast_1_evalue = cfg.getfloat('BLAST SRA/FASTQ', 'evalue')
+        blast_1_max_hsps = cfg.getint('BLAST SRA/FASTQ', 'max_hsps')
+        blast_1_qcov_hsp_perc = cfg.getfloat('BLAST SRA/FASTQ', 'qcov_hsp_perc')
+        blast_1_best_hit_overhang = cfg.getfloat('BLAST SRA/FASTQ', 'best_hit_overhang')
+        blast_1_best_hit_score_edge = cfg.getfloat('BLAST SRA/FASTQ', 'best_hit_score_edge')
+        blast_1_max_target_seqs = cfg.getint('BLAST SRA/FASTQ', 'max_target_seqs')
 
-    tax_ids = _parse_taxa(taxa=taxa_temp,
-                          tax_group=tax_group,
-                          taxonomy=taxonomy,
-                          config_file_path=file_path,
-                          linfo=linfo)
+        # BLAST assemblies
+        blast_2_evalue = cfg.getfloat('BLAST assemblies', 'evalue')
+        blast_2_max_hsps = cfg.getint('BLAST assemblies', 'max_hsps')
+        blast_2_qcov_hsp_perc = cfg.getfloat('BLAST assemblies', 'qcov_hsp_perc')
+        blast_2_best_hit_overhang = cfg.getfloat('BLAST assemblies', 'best_hit_overhang')
+        blast_2_best_hit_score_edge = cfg.getfloat('BLAST assemblies', 'best_hit_score_edge')
+        blast_2_max_target_seqs = cfg.getint('BLAST assemblies', 'max_target_seqs')
 
-    assmbl = [abspath(expanduser(x[1])) for x in assmbl_temp]
-    assmbl = list(zip(tax_ids, assmbl))
-
-    all_assemblies_found = True
-    for a in assmbl:
-        a_path = a[1]
-        if not ope(a_path):
-            linfo('Cannot find the assembly file: ' + a_path)
-            all_assemblies_found = False
-
-    if all_assemblies_found is False:
-        linfo('Stopping.')
+    except NoSectionError as err:
+        linfo('Error: Missing required section "' + err.section + '" in configuration file: ' + file_path)
         exit(1)
 
-    for tax_id in tax_ids:
-        all_tax_ids.add(tax_id)
-    all_tax_ids = tuple(sorted(all_tax_ids))
-
-    # Kraken2 filter order
-    krkn_sctn = 'Kraken2 filter order'
-    krkn_order = []
-    if cfg.has_section(krkn_sctn):
-        krkn_order = cfg.items(krkn_sctn)
-
-    # BLAST SRA/FASTQ
-    blast_1_evalue = cfg.getfloat('BLAST SRA/FASTQ', 'evalue')
-    blast_1_max_hsps = cfg.getint('BLAST SRA/FASTQ', 'max_hsps')
-    blast_1_qcov_hsp_perc = cfg.getfloat('BLAST SRA/FASTQ', 'qcov_hsp_perc')
-    blast_1_best_hit_overhang = cfg.getfloat('BLAST SRA/FASTQ', 'best_hit_overhang')
-    blast_1_best_hit_score_edge = cfg.getfloat('BLAST SRA/FASTQ', 'best_hit_score_edge')
-    blast_1_max_target_seqs = cfg.getint('BLAST SRA/FASTQ', 'max_target_seqs')
-
-    # BLAST assemblies
-    blast_2_evalue = cfg.getfloat('BLAST assemblies', 'evalue')
-    blast_2_max_hsps = cfg.getint('BLAST assemblies', 'max_hsps')
-    blast_2_qcov_hsp_perc = cfg.getfloat('BLAST assemblies', 'qcov_hsp_perc')
-    blast_2_best_hit_overhang = cfg.getfloat('BLAST assemblies', 'best_hit_overhang')
-    blast_2_best_hit_score_edge = cfg.getfloat('BLAST assemblies', 'best_hit_score_edge')
-    blast_2_max_target_seqs = cfg.getint('BLAST assemblies', 'max_target_seqs')
+    except NoOptionError as err:
+        linfo('Error: Missing required option "' + err.option +
+              '" under section "' + err.section + '" in configuration file: ' + file_path)
+        exit(1)
 
     # ------------------------------------------------------------------------
 

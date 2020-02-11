@@ -101,7 +101,8 @@ def prepare_output_directories(dir_out, prj_name):  # noqa
     dir_prj_queries = opj(dir_prj, '01-queries')
     make_dir(dir_prj_queries)
 
-    dir_prj_blast_results_fa_trim = opj(dir_prj, '02-filtered-fa-blast-results')
+    dir_prj_blast_results_fa_trim = opj(dir_prj,
+                                        '02-filtered-fa-blast-results')
     make_dir(dir_prj_blast_results_fa_trim)
 
     dir_prj_vsearch_results_fa_trim = opj(dir_prj,
@@ -207,8 +208,6 @@ def dnld_refseqs_for_taxid(taxid, filter_term, taxonomy,
 
 
 def descending_tax_ids(tax_ids_user, taxonomy, linfo=print):  # noqa
-    # if len(tax_ids_user) > 0:
-    #     linfo('Resolving descending nodes for TaxIds')
     shared = taxonomy.shared_taxid_for_taxids(tax_ids_user)
     if shared is None:
         return None
@@ -222,7 +221,7 @@ def descending_tax_ids(tax_ids_user, taxonomy, linfo=print):  # noqa
 def pfam_uniprot_accessions(ss, pfam_acc, tax_ids, dir_cache_pfam_acc,
                             linfo=print):  # noqa
     if len(pfam_acc) > 0:
-        linfo('Downloading UniProt accessions for Pfam families')
+        linfo('Downloading UniProt accessions for Pfam accessions [' + ss + ']')
     pfam_seqs_list = []
     for pa in pfam_acc:
         pfam_id = pfam_entry(pa)[0]['id']
@@ -233,6 +232,9 @@ def pfam_uniprot_accessions(ss, pfam_acc, tax_ids, dir_cache_pfam_acc,
                 acc = pickle.load(f)
             pfam_seqs_list = pfam_seqs_list + acc
         else:
+            # Note: the results may include "obsolete" accessions.
+            # This is not a problem, they will not appear in the set of
+            # downloaded sequences from UniProt.
             acc = pfam_seqs(query=pa)
             pfam_seqs_list = pfam_seqs_list + acc
             with open(__, 'wb') as f:
@@ -257,7 +259,11 @@ def dnld_pfam_uniprot_seqs(ss, uniprot_acc, aa_uniprot_file, dir_cache_prj,
         if (set(uniprot_acc) != set(prev_uniprot_acc)) or \
            (not ope(aa_uniprot_file)):
 
-            linfo('Downloading Pfam protein sequences from UniProt')
+            linfo('Downloading Pfam protein sequences from UniProt [' + ss + ']')
+            # Note: the number of sequences downloaded from UniProt may
+            # be less than the total number of accessions. This is normal
+            # as Pfam may return "obsolete" accessions, which will not be
+            # downloaded here.
             __ = fasta_by_accession_list(uniprot_acc)
             __ = standardize_fasta_text(__)
 
@@ -268,9 +274,18 @@ def dnld_pfam_uniprot_seqs(ss, uniprot_acc, aa_uniprot_file, dir_cache_prj,
             osremove(aa_uniprot_file)
 
 
+def user_entrez_search(ss, queries, dir_cache_prj, linfo=print):  # noqa
+    accs = []
+    if len(queries) != 0:
+        linfo('Searching for protein sequences on NCBI [' + ss + ']')
+        for q in queries:
+            accs = accs + accessions_ncbi(esearch(term=q, db='protein'))
+    return accs
+
+
 def user_protein_accessions(ss, prot_acc_user, dir_cache_prj, linfo=print):  # noqa
     if len(prot_acc_user) > 0:
-        linfo('Reading user provided protein accessions')
+        linfo('Reading user provided protein accessions [' + ss + ']')
         pickle_file = opj(dir_cache_prj, 'ncbi_prot_metadata_cache__' + ss)
         acc_old = set()
         if ope(pickle_file):
@@ -316,17 +331,7 @@ def user_protein_accessions(ss, prot_acc_user, dir_cache_prj, linfo=print):  # n
         return prot_acc_user
 
 
-def user_entrez_search(ss, queries, dir_cache_prj, linfo=print):  # noqa
-    accs = []
-    if len(queries) != 0:
-        linfo('Searching for protein sequences on NCBI')
-        for q in queries:
-            accs = accs + accessions_ncbi(esearch(term=q, db='protein'))
-
-    return user_protein_accessions(ss, accs, dir_cache_prj, linfo=linfo)
-
-
-def dnld_prot_seqs(prot_acc_user, aa_prot_ncbi_file, linfo=print):  # noqa
+def dnld_prot_seqs(ss, prot_acc_user, aa_prot_ncbi_file, linfo=print):  # noqa
     if len(prot_acc_user) != 0:
         acc_old = set()
         if ope(aa_prot_ncbi_file):
@@ -336,7 +341,7 @@ def dnld_prot_seqs(prot_acc_user, aa_prot_ncbi_file, linfo=print):  # noqa
         if acc_old == set(prot_acc_user):
             return prot_acc_user
         else:
-            linfo('Downloading protein sequences from NCBI')
+            linfo('Downloading protein sequences from NCBI [' + ss + ']')
             _ = dnld_ncbi_seqs(prot_acc_user, 'protein')
             prot_acc_user_new = list()
             for rec in _:
@@ -365,10 +370,10 @@ def dnld_prot_seqs(prot_acc_user, aa_prot_ncbi_file, linfo=print):  # noqa
     return prot_acc_user
 
 
-def user_aa_fasta(user_queries, aa_prot_user_file, linfo=print):  # noqa
+def user_aa_fasta(ss, user_queries, aa_prot_user_file, linfo=print):  # noqa
     _ = ''
     if len(user_queries) > 0:
-        linfo('Reading user provided AA sequences')
+        linfo('Reading user provided AA sequences [' + ss + ']')
         for ap in user_queries:
             linfo(ap)
             with open(ap, 'r') as f:
@@ -378,8 +383,8 @@ def user_aa_fasta(user_queries, aa_prot_user_file, linfo=print):  # noqa
             f.write(standardize_fasta_text(_))
 
 
-def combine_aa_fasta(fasta_files, aa_queries_file, linfo=print):  # noqa
-    linfo('Combining all AA query sequences')
+def combine_aa_fasta(ss, fasta_files, aa_queries_file, linfo=print):  # noqa
+    linfo('Combining all AA query sequences [' + ss + ']')
     _ = ''
     for fasta_file in fasta_files:
         if ope(fasta_file):
@@ -390,19 +395,21 @@ def combine_aa_fasta(fasta_files, aa_queries_file, linfo=print):  # noqa
         with open(aa_queries_file, 'w') as f:
             f.write(_)
     else:
-        linfo('No queries were provided. Exiting.')
+        linfo('No queries were provided for ' + ss + '. Exiting.')
         exit(0)
 
 
-def filter_queries(aa_queries_file, min_query_length, max_query_length,
-                   max_query_identity, vsearch, prot_acc_user, linfo=print): # noqa
+def filter_queries(ss, aa_queries_file, min_query_length,
+                   max_query_length, max_query_identity, vsearch,
+                   prot_acc_user, overwrite, linfo=print): # noqa
     _ = ''
     with open(aa_queries_file, 'r') as f:
         _ = f.read()
 
-    linfo('Filtering AA query sequences')
+    linfo('Filtering AA query sequences [' + ss + ']')
     linfo('min_query_length: ' + str(min_query_length))
     linfo('max_query_length: ' + str(max_query_length))
+    linfo('max_query_identity: ' + str(max_query_identity))
 
     _ = filter_fasta_text_by_length(_, min_query_length, max_query_length)
 
@@ -423,7 +430,8 @@ def filter_queries(aa_queries_file, min_query_length, max_query_length,
         if acc in prot_acc_user:
             prot_acc_user_new.append(acc)
 
-    write_fasta(parsed_fasta_2, aa_queries_file)
+    if overwrite is True:
+        write_fasta(parsed_fasta_2, aa_queries_file)
 
     osremove(tmp1)
     osremove(tmp2)
@@ -946,7 +954,7 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
 
 def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
                 confidence, kraken2, threads, dir_temp, fpatt, linfo=print):  # noqa
-    if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
+    if (len(se_fastq_files) > 0 or len(pe_fastq_files) > 0) and len(order) > 0:
         if kraken2 is None:
             linfo('kraken2 is not available. ' +
                   'Cannot continue. Exiting.')
@@ -959,6 +967,11 @@ def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
 
     for se in se_fastq_files:
         fq_path = se_fastq_files[se]['trim_path_fq']
+
+        if len(order) == 0:
+            se_fastq_files[se]['filter_path_fq'] = fq_path
+            continue
+
         dir_fq_filter_data_sample = opj(dir_fq_filter_data, se)
         out_f = opj(dir_fq_filter_data_sample, nuclear, se + '.fastq')
         se_fastq_files[se]['filter_path_fq'] = out_f
@@ -982,6 +995,11 @@ def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
 
     for pe in pe_fastq_files:
         fq_path = pe_fastq_files[pe]['trim_path_fq']
+
+        if len(order) == 0:
+            pe_fastq_files[pe]['filter_path_fq'] = fq_path
+            continue
+
         dir_fq_filter_data_sample = opj(dir_fq_filter_data, pe)
         dir_name_nuclear = dir_fq_filter_data_sample + ops + nuclear
         out_fs = [x.replace('@D@', dir_name_nuclear) for x in fpatt]
@@ -1011,11 +1029,14 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
                fpatt, taxonomy, dir_cache_refseqs, linfo=print):  # noqa
 
     if len(dbs) > 0:
+
         if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
+
             if bowtie2 is None:
                 linfo('bowtie2 is not available. ' +
                       'Cannot continue. Exiting.')
                 exit(0)
+
             if bowtie2_build is None:
                 linfo('bowtie2-build is not available. ' +
                       'Cannot continue. Exiting.')
@@ -1213,14 +1234,17 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                          seqtk, vsearch, linfo=print): # noqa
 
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
+
         if tblastn is None:
             linfo('tblastn is not available. ' +
                   'Cannot continue. Exiting.')
             exit(0)
+
         if vsearch is None:
             linfo('vsearch is not available. ' +
                   'Cannot continue. Exiting.')
             exit(0)
+
         if seqtk is None:
             linfo('seqtk is not available. ' +
                   'Cannot continue. Exiting.')
@@ -1239,10 +1263,10 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
         genetic_code = se_fastq_files[se]['gc_id']
 
         if ope(out_f_fasta):
-            linfo('BLAST results for sample ' + se + ' - ' + ss + ' already exists')
+            linfo('BLAST results for sample ' + se + ' already exists [' + ss + ']')
         else:
             make_dir(dir_results)
-            linfo('Running tblastn on: ' + blast_db_path)
+            linfo('Running tblastn on: ' + blast_db_path + ' [' + ss + ']')
             run_blast(exec_file=tblastn,
                       task='tblastn',
                       threads=threads,
@@ -1258,7 +1282,7 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                       db_genetic_code=genetic_code,
                       out_cols=BLST_RES_COLS_1)
 
-            linfo('Extracting unique BLAST hits using Seqtk')
+            linfo('Extracting unique BLAST hits using Seqtk [' + ss + ']')
 
             keep_unique_lines_in_file(out_f)
 
@@ -1287,13 +1311,13 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
         genetic_code = pe_fastq_files[pe]['gc_id']
 
         if ope(out_f_fasta):
-            linfo('BLAST results for sample ' + pe + ' - ' + ss + ' already exist')
+            linfo('BLAST results for sample ' + pe + ' already exist [' + ss + ']')
         else:
             make_dir(dir_results)
             pe_trim_files = zip(blast_db_paths, out_fs, fq_paths, out_fs_fastq,
                                 out_fs_fasta)
             for x in pe_trim_files:
-                linfo('Running tblastn on: ' + x[0])
+                linfo('Running tblastn on: ' + x[0] + ' [' + ss + ']')
                 run_blast(exec_file=tblastn,
                           task='tblastn',
                           threads=threads,
@@ -1309,7 +1333,7 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                           db_genetic_code=genetic_code,
                           out_cols=BLST_RES_COLS_1)
 
-                linfo('Extracting unique BLAST hits using Seqtk')
+                linfo('Extracting unique BLAST hits using Seqtk [' + ss + ']')
 
                 keep_unique_lines_in_file(x[1])
 
@@ -1356,10 +1380,10 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
         se_fastq_files[se]['vsearch_results_path' + '__' + ss] = out_f_fastq
 
         if ope(out_f_fastq):
-            linfo('Vsearch results for sample ' + se + ' - ' + ss + ' already exists')
+            linfo('Vsearch results for sample ' + se + ' already exists [' + ss + ']')
         else:
             make_dir(dir_results)
-            linfo('Running vsearch on: ' + fq_path)
+            linfo('Running vsearch on: ' + fq_path + ' [' + ss + ']')
             run_vsearch(vsearch,
                         ident=ident,
                         q_file=blast_results_fa_path,
@@ -1367,7 +1391,7 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
                         out_file=out_f,
                         minlen=min_acc_len)
 
-            linfo('Extracting unique vsearch hits using Seqtk')
+            linfo('Extracting unique vsearch hits using Seqtk [' + ss + ']')
             keep_unique_lines_in_file(out_f)
             seqtk_extract_reads(seqtk, fq_path, out_f_fastq, out_f)
             osremove(out_f)
@@ -1385,12 +1409,12 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
 
         if ope(out_fs_fastq[0]) and ope(out_fs_fastq[1]) and \
            ope(out_fs_fastq[2]) and ope(out_fs_fastq[3]):
-            linfo('Vsearch results for sample ' + pe + ' - ' + ss + ' already exist')
+            linfo('Vsearch results for sample ' + pe + ' already exist [' + ss + ']')
         else:
             make_dir(dir_results)
             pe_trim_files = zip(fq_paths, out_fs, out_fs_fastq)
             for x in pe_trim_files:
-                linfo('Running vsearch on: ' + x[0])
+                linfo('Running vsearch on: ' + x[0] + ' [' + ss + ']')
                 run_vsearch(vsearch,
                             ident=ident,
                             q_file=blast_results_fa_path,
@@ -1399,7 +1423,7 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
                             minlen=min_acc_len)
 
             linfo('Extracting unique vsearch hits from paired files '
-                  'using Seqtk')
+                  'using Seqtk [' + ss + ']')
 
             p1txt = out_fs[0]
             p2txt = out_fs[1]
@@ -1423,7 +1447,7 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
             osremove(p12txt_temp)
 
             linfo('Extracting unique vsearch hits from unpaired files '
-                  'using Seqtk')
+                  'using Seqtk [' + ss + ']')
 
             u1txt = out_fs[2]
             u2txt = out_fs[3]
@@ -1459,10 +1483,10 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
         se_fastq_files[se]['spades_assembly' + '__' + ss] = None
 
         if ope(dir_results):
-            linfo('SPAdes results for sample ' + se + ' - ' + ss + ' already exist')
+            linfo('SPAdes results for sample ' + se + ' already exist [' + ss + ']')
         else:
             make_dir(dir_results)
-            linfo('Running SPAdes on: ' + se + ' - ' + ss)
+            linfo('Running SPAdes on: ' + se + ' [' + ss + ']')
             run_spades_se(spades,
                           out_dir=dir_results,
                           input_file=fq_path,
@@ -1476,10 +1500,10 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
             tr_str = ' transcripts'
             if count == 1:
                 tr_str = ' transcript'
-            linfo('SPAdes produced ' + str(count) + tr_str)
+            linfo('SPAdes produced ' + str(count) + tr_str + ' [' + ss + ']')
             se_fastq_files[se]['spades_assembly' + '__' + ss] = assmbl_path
         else:
-            linfo('SPAdes produced no transcripts')
+            linfo('SPAdes produced no transcripts [' + ss + ']')
 
     for pe in pe_fastq_files:
         dir_results = opj(dir_spades_assemblies, pe + '__' + ss)
@@ -1487,10 +1511,10 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
         pe_fastq_files[pe]['spades_assembly' + '__' + ss] = None
 
         if ope(dir_results):
-            linfo('SPAdes results for sample ' + pe + ' - ' + ss + ' already exist')
+            linfo('SPAdes results for sample ' + pe + ' already exist [' + ss + ']')
         else:
             make_dir(dir_results)
-            linfo('Running SPAdes on: ' + pe + ' - ' + ss)
+            linfo('Running SPAdes on: ' + pe + ' [' + ss + ']')
 
             if osstat(fq_paths[0]).st_size > 0 and \
                osstat(fq_paths[1]).st_size > 0:
@@ -1519,10 +1543,10 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
             tr_str = ' transcripts'
             if count == 1:
                 tr_str = ' transcript'
-            linfo('SPAdes produced ' + str(count) + tr_str)
+            linfo('SPAdes produced ' + str(count) + tr_str + ' [' + ss + ']')
             pe_fastq_files[pe]['spades_assembly' + '__' + ss] = assmbl_path
         else:
-            linfo('SPAdes produced no transcripts')
+            linfo('SPAdes produced no transcripts [' + ss + ']')
 
 
 def makeblastdb_assemblies(assemblies, dir_prj_blast_assmbl, makeblastdb,
@@ -1561,7 +1585,7 @@ def run_tblastn_on_assemblies(ss, assemblies, aa_queries_file, tblastn,
                               dir_prj_ips, linfo=print):  # noqa
 
     if len(assemblies) > 0:
-        linfo('Running BLAST on assemblies')
+        linfo('Running BLAST on assemblies [' + ss + ']')
         if tblastn is None:
             linfo('tblastn is not available. ' +
                   'Cannot continue. Exiting.')
@@ -1616,7 +1640,7 @@ def run_tblastn_on_assemblies(ss, assemblies, aa_queries_file, tblastn,
                   'assembly "' + assmbl_name + '" already exist')
 
         else:
-            linfo('Running tblastn on: ' + assmbl_name)
+            linfo('Running tblastn on: ' + assmbl_name + ' [' + ss + ']')
 
             if ope(ips_json_dump_path):
                 osremove(ips_json_dump_path)
@@ -1649,7 +1673,7 @@ def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,
                         min_overlap, linfo=print):  # noqa
 
     if len(assemblies) > 0:
-        linfo('Analyzing BLAST hits for assemblies')
+        linfo('Analyzing BLAST hits for assemblies [' + ss + ']')
         if seqtk is None:
             linfo('seqtk is not available. ' +
                   'Cannot continue. Exiting.')
@@ -1738,11 +1762,6 @@ def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,
                     fm = tax.higher_rank_for_taxid(tax_id, rank='family')
                     if fm is not None:
                         target_name = fm + '__' + target_name
-                    # cn = tax.genbank_common_name_for_taxid(tax_id)
-                    # if cn is not None:
-                    #     cn = cn.lower()
-                    #     cn = cn.replace(' ', '_')
-                    #     target_name = cn + '__' + target_name
 
             hit_start = hit['start']
             hit_end = hit['end']
@@ -1854,7 +1873,6 @@ def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,
                 elif len(orf_seq) > max_target_orf_len:
                     valid_orf = False
                     invalid_orf_reason = 'ORF is too long.'
-
                 ##############################################################
 
                 if valid_orf is True:
@@ -1962,7 +1980,7 @@ def run_inter_pro_scan(ss, assemblies, email, dir_prj_ips, dir_cache_prj,
     delay = 0.25
 
     if len(assemblies) > 0:
-        linfo('Running InterProScan on translated transcripts')
+        linfo('Running InterProScan on translated transcripts [' + ss + ']')
 
     for a in assemblies:
 
@@ -1980,7 +1998,7 @@ def run_inter_pro_scan(ss, assemblies, email, dir_prj_ips, dir_cache_prj,
 
         if ope(json_dump_file_path):
             linfo('InterProScan results for assembly ' + assmbl_name + ', ' +
-                  ss + ' have already been downloaded')
+                  ss + ' have already been downloaded [' + ss + ']')
             continue
 
         seqs = read_fasta(aa_file)
@@ -2003,7 +2021,7 @@ def run_inter_pro_scan(ss, assemblies, email, dir_prj_ips, dir_cache_prj,
 
         print()
         linfo('Downloading InterProScan results for transcripts in ' +
-              assmbl_name)
+              assmbl_name + ' [' + ss + ']')
         print()
 
         all_ips_results = {}
@@ -2059,7 +2077,7 @@ def run_inter_pro_scan(ss, assemblies, email, dir_prj_ips, dir_cache_prj,
 def gff_from_json(ss, assemblies, dir_prj_ips, dir_prj_transcripts_combined,
                   prj_name, linfo=print):  # noqa
     if len(assemblies) > 0:
-        linfo('Producing GFF3 files')
+        linfo('Producing GFF3 files [' + ss + ']')
 
     all_fas_paths = []
     all_gff_paths = []
@@ -2130,7 +2148,7 @@ def dnld_cds_for_ncbi_prot_acc(ss, prot_acc_user, prot_cds_ncbi_file, tax,
         taxids = pickled[2]
     else:
         linfo('Downloading CDS for the dereplicated set of the user-provided '
-              'NCBI protein accessions')
+              'NCBI protein accessions [' + ss + ']')
         cds_acc_dict = cds_acc_for_prot_acc(prot_acc_user)
         cds_accessions = []
         for prot_acc in cds_acc_dict:
