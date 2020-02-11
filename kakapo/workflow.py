@@ -7,6 +7,7 @@ import fileinput
 import json
 import pickle
 import re
+import datetime
 
 from collections import OrderedDict
 from copy import deepcopy
@@ -274,12 +275,39 @@ def dnld_pfam_uniprot_seqs(ss, uniprot_acc, aa_uniprot_file, dir_cache_prj,
             osremove(aa_uniprot_file)
 
 
-def user_entrez_search(ss, queries, dir_cache_prj, linfo=print):  # noqa
+def user_entrez_search(ss, queries, dir_cache_prj, ncbi_longevity,
+                       linfo=print):  # noqa
+    dnld_needed = True
     accs = []
     if len(queries) != 0:
-        linfo('Searching for protein sequences on NCBI [' + ss + ']')
-        for q in queries:
-            accs = accs + accessions_ncbi(esearch(term=q, db='protein'))
+
+        time_stamp_now = datetime.datetime.now()
+        time_stamp_file = opj(dir_cache_prj, 'ncbi_prot_time_stamp__' + ss)
+        time_stamp = None
+        if ope(time_stamp_file):
+            with open(time_stamp_file, 'rb') as f:
+                time_stamp = pickle.load(f)
+                time_diff = time_stamp_now - time_stamp
+                if time_diff < ncbi_longevity:
+                    dnld_needed = False
+
+        if dnld_needed is True:
+            linfo('Searching for protein sequences on NCBI [' + ss + ']')
+            for q in queries:
+                accs = accs + accessions_ncbi(esearch(term=q, db='protein'))
+            with open(time_stamp_file, 'wb') as f:
+                pickle.dump(datetime.datetime.now(), f,
+                            protocol=PICKLE_PROTOCOL)
+        else:
+            days = ncbi_longevity.total_seconds() / 60 / 60 / 24
+            days = '{:.2f}'.format(days)
+            linfo('NCBI results are less than ' + days + ' day(s) old. Will not search again. [' + ss + ']')
+            pickle_file = opj(dir_cache_prj, 'ncbi_prot_metadata_cache__' + ss)
+            if ope(pickle_file):
+                with open(pickle_file, 'rb') as f:
+                    pickled = pickle.load(f)
+                    accs = [x['accessionversion'] for x in pickled]
+
     return accs
 
 

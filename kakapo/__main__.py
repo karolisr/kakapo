@@ -288,6 +288,7 @@ def main():
 
     dir_out = _['output_directory']
     email = _['email']
+    ncbi_longevity = _['ncbi_longevity']
     fq_pe = _['fq_pe']
     fq_se = _['fq_se']
     inter_pro_scan = _['inter_pro_scan']
@@ -367,7 +368,9 @@ def main():
     for ss in sss:
         entrez_queries = sss[ss]['entrez_search_queries']
         prot_acc_user_from_query[ss] = user_entrez_search(ss, entrez_queries,
-                                                          dir_cache_prj, linfo)
+                                                          dir_cache_prj,
+                                                          ncbi_longevity,
+                                                          linfo)
 
     # User provided protein accessions ---------------------------------------
     prot_acc_user = OrderedDict()
