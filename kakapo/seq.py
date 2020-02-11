@@ -27,12 +27,12 @@ MOL_TO_SEQ_TYPE_MAP = {
 
 
 def reverse(seq):  # noqa
-    seq = seq.upper()
+    seq = str(seq).upper()
     return seq[::-1]
 
 
 def complement(seq):  # noqa
-    seq = seq.upper()
+    seq = str(seq).upper()
 
     seq_contains_uracil = False
     if 'U' in seq:
@@ -52,7 +52,7 @@ def reverse_complement(seq):  # noqa
 
 
 def translate(seq, trans_table, start_codons):  # noqa
-    seq = seq.upper()
+    seq = str(seq).upper()
 
     if 'U' in seq:
         seq = seq.replace('U', 'T')
@@ -143,6 +143,12 @@ class _Seq(object):
     def __init__(self, seq):
         self._seq = seq
 
+    def __repr__(self):
+        return '_Seq(\'' + self._seq + '\')'
+
+    def __str__(self):
+        return self._seq
+
     @property
     def seq(self):
         return self._seq
@@ -168,7 +174,7 @@ class NTSeq(_Seq):
     """
 
     def __init__(self, seq):  # noqa
-        seq = seq.upper()
+        seq = str(seq).upper()
         if set(seq) <= NT_AMBIGUOUS:
             super(NTSeq, self).__init__(seq)
         else:
@@ -177,17 +183,23 @@ class NTSeq(_Seq):
                 str(s) for s in set(seq) - NT_AMBIGUOUS))
             raise Exception(message)
 
+    def __repr__(self):
+        return 'NTSeq(\'' + self._seq + '\')'
+
     def translate(self, trans_table, start_codons):  # noqa
         raw = translate(self._seq, trans_table, start_codons)
         return AASeq(raw)
 
-    def reverse(self):  # noqa
+    @property
+    def reversed(self):  # noqa
         return type(self)(reverse(self._seq))
 
-    def complement(self):  # noqa
+    @property
+    def complemented(self):  # noqa
         return type(self)(complement(self._seq))
 
-    def reverse_complement(self):  # noqa
+    @property
+    def reversed_complemented(self):  # noqa
         return type(self)(reverse_complement(self._seq))
 
 
@@ -202,7 +214,7 @@ class DNASeq(NTSeq):
     """
 
     def __init__(self, seq):  # noqa
-        seq = seq.upper()
+        seq = str(seq).upper()
         if set(seq) <= DNA_AMBIGUOUS:
             super(DNASeq, self).__init__(seq)
         elif set(seq) - DNA_AMBIGUOUS == RNA_ONLY_CHARS:
@@ -214,6 +226,9 @@ class DNASeq(NTSeq):
             message = message.format(s=', '.join(
                 str(s) for s in set(seq) - DNA_AMBIGUOUS))
             raise Exception(message)
+
+    def __repr__(self):
+        return 'DNASeq(\'' + self._seq + '\')'
 
 
 class RNASeq(NTSeq):
@@ -227,7 +242,7 @@ class RNASeq(NTSeq):
     """
 
     def __init__(self, seq):  # noqa
-        seq = seq.upper()
+        seq = str(seq).upper()
         if set(seq) <= RNA_AMBIGUOUS:
             super(RNASeq, self).__init__(seq)
         elif set(seq) - RNA_AMBIGUOUS == DNA_ONLY_CHARS:
@@ -239,6 +254,9 @@ class RNASeq(NTSeq):
             message = message.format(s=', '.join(
                 str(s) for s in set(seq) - RNA_AMBIGUOUS))
             raise Exception(message)
+
+    def __repr__(self):
+        return 'RNASeq(\'' + self._seq + '\')'
 
 
 class AASeq(_Seq):
@@ -252,7 +270,7 @@ class AASeq(_Seq):
     """
 
     def __init__(self, seq):  # noqa
-        seq = seq.upper()
+        seq = str(seq).upper()
         if set(seq) <= AA_AMBIGUOUS:
             super(AASeq, self).__init__(seq)
         else:
@@ -260,3 +278,6 @@ class AASeq(_Seq):
             message = message.format(s=', '.join(
                 str(s) for s in set(seq) - AA_AMBIGUOUS))
             raise Exception(message)
+
+    def __repr__(self):
+        return 'AASeq(\'' + self._seq + '\')'
