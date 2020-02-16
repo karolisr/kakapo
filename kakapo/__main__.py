@@ -262,8 +262,7 @@ def main():
         exit(0)
 
     # Initialize NCBI taxonomy database --------------------------------------
-    linfo('Loading NCBI taxonomy data')
-    tax = taxonomy(DIR_TAX)
+    tax = taxonomy(data_dir_path=DIR_TAX, linfo=linfo)
 
     # Parse configuration file -----------------------------------------------
     _ = config_file_parse(CONFIG_FILE_PATH, tax, linfo)
