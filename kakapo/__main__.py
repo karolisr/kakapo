@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""kakapo"""
+"""Kakapo main file."""
 
 import inspect
 import os
@@ -41,35 +41,35 @@ from kakapo.helpers import make_dir
 from kakapo.helpers import time_stamp
 from kakapo.logging_k import prepare_logger
 from kakapo.translation_tables import TranslationTable
-from kakapo.workflow import combine_aa_fasta
 from kakapo.workflow import descending_tax_ids
 from kakapo.workflow import dnld_cds_for_ncbi_prot_acc
-from kakapo.workflow import dnld_pfam_uniprot_seqs
-from kakapo.workflow import dnld_prot_seqs
-from kakapo.workflow import dnld_sra_fastq_files
-from kakapo.workflow import dnld_sra_info
-from kakapo.workflow import filter_queries
-from kakapo.workflow import filtered_fq_to_fa
 from kakapo.workflow import find_orfs_translate
 from kakapo.workflow import gff_from_json
 from kakapo.workflow import makeblastdb_assemblies
-from kakapo.workflow import makeblastdb_fq
-from kakapo.workflow import min_accept_read_len
-from kakapo.workflow import pfam_uniprot_accessions
 from kakapo.workflow import prepare_output_directories
-from kakapo.workflow import run_bt2_fq
 from kakapo.workflow import run_inter_pro_scan
-from kakapo.workflow import run_kraken2
-from kakapo.workflow import run_rcorrector
 from kakapo.workflow import run_spades
 from kakapo.workflow import run_tblastn_on_assemblies
-from kakapo.workflow import run_tblastn_on_reads
-from kakapo.workflow import run_trimmomatic
-from kakapo.workflow import run_vsearch_on_reads
-from kakapo.workflow import user_aa_fasta
-from kakapo.workflow import user_entrez_search
-from kakapo.workflow import user_fastq_files
-from kakapo.workflow import user_protein_accessions
+from kakapo.workflow_process_queries import combine_aa_fasta
+from kakapo.workflow_process_queries import dnld_pfam_uniprot_seqs
+from kakapo.workflow_process_queries import dnld_prot_seqs
+from kakapo.workflow_process_queries import filter_queries
+from kakapo.workflow_process_queries import pfam_uniprot_accessions
+from kakapo.workflow_process_queries import user_aa_fasta
+from kakapo.workflow_process_queries import user_entrez_search
+from kakapo.workflow_process_queries import user_protein_accessions
+from kakapo.workflow_process_reads import dnld_sra_fastq_files
+from kakapo.workflow_process_reads import dnld_sra_info
+from kakapo.workflow_process_reads import filtered_fq_to_fa
+from kakapo.workflow_process_reads import makeblastdb_fq
+from kakapo.workflow_process_reads import min_accept_read_len
+from kakapo.workflow_process_reads import run_bt2_fq
+from kakapo.workflow_process_reads import run_kraken2
+from kakapo.workflow_process_reads import run_rcorrector
+from kakapo.workflow_process_reads import run_tblastn_on_reads
+from kakapo.workflow_process_reads import run_trimmomatic
+from kakapo.workflow_process_reads import run_vsearch_on_reads
+from kakapo.workflow_process_reads import user_fastq_files
 
 # Command line arguments -----------------------------------------------------
 USAGE = '{} --cfg path/to/config_file ' \
@@ -262,8 +262,7 @@ def main():
         exit(0)
 
     # Initialize NCBI taxonomy database --------------------------------------
-    linfo('Loading NCBI taxonomy data')
-    tax = taxonomy(DIR_TAX)
+    tax = taxonomy(data_dir_path=DIR_TAX, linfo=linfo)
 
     # Parse configuration file -----------------------------------------------
     _ = config_file_parse(CONFIG_FILE_PATH, tax, linfo)
@@ -298,7 +297,7 @@ def main():
     prj_name = _['project_name']
     sras = _['sras']
     tax_group = _['tax_group']
-    tax_group_name = _['tax_group_name']
+    # tax_group_name = _['tax_group_name']
     tax_ids_user = _['tax_ids']
     user_assemblies = _['assmbl']
 
