@@ -79,7 +79,12 @@ def write_fasta(data, f, handle_types=HANDLE_TYPES):
     def rec_defn(r):
         org = r['organism']
         defn = r['definition']
-        accv = r['accession'] + '.' + r['version']
+
+        if r['version'] is not None:
+            accv = r['accession'] + '.' + r['version']
+        else:
+            accv = r['accession']
+
         defn_new = accv + '|' + defn + '|' + org
         return defn_new
 

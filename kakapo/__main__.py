@@ -378,7 +378,7 @@ def main():
         prot_acc_all = sorted(set(sss[ss]['ncbi_accessions_aa'] +
                                   prot_acc_user_from_query[ss]))
         prot_acc_user[ss] = user_protein_accessions(ss, prot_acc_all,
-                                                    dir_cache_prj, linfo)
+                                                    dir_cache_prj, tax, linfo)
 
     # Download from NCBI if needed -------------------------------------------
     aa_prot_ncbi_files = OrderedDict()

@@ -311,7 +311,8 @@ def user_entrez_search(ss, queries, dir_cache_prj, ncbi_longevity,
     return accs
 
 
-def user_protein_accessions(ss, prot_acc_user, dir_cache_prj, linfo=print):  # noqa
+def user_protein_accessions(ss, prot_acc_user, dir_cache_prj, taxonomy,
+                            linfo=print):  # noqa
     if len(prot_acc_user) > 0:
         linfo('Reading user provided protein accessions [' + ss + ']')
         pickle_file = opj(dir_cache_prj, 'ncbi_prot_metadata_cache__' + ss)
@@ -333,7 +334,11 @@ def user_protein_accessions(ss, prot_acc_user, dir_cache_prj, linfo=print):  # n
             prot_acc.append(acc)
             title = pa['title']
             title_split = title.split('[')
-            organism = title_split[1].replace(']', '').strip().replace('_', ' ')
+            if len(title_split) == 2:
+                organism = title_split[1].replace(']', '').strip().replace('_', ' ')
+            else:
+                taxid = pa['taxid']
+                organism = taxonomy.scientific_name_for_taxid(taxid)
             title = title_split[0]
             title = title.lower().strip()
             title = title.replace('_', ' ').replace('-', ' ')
@@ -378,7 +383,11 @@ def dnld_prot_seqs(ss, prot_acc_user, aa_prot_ncbi_file, linfo=print):  # noqa
                 defn = rec['definition']
                 organism = rec['organism']
 
-                new_acc = accession + '.' + version
+                if version is not None:
+                    new_acc = accession + '.' + version
+                else:
+                    new_acc = accession
+
                 prot_acc_user_new.append(new_acc)
 
                 defn_new = defn.split('[' + organism + ']')[0]
