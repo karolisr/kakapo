@@ -680,26 +680,29 @@ def main():
             gff_from_json(ss, assemblies, dir_prj_ips,
                           dir_prj_transcripts_combined, prj_name, linfo)
 
-# ----------------------------------------------------------------------------
+    # ------------------------------------------------------------------------
 
     rmtree(dir_temp)
     log, _ = prepare_logger(console=False)
 
-# ----------------------------------------------------------------------------
+    # ------------------------------------------------------------------------
 
-    rerun = input('\nRepeat? ').lower().strip()
+    rerun = input('\nRepeat y/n ? ').lower().strip()
     if rerun.startswith('y') or rerun == '':
-        print()
         return False
     else:
         print('\nExiting...')
         return True
 
-# ----------------------------------------------------------------------------
+    # ------------------------------------------------------------------------
 
 
-if __name__ == '__main__':
+def run_kakapo:  # noqa
     while True:
         stop = main()
         if stop is True:
             break
+
+
+if __name__ == '__main__':
+    run_kakapo()

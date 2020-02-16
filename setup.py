@@ -28,5 +28,5 @@ setup(name=kakapo_script_name,
       url=kakapo_url,
       packages=find_packages(),
       install_requires=reqs,
-      entry_points={'console_scripts': ['kakapo=kakapo.__main__:main']}
+      entry_points={'console_scripts': ['kakapo=kakapo.__main__:run_kakapo']}
       )
