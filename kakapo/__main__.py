@@ -18,11 +18,8 @@ import argparse
 
 from collections import OrderedDict
 from io import StringIO
-from operator import itemgetter
-from os.path import basename
 from os.path import exists as ope
 from os.path import join as opj
-from os.path import splitext
 from shutil import rmtree
 from sys import exit
 
@@ -41,35 +38,36 @@ from kakapo.helpers import make_dir
 from kakapo.helpers import time_stamp
 from kakapo.logging_k import prepare_logger
 from kakapo.translation_tables import TranslationTable
-from kakapo.workflow import descending_tax_ids
-from kakapo.workflow import dnld_cds_for_ncbi_prot_acc
-from kakapo.workflow import find_orfs_translate
-from kakapo.workflow import gff_from_json
-from kakapo.workflow import makeblastdb_assemblies
-from kakapo.workflow import prepare_output_directories
-from kakapo.workflow import run_inter_pro_scan
-from kakapo.workflow import run_spades
-from kakapo.workflow import run_tblastn_on_assemblies
-from kakapo.workflow_process_queries import combine_aa_fasta
-from kakapo.workflow_process_queries import dnld_pfam_uniprot_seqs
-from kakapo.workflow_process_queries import dnld_prot_seqs
-from kakapo.workflow_process_queries import filter_queries
-from kakapo.workflow_process_queries import pfam_uniprot_accessions
-from kakapo.workflow_process_queries import user_aa_fasta
-from kakapo.workflow_process_queries import user_entrez_search
-from kakapo.workflow_process_queries import user_protein_accessions
-from kakapo.workflow_process_reads import dnld_sra_fastq_files
-from kakapo.workflow_process_reads import dnld_sra_info
-from kakapo.workflow_process_reads import filtered_fq_to_fa
-from kakapo.workflow_process_reads import makeblastdb_fq
-from kakapo.workflow_process_reads import min_accept_read_len
-from kakapo.workflow_process_reads import run_bt2_fq
-from kakapo.workflow_process_reads import run_kraken2
-from kakapo.workflow_process_reads import run_rcorrector
-from kakapo.workflow_process_reads import run_tblastn_on_reads
-from kakapo.workflow_process_reads import run_trimmomatic
-from kakapo.workflow_process_reads import run_vsearch_on_reads
-from kakapo.workflow_process_reads import user_fastq_files
+from kakapo.workflow_00_prepare import prepare_output_directories
+from kakapo.workflow_01_process_queries import combine_aa_fasta
+from kakapo.workflow_01_process_queries import dnld_pfam_uniprot_seqs
+from kakapo.workflow_01_process_queries import dnld_prot_seqs
+from kakapo.workflow_01_process_queries import filter_queries
+from kakapo.workflow_01_process_queries import pfam_uniprot_accessions
+from kakapo.workflow_01_process_queries import user_aa_fasta
+from kakapo.workflow_01_process_queries import user_entrez_search
+from kakapo.workflow_01_process_queries import user_protein_accessions
+from kakapo.workflow_02_process_reads import dnld_sra_fastq_files
+from kakapo.workflow_02_process_reads import dnld_sra_info
+from kakapo.workflow_02_process_reads import file_name_patterns
+from kakapo.workflow_02_process_reads import filtered_fq_to_fa
+from kakapo.workflow_02_process_reads import makeblastdb_fq
+from kakapo.workflow_02_process_reads import min_accept_read_len
+from kakapo.workflow_02_process_reads import run_bt2_fq
+from kakapo.workflow_02_process_reads import run_kraken2
+from kakapo.workflow_02_process_reads import run_rcorrector
+from kakapo.workflow_02_process_reads import run_trimmomatic
+from kakapo.workflow_02_process_reads import user_fastq_files
+from kakapo.workflow_03_search_reads import run_tblastn_on_reads
+from kakapo.workflow_03_search_reads import run_vsearch_on_reads
+from kakapo.workflow_04_assemble_reads import combine_assemblies
+from kakapo.workflow_04_assemble_reads import makeblastdb_assemblies
+from kakapo.workflow_04_assemble_reads import run_spades
+from kakapo.workflow_05_search_assemblies import run_tblastn_on_assemblies
+from kakapo.workflow_06_find_orfs import find_orfs_translate
+from kakapo.workflow_07_produce_gff_files import gff_from_json
+from kakapo.workflow_08_run_inter_pro_scan import run_inter_pro_scan
+from kakapo.workflow_09_dnld_cds_for_aa_queries import dnld_cds_for_ncbi_prot_acc
 
 # Command line arguments -----------------------------------------------------
 USAGE = '{} --cfg path/to/config_file ' \
@@ -344,7 +342,7 @@ def main():
     linfo = log.info
 
     # Resolve descending taxonomy nodes --------------------------------------
-    tax_ids = descending_tax_ids([tax_group], tax, linfo)
+    tax_ids = tax.all_descending_taxids_for_taxids([tax_group])
 
     # Pfam uniprot accessions ------------------------------------------------
     pfam_uniprot_acc = OrderedDict()
@@ -464,31 +462,13 @@ def main():
                    THREADS, dir_temp, linfo)
 
     # File name patterns -----------------------------------------------------
-    pe_trim_pair_1_sfx = '_paired_1'
-    pe_trim_pair_2_sfx = '_paired_2'
-    pe_trim_unpr_1_sfx = '_unpaired_1'
-    pe_trim_unpr_2_sfx = '_unpaired_2'
+    a, b, c, d, e = file_name_patterns()
 
-    pe_trim_suffixes = [pe_trim_pair_1_sfx, pe_trim_pair_2_sfx,
-                        pe_trim_unpr_1_sfx, pe_trim_unpr_2_sfx]
-
-    pe_file_pattern = opj('@D@', '@N@')
-
-    pe_trim_fq_file_patterns = list(
-        zip([pe_file_pattern] * 4, pe_trim_suffixes, ['.fastq'] * 4))
-    pe_trim_fq_file_patterns = [''.join(x) for x in pe_trim_fq_file_patterns]
-
-    pe_trim_fa_file_patterns = [x.replace('.fastq', '.fasta') for x in
-                                pe_trim_fq_file_patterns]
-
-    pe_blast_db_file_patterns = list(
-        zip([pe_file_pattern] * 4, pe_trim_suffixes))
-    pe_blast_db_file_patterns = [''.join(x) for x in pe_blast_db_file_patterns]
-
-    pe_blast_results_file_patterns = [x.replace('.fastq', '__@Q@.txt') for x in
-                                      pe_trim_fq_file_patterns]
-
-    pe_vsearch_results_file_patterns = pe_blast_results_file_patterns
+    pe_trim_fq_file_patterns = a
+    pe_trim_fa_file_patterns = b
+    pe_blast_db_file_patterns = c
+    pe_blast_results_file_patterns = d
+    pe_vsearch_results_file_patterns = e
 
     # Run Trimmomatic --------------------------------------------------------
     run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
@@ -554,49 +534,9 @@ def main():
         run_spades(se_fastq_files, pe_fastq_files, dir_prj_spades_assemblies,
                    spades, dir_temp, ss, THREADS, RAM, linfo)
 
-    # Collate SPAdes and user provided assemblies ----------------------------
-    assemblies = []
-
-    for ss in sss:
-        for se in se_fastq_files:
-            a_path = se_fastq_files[se]['spades_assembly' + '__' + ss]
-            if a_path is None:
-                continue
-            a = {}
-            a['path'] = a_path
-            a['name'] = se + '__' + ss
-            a['src'] = se_fastq_files[se]['src']
-            a['tax_id'] = se_fastq_files[se]['tax_id']
-            a['gc_id'] = se_fastq_files[se]['gc_id']
-            a['gc_tt'] = se_fastq_files[se]['gc_tt']
-            assemblies.append(a)
-
-        for pe in pe_fastq_files:
-            a_path = pe_fastq_files[pe]['spades_assembly' + '__' + ss]
-            if a_path is None:
-                continue
-            a = {}
-            a['path'] = a_path
-            a['name'] = pe + '__' + ss
-            a['src'] = pe_fastq_files[pe]['src']
-            a['tax_id'] = pe_fastq_files[pe]['tax_id']
-            a['gc_id'] = pe_fastq_files[pe]['gc_id']
-            a['gc_tt'] = pe_fastq_files[pe]['gc_tt']
-            assemblies.append(a)
-
-    for us in user_assemblies:
-        a_path = us[1]
-        gc = tax.genetic_code_for_taxid(us[0])
-        a = {}
-        a['path'] = a_path
-        a['name'] = splitext(basename(a_path))[0]
-        a['src'] = 'user_fasta'
-        a['tax_id'] = us[0]
-        a['gc_id'] = gc
-        a['gc_tt'] = TranslationTable(gc)
-        assemblies.append(a)
-
-    assemblies = sorted(assemblies, key=itemgetter('name'), reverse=False)
+    # Combine SPAdes and user provided assemblies ----------------------------
+    assemblies = combine_assemblies(se_fastq_files, pe_fastq_files,
+                                    user_assemblies, tax, sss)
 
     # Run makeblastdb on assemblies  -----------------------------------------
     makeblastdb_assemblies(assemblies, dir_prj_blast_assmbl, makeblastdb,
@@ -652,6 +592,22 @@ def main():
                             allow_no_stop_cod, tax, tax_group, tax_ids_user,
                             blast_2_qcov_hsp_perc_ss, linfo)
 
+    # GFF3 files from kakapo results JSON files ------------------------------
+    for ss in sss:
+        gff_from_json(ss, assemblies, dir_prj_ips,
+                      dir_prj_transcripts_combined, prj_name, linfo)
+
+    # Run InterProScan 5 -----------------------------------------------------
+    if inter_pro_scan is True:
+        for ss in sss:
+
+            run_inter_pro_scan(ss, assemblies, email, dir_prj_ips,
+                               dir_cache_prj, linfo)
+
+            # GFF3 files from kakapo and InterProScan 5 results JSON files ---
+            gff_from_json(ss, assemblies, dir_prj_ips,
+                          dir_prj_transcripts_combined, prj_name, linfo)
+
     # Download CDS for NCBI protein queries ----------------------------------
     prot_cds_ncbi_files = OrderedDict()
     for ss in sss:
@@ -662,23 +618,6 @@ def main():
                                        prot_cds_ncbi_files[ss], tax,
                                        dir_cache_prj, linfo)
 
-    # GFF3 files from kakapo results JSON files ------------------------------
-    for ss in sss:
-        gff_from_json(ss, assemblies, dir_prj_ips,
-                      dir_prj_transcripts_combined, prj_name, linfo)
-
-    # Run InterProScan 5 -----------------------------------------------------
-    if inter_pro_scan is True:
-        for ss in sss:
-            run_inter_pro_scan(ss, assemblies, email, dir_prj_ips,
-                               dir_cache_prj, linfo)
-
-    # GFF3 files from kakapo and InterProScan 5 results JSON files -----------
-    if inter_pro_scan is True:
-        for ss in sss:
-            gff_from_json(ss, assemblies, dir_prj_ips,
-                          dir_prj_transcripts_combined, prj_name, linfo)
-
     # ------------------------------------------------------------------------
 
     rmtree(dir_temp)
@@ -688,6 +627,7 @@ def main():
 
     rerun = input('\nRepeat y/n ? ').lower().strip()
     if rerun.startswith('y') or rerun == '':
+        print()
         return False
     else:
         print('\nExiting...')

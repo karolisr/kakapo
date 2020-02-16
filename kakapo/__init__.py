@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 
+"""Kakapo."""
+
 from datetime import datetime
 
 date_time = datetime.now()
 y = str(date_time.year)
 
 __script_name__ = 'kakapo'
-__version__ = '0.2.3'
+__version__ = '0.2.4'
 __description__ = ('Extract and annotate protein family members from '
                    'transcriptomes.')
 __author__ = 'Karolis Ramanauskas'
