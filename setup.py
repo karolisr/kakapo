@@ -1,6 +1,6 @@
-"""
-Kakapo setup.py
-"""
+# -*- coding: utf-8 -*-
+
+"""Kakapo Setup Script."""
 
 from setuptools import setup, find_packages
 
