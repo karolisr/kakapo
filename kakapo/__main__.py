@@ -632,7 +632,7 @@ def main():
 
     # ------------------------------------------------------------------------
 
-    rerun = input('\nRepeat ([y]/n)?').lower().strip()
+    rerun = input('\nRepeat ([y]/n)? ').lower().strip()
     if rerun.startswith('y') or rerun == '':
         print()
         return False
