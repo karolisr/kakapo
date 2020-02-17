@@ -1,4 +1,4 @@
-"""Start Codon Context"""
+"""Start Codon Context."""
 
 contexts = {'1437180_L': ((0.3, 0.3, 0.28, 0.12),
                           (0.4, 0.28, 0.11, 0.22),

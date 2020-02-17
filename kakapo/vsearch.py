@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
-"""vsearch"""
+"""vsearch."""
 
 from kakapo.shell import call
 
 
-def run_cluster_fast(vsearch, ident, in_file, out_file):  # noqa
+def run_cluster_fast(vsearch, ident, in_file, out_file):
 
     cmd = [vsearch,
            '--cluster_fast', in_file,
@@ -15,7 +15,8 @@ def run_cluster_fast(vsearch, ident, in_file, out_file):  # noqa
 
     call(cmd)
 
-def run_vsearch(vsearch, ident, q_file, db_file, out_file, minlen):  # noqa
+
+def run_vsearch(vsearch, ident, q_file, db_file, out_file, minlen):
 
     cmd = [vsearch,
            '--usearch_global', q_file,

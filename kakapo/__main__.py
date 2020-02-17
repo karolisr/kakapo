@@ -643,7 +643,7 @@ def main():
     # ------------------------------------------------------------------------
 
 
-def run_kakapo():  # noqa
+def run_kakapo():
     while True:
         stop = main()
         if stop is True:

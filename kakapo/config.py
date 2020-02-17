@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""
-Provides "global" variables.
-"""
+"""Provides global variables."""
 
 import os
 

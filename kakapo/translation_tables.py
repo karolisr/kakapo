@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-"""Translation Tables"""
+
+"""Translation Tables."""
 
 from collections import defaultdict
 from collections import OrderedDict
@@ -116,7 +117,7 @@ CODONS = [
 ]
 
 
-def validate_gc_id(gc_id):  # noqa
+def validate_gc_id(gc_id):
     gc_id = int(gc_id)
     gc_id = '{:02d}'.format(gc_id)
 
@@ -126,7 +127,7 @@ def validate_gc_id(gc_id):  # noqa
         return None
 
 
-def get_gen_code_name(gc_id):  # noqa
+def get_gen_code_name(gc_id):
     gc_id = validate_gc_id(gc_id)
     if gc_id is None:
         return None
@@ -134,7 +135,7 @@ def get_gen_code_name(gc_id):  # noqa
     return gc_name
 
 
-def get_trans_table(gc_id):  # noqa
+def get_trans_table(gc_id):
     gc_id = validate_gc_id(gc_id)
     if gc_id is None:
         return None
@@ -146,7 +147,7 @@ def get_trans_table(gc_id):  # noqa
     return trans_table
 
 
-def get_start_codons(gc_id):  # noqa
+def get_start_codons(gc_id):
     gc_id = validate_gc_id(gc_id)
     if gc_id is None:
         return None
@@ -158,7 +159,7 @@ def get_start_codons(gc_id):  # noqa
     return start_codons
 
 
-def get_stop_codons(gc_id):  # noqa
+def get_stop_codons(gc_id):
     gc_id = validate_gc_id(gc_id)
     if gc_id is None:
         return None
@@ -170,7 +171,7 @@ def get_stop_codons(gc_id):  # noqa
     return stop_codons
 
 
-def ambiguous_codons(codons):  # noqa
+def ambiguous_codons(codons):
     IASODDR = IUPAC_AMBIGUOUS_SECOND_ORDER_DNA_DICT_REVERSE
 
     def _ac(codons):
@@ -230,7 +231,7 @@ def ambiguous_codons(codons):  # noqa
     return codons_ambiguous
 
 
-def invert_dict(d):  # noqa
+def invert_dict(d):
     """Will only work if the values in the provided dict are hashable."""
     d_type = type(d)
     d_inv = defaultdict(list)
@@ -243,7 +244,7 @@ def invert_dict(d):  # noqa
     return d_inv
 
 
-def ambiguous_table(trans_table):  # noqa
+def ambiguous_table(trans_table):
     d_type = type(trans_table)
     tt_inv = invert_dict(trans_table)
     tt_amb = d_type()
@@ -258,9 +259,9 @@ def ambiguous_table(trans_table):  # noqa
 
 
 class TranslationTable(object):
-    """Translation Table"""
+    """Translation Table."""
 
-    def __init__(self, gc_id):  # noqa
+    def __init__(self, gc_id):
 
         gc_id = validate_gc_id(gc_id)
 
@@ -280,41 +281,41 @@ class TranslationTable(object):
         self._stop_codons_ambiguous = ambiguous_codons(self._stop_codons)
 
     @property
-    def gc_id(self):  # noqa
+    def gc_id(self):
         return self._gc_id
 
     @property
-    def gc_name(self):  # noqa
+    def gc_name(self):
         return self._gc_name
 
     @property
-    def table(self):  # noqa
+    def table(self):
         return dict(self._table)
 
     @property
-    def table_inv(self):  # noqa
+    def table_inv(self):
         return dict(self._table_inv)
 
     @property
-    def table_ambiguous(self):  # noqa
+    def table_ambiguous(self):
         return dict(self._table_ambiguous)
 
     @property
-    def table_ambiguous_inv(self):  # noqa
+    def table_ambiguous_inv(self):
         return dict(self._table_ambiguous_inv)
 
     @property
-    def start_codons(self):  # noqa
+    def start_codons(self):
         return self._start_codons
 
     @property
-    def stop_codons(self):  # noqa
+    def stop_codons(self):
         return self._stop_codons
 
     @property
-    def start_codons_ambiguous(self):  # noqa
+    def start_codons_ambiguous(self):
         return self._start_codons_ambiguous
 
     @property
-    def stop_codons_ambiguous(self):  # noqa
+    def stop_codons_ambiguous(self):
         return self._stop_codons_ambiguous

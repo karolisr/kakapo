@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 
-"""
-Calls to other programs.
-"""
+"""Calls to other programs."""
 
 from subprocess import PIPE
 from subprocess import Popen
 
 
-def call(cmd, stdout=PIPE, stderr=PIPE, cwd=None):  # noqa
+def call(cmd, stdout=PIPE, stderr=PIPE, cwd=None):
     from kakapo.config import DEBUG_MODE, DEBUG_PROCESSES
     if DEBUG_MODE and DEBUG_PROCESSES:
         stdout = None

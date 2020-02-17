@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-"""IUPAC"""
+
+"""IUPAC."""
 
 NT_SHARED_CHARS = set('ACG')
 NT_AMBIGUOUS_CHARS = set('BDHKMNRSVWY')

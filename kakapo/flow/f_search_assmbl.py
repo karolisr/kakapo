@@ -21,7 +21,7 @@ def run_tblastn_on_assemblies(ss, assemblies, aa_queries_file, tblastn,
                               blast_2_best_hit_overhang,
                               blast_2_best_hit_score_edge,
                               blast_2_max_target_seqs, threads, dir_cache_prj,
-                              dir_prj_ips, linfo=print):  # noqa
+                              dir_prj_ips, linfo=print):
 
     if len(assemblies) > 0:
         linfo('Running BLAST on assemblies [' + ss + ']')

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""BLAST"""
+"""BLAST."""
 
 import csv
 import os.path
@@ -17,7 +17,7 @@ BLST_RES_COLS_2 = ['sseqid', 'evalue', 'qcovhsp', 'sframe', 'sstart', 'send',
 
 
 def make_blast_db(exec_file, in_file, out_file, title, dbtype='nucl'):
-    """Wrap makeblastdb"""
+    """Wrap makeblastdb."""
     cmd = [exec_file,
            '-in', in_file,
            '-out', out_file,
@@ -31,7 +31,7 @@ def run_blast(exec_file, task, threads, db_path, queries_file, out_file,
               evalue, max_hsps, qcov_hsp_perc, best_hit_overhang,
               best_hit_score_edge, max_target_seqs, db_genetic_code,
               out_cols=BLST_RES_COLS_1):
-    """Wrap blastn and tblastn"""
+    """Wrap blastn and tblastn."""
     exec_name = os.path.basename(exec_file)
     if exec_name in ['tblastn', ]:
         db_genetic_code = ['-db_gencode', db_genetic_code]
@@ -57,20 +57,20 @@ def run_blast(exec_file, task, threads, db_path, queries_file, out_file,
     call(cmd)
 
 
-def _prs_blst_res(blast_results, col_names):  # noqa
+def _prs_blst_res(blast_results, col_names):
     rdr = csv.DictReader(blast_results.splitlines(),
                          fieldnames=col_names, delimiter='\t')
     return list(rdr)
 
 
-def _prs_blst_res_f(blast_results_file, col_names):  # noqa
+def _prs_blst_res_f(blast_results_file, col_names):
     with open(blast_results_file, 'r') as f:
         blast_results = f.read()
     parsed = _prs_blst_res(blast_results, col_names)
     return parsed
 
 
-def parse_blast_results_file(blast_results_file, col_names=BLST_RES_COLS_2):  # noqa
+def parse_blast_results_file(blast_results_file, col_names=BLST_RES_COLS_2):
     parsed_raw = _prs_blst_res_f(blast_results_file, col_names)
     parsed = dict()
 
@@ -103,7 +103,7 @@ def parse_blast_results_file(blast_results_file, col_names=BLST_RES_COLS_2):  # 
     return parsed
 
 
-def collate_blast_results(parsed_blast_results):  # noqa
+def collate_blast_results(parsed_blast_results):
 
     coll = []
 

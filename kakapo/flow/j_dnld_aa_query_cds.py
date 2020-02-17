@@ -15,7 +15,7 @@ from kakapo.entrez import taxids_for_accs
 
 
 def dnld_cds_for_ncbi_prot_acc(ss, prot_acc_user, prot_cds_ncbi_file, tax,
-                               dir_cache_prj, linfo=print):  # noqa
+                               dir_cache_prj, linfo=print):
 
     # TODO: The function downloads more CDS than are strictly required,
     #       then filters out the unneeded ones. Sometimes this causes

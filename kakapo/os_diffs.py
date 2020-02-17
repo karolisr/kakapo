@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""
-Accounts for differences between operating systems.
-"""
+"""Accounts for differences between operating systems."""
 
 import distro
 import sys
@@ -12,9 +10,7 @@ REDHAT_DISTS = ['centos', 'fedora', 'rhel', 'scientific']
 
 
 def check_os():
-    """
-    Determine current operating system and distribution.
-    """
+    """Determine current operating system and distribution."""
     dist_id = None
 
     if sys.platform == 'darwin':

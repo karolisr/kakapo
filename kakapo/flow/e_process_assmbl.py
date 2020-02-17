@@ -20,7 +20,7 @@ from kakapo.translation_tables import TranslationTable
 
 
 def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
-               spades, dir_temp, ss, threads, ram, linfo=print):  # noqa
+               spades, dir_temp, ss, threads, ram, linfo=print):
 
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
         if spades is None:
@@ -101,7 +101,7 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
 
 
 def combine_assemblies(se_fastq_files, pe_fastq_files, user_assemblies, tax,
-                       search_strategies):  # noqa
+                       search_strategies):
     assemblies = []
 
     for ss in search_strategies:
@@ -149,7 +149,7 @@ def combine_assemblies(se_fastq_files, pe_fastq_files, user_assemblies, tax,
 
 
 def makeblastdb_assemblies(assemblies, dir_prj_blast_assmbl, makeblastdb,
-                           linfo=print):  # noqa
+                           linfo=print):
     if len(assemblies) > 0:
         linfo('Building BLAST databases for assemblies')
         if makeblastdb is None:

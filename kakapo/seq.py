@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-"""seq"""
+
+"""seq."""
 
 from kakapo.iupac import AA_AMBIGUOUS
 from kakapo.iupac import DNA_AMBIGUOUS
@@ -26,12 +27,12 @@ MOL_TO_SEQ_TYPE_MAP = {
     'AA': SEQ_TYPE_AA}
 
 
-def reverse(seq):  # noqa
+def reverse(seq):
     seq = str(seq).upper()
     return seq[::-1]
 
 
-def complement(seq):  # noqa
+def complement(seq):
     seq = str(seq).upper()
 
     seq_contains_uracil = False
@@ -47,11 +48,11 @@ def complement(seq):  # noqa
     return seq_complemented
 
 
-def reverse_complement(seq):  # noqa
+def reverse_complement(seq):
     return reverse(complement(seq))
 
 
-def translate(seq, trans_table, start_codons):  # noqa
+def translate(seq, trans_table, start_codons):
     seq = str(seq).upper()
 
     if 'U' in seq:
@@ -80,7 +81,7 @@ def translate(seq, trans_table, start_codons):  # noqa
     return translated
 
 
-def untranslate(seq, trans_table_inv):  # noqa
+def untranslate(seq, trans_table_inv):
     seq = seq.upper()
     tt = trans_table_inv
     tt['X'] = ('NNN',)
@@ -108,7 +109,7 @@ class Seq(object):
 
     """
 
-    def __new__(self, seq, seq_type):  # noqa
+    def __new__(self, seq, seq_type):
 
         seq_type = seq_type.upper()
 
@@ -129,7 +130,7 @@ class Seq(object):
 
     # __init__ declaration is exactly the same as __new__ so Sphinx
     # docstring parser picks it up.
-    def __init__(self, seq, seq_type):  # noqa
+    def __init__(self, seq, seq_type):
         pass
 
 
@@ -173,7 +174,7 @@ class NTSeq(_Seq):
 
     """
 
-    def __init__(self, seq):  # noqa
+    def __init__(self, seq):
         seq = str(seq).upper()
         if set(seq) <= NT_AMBIGUOUS:
             super(NTSeq, self).__init__(seq)
@@ -186,20 +187,20 @@ class NTSeq(_Seq):
     def __repr__(self):
         return 'NTSeq(\'' + self._seq + '\')'
 
-    def translate(self, trans_table, start_codons):  # noqa
+    def translate(self, trans_table, start_codons):
         raw = translate(self._seq, trans_table, start_codons)
         return AASeq(raw)
 
     @property
-    def reversed(self):  # noqa
+    def reversed(self):
         return type(self)(reverse(self._seq))
 
     @property
-    def complemented(self):  # noqa
+    def complemented(self):
         return type(self)(complement(self._seq))
 
     @property
-    def reversed_complemented(self):  # noqa
+    def reversed_complemented(self):
         return type(self)(reverse_complement(self._seq))
 
 
@@ -213,7 +214,7 @@ class DNASeq(NTSeq):
 
     """
 
-    def __init__(self, seq):  # noqa
+    def __init__(self, seq):
         seq = str(seq).upper()
         if set(seq) <= DNA_AMBIGUOUS:
             super(DNASeq, self).__init__(seq)
@@ -241,7 +242,7 @@ class RNASeq(NTSeq):
 
     """
 
-    def __init__(self, seq):  # noqa
+    def __init__(self, seq):
         seq = str(seq).upper()
         if set(seq) <= RNA_AMBIGUOUS:
             super(RNASeq, self).__init__(seq)
@@ -269,7 +270,7 @@ class AASeq(_Seq):
 
     """
 
-    def __init__(self, seq):  # noqa
+    def __init__(self, seq):
         seq = str(seq).upper()
         if set(seq) <= AA_AMBIGUOUS:
             super(AASeq, self).__init__(seq)

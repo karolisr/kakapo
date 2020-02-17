@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""Logging"""
+"""Logging."""
 
 import logging
 import sys
@@ -8,7 +8,7 @@ import sys
 from kakapo.config import CONYELL, CONSDFL
 
 
-def prepare_logger(console=True, stream=None, file=None):  # noqa
+def prepare_logger(console=True, stream=None, file=None):
 
     handlers = logging.getLogger().handlers
 

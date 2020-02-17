@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 """
-EMBL-EBI InterProScan 5
+EMBL-EBI InterProScan 5.
 
-Documentation: https://www.ebi.ac.uk/seqdb/confluence/display/JDSAT/InterProScan+5+Help+and+Documentation#InterProScan5HelpandDocumentation-OpenAPIInterface  # noqa
+Documentation: https://www.ebi.ac.uk/seqdb/confluence/display/JDSAT/InterProScan+5+Help+and+Documentation#InterProScan5HelpandDocumentation-OpenAPIInterface
 """
 
 import io
@@ -27,7 +27,7 @@ from kakapo.http_k import post
 IPS_URL = 'https://www.ebi.ac.uk/Tools/services/rest/iprscan5'
 
 
-def submit_job(email, title, sequence):  # noqa
+def submit_job(email, title, sequence):
     data = {'email': email, 'title': title, 'sequence': sequence}
     url = IPS_URL + '/run'
     response_format = 'text'
@@ -36,7 +36,7 @@ def submit_job(email, title, sequence):  # noqa
     return job_id
 
 
-def status(job_id):  # noqa
+def status(job_id):
 
     # Possible response values:
     #
@@ -52,7 +52,7 @@ def status(job_id):  # noqa
     return job_status
 
 
-def result_types(job_id):  # noqa
+def result_types(job_id):
     url = IPS_URL + '/resulttypes/' + job_id
     r = get(url=url, params=None, response_format='xml')
     root = ElementTree.fromstring(r.text)
@@ -77,17 +77,17 @@ def _result(job_id, result_type):
     return response
 
 
-def result_json(job_id):  # noqa
+def result_json(job_id):
     r = _result(job_id, result_type='json')
     return r.json()
 
 
-def result_sequence(job_id):  # noqa
+def result_sequence(job_id):
     r = _result(job_id, result_type='sequence')
     return r.text
 
 
-def result_html(job_id, out_dir):  # noqa
+def result_html(job_id, out_dir):
     r = _result(job_id, result_type='htmltarball')
 
     tar_ref = tarfile.open(fileobj=io.BytesIO(r.content), mode='r:gz')
@@ -97,7 +97,7 @@ def result_html(job_id, out_dir):  # noqa
     return None
 
 
-def result_gff(job_id, out_file=None):  # noqa
+def result_gff(job_id, out_file=None):
     r = _result(job_id, result_type='gff')
     gff_text = r.text
 
@@ -109,7 +109,7 @@ def result_gff(job_id, out_file=None):  # noqa
 
 
 def job_runner(email, dir_cache, seqs=None, logger=print):
-    """Run InterProScan 5"""
+    """Run InterProScan 5."""
     ##########################################################################
     MAX_JOBS = 25
     DELAY = 0.5
@@ -155,18 +155,17 @@ def job_runner(email, dir_cache, seqs=None, logger=print):
     queue = jobs['queue']
     running = jobs['running']
     finished = jobs['finished']
-    error = jobs['error']
+    # error = jobs['error']
     failure = jobs['failure']
     not_found = jobs['not_found']
     other = jobs['other']
 
     retry_list = list()
 
-    ###
-    # Nicer printing
+    # Nicer printing ---------------------------------------------------------
     max_title_a_len = 2 + max([len(split_seq_defn(x)[0]) for x in list(seqs_orig.keys())])
     max_title_b_len = 2 + max([len(split_seq_defn(x)[1]) for x in list(seqs_orig.keys())])
-    ###
+    # ------------------------------------------------------------------------
 
     queue_size = len(seqs_orig)
 

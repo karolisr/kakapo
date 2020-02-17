@@ -39,7 +39,7 @@ from kakapo.translation_tables import TranslationTable
 from kakapo.trimmomatic import trimmomatic_se, trimmomatic_pe
 
 
-def dnld_sra_info(sras, dir_cache_prj, linfo=print):  # noqa
+def dnld_sra_info(sras, dir_cache_prj, linfo=print):
     sra_runs_info = {}
     sras_acceptable = []
 
@@ -138,7 +138,7 @@ def dnld_sra_info(sras, dir_cache_prj, linfo=print):  # noqa
 
 
 def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
-                         threads, dir_temp, linfo=print): # noqa
+                         threads, dir_temp, linfo=print):
 
     if len(sras) > 0:
         if fasterq_dump is None:
@@ -223,7 +223,7 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
     return se_fastq_files, pe_fastq_files, sra_runs_info
 
 
-def user_fastq_files(fq_se, fq_pe, linfo=print): # noqa
+def user_fastq_files(fq_se, fq_pe, linfo=print):
     if len(fq_se) > 0 or len(fq_pe) > 0:
         linfo('Preparing user provided FASTQ files')
 
@@ -272,7 +272,7 @@ def user_fastq_files(fq_se, fq_pe, linfo=print): # noqa
 
 
 def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
-                        dir_cache_fq_minlen, vsearch, linfo=print): # noqa
+                        dir_cache_fq_minlen, vsearch, linfo=print):
     # lowest allowable
     low = 35
 
@@ -361,7 +361,7 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
 
 
 def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
-                   threads, dir_temp, linfo=print):  # noqa
+                   threads, dir_temp, linfo=print):
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
         if rcorrector is None:
             linfo('Rcorrector is not available. ' +
@@ -458,7 +458,7 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
                 osremove(fq_cor_path_3)
 
 
-def file_name_patterns():  # noqa
+def file_name_patterns():
     pe_trim_pair_1_sfx = '_paired_1'
     pe_trim_pair_2_sfx = '_paired_2'
     pe_trim_unpr_1_sfx = '_unpaired_1'
@@ -491,7 +491,7 @@ def file_name_patterns():  # noqa
 
 
 def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
-                    trimmomatic, adapters, fpatt, threads, linfo=print):  # noqa
+                    trimmomatic, adapters, fpatt, threads, linfo=print):
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
         if trimmomatic is None:
             linfo('trimmomatic is not available. ' +
@@ -585,7 +585,7 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
 
 
 def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
-                confidence, kraken2, threads, dir_temp, fpatt, linfo=print):  # noqa
+                confidence, kraken2, threads, dir_temp, fpatt, linfo=print):
     if (len(se_fastq_files) > 0 or len(pe_fastq_files) > 0) and len(order) > 0:
         if kraken2 is None:
             linfo('kraken2 is not available. ' +
@@ -657,7 +657,7 @@ def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
 
 
 def dnld_refseqs_for_taxid(taxid, filter_term, taxonomy,
-                           dir_cache_refseqs, db='nuccore', linfo=print):  # noqa
+                           dir_cache_refseqs, db='nuccore', linfo=print):
     tax_terms = tuple(reversed(taxonomy.lineage_for_taxid(taxid)['names']))
     for tax_term in tax_terms:
         if tax_term is None:
@@ -690,7 +690,7 @@ def dnld_refseqs_for_taxid(taxid, filter_term, taxonomy,
 
 def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
                bowtie2, bowtie2_build, threads, dir_temp, filter_dir, dbs,
-               fpatt, taxonomy, dir_cache_refseqs, linfo=print):  # noqa
+               fpatt, taxonomy, dir_cache_refseqs, linfo=print):
 
     if len(dbs) > 0:
 
@@ -807,7 +807,7 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
 
 
 def filtered_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
-                      fpatt, linfo=print): # noqa
+                      fpatt, linfo=print):
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
         if seqtk is None:
             linfo('seqtk is not available. ' +
@@ -844,7 +844,7 @@ def filtered_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
 
 
 def makeblastdb_fq(se_fastq_files, pe_fastq_files, dir_blast_fa_trim,
-                   makeblastdb, fpatt, linfo=print): # noqa
+                   makeblastdb, fpatt, linfo=print):
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
         if makeblastdb is None:
             linfo('makeblastdb is not available. ' +

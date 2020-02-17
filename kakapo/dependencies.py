@@ -1,20 +1,17 @@
 # -*- coding: utf-8 -*-
 
-"""
-Dependencies.
-"""
+"""Dependencies."""
 
 import os
 import re
 import stat
-import sys
 import tarfile
 import zipfile
 
 from os.path import join as opj
 from shutil import move
 
-from kakapo.config import DIR_DEP, DIR_CFG, OS_ID, DIST_ID
+from kakapo.config import DIR_DEP, OS_ID, DIST_ID
 from kakapo.helpers import download_file
 from kakapo.helpers import list_of_dirs
 from kakapo.helpers import replace_line_in_file
@@ -24,7 +21,7 @@ from kakapo.shell import call
 VER_UNK = '[version could not be determined]'
 
 
-def sra_toolkit_dir_name(path): # noqa
+def sra_toolkit_dir_name(path):
     ld = list_of_dirs(path=path)
     pattern = 'sratoolkit'
     dl = [d for d in ld if pattern in d]
@@ -34,7 +31,7 @@ def sra_toolkit_dir_name(path): # noqa
         return ''
 
 
-def blast_dir_name(path): # noqa
+def blast_dir_name(path):
     ld = list_of_dirs(path=path)
     pattern = 'ncbi-blast'
     dl = [d for d in ld if pattern in d]
@@ -44,7 +41,7 @@ def blast_dir_name(path): # noqa
         return ''
 
 
-def spades_dir_name(path): # noqa
+def spades_dir_name(path):
     ld = list_of_dirs(path=path)
     pattern = 'SPAdes'
     dl = [d for d in ld if pattern in d]
@@ -54,7 +51,7 @@ def spades_dir_name(path): # noqa
         return ''
 
 
-def bowtie2_dir_name(path): # noqa
+def bowtie2_dir_name(path):
     ld = list_of_dirs(path=path)
     pattern = 'bowtie2'
     dl = [d for d in ld if pattern in d]
@@ -64,7 +61,7 @@ def bowtie2_dir_name(path): # noqa
         return ''
 
 
-def kraken2_dir_name(path): # noqa
+def kraken2_dir_name(path):
     ld = list_of_dirs(path=path)
     pattern = 'kraken2'
     dl = [d for d in ld if pattern in d]
@@ -74,7 +71,7 @@ def kraken2_dir_name(path): # noqa
         return ''
 
 
-def rcorrector_dir_name(path): # noqa
+def rcorrector_dir_name(path):
     ld = list_of_dirs(path=path)
     pattern = 'Rcorrector'
     dl = [d for d in ld if pattern in d]
@@ -84,7 +81,7 @@ def rcorrector_dir_name(path): # noqa
         return ''
 
 
-def get_version_seqtk(seqtk):  # noqa
+def get_version_seqtk(seqtk):
     _, err = call(seqtk)
     if type(err) not in (bytes, str) or err == b'':
         return VER_UNK
@@ -95,7 +92,7 @@ def get_version_seqtk(seqtk):  # noqa
     return v
 
 
-def get_version_trimmomatic(trimmomatic):  # noqa
+def get_version_trimmomatic(trimmomatic):
     cmd = ['java', '-jar', trimmomatic, '-version']
     out, _ = call(cmd)
     if type(out) not in (bytes, str) or out == b'':
@@ -104,7 +101,7 @@ def get_version_trimmomatic(trimmomatic):  # noqa
     return v
 
 
-def get_version_fasterq_dump(fasterq_dump):  # noqa
+def get_version_fasterq_dump(fasterq_dump):
     out, _ = call([fasterq_dump, '--version'])
     if type(out) not in (bytes, str) or out == b'':
         return VER_UNK
@@ -114,7 +111,7 @@ def get_version_fasterq_dump(fasterq_dump):  # noqa
     return v
 
 
-def get_version_blast(any_blast_bin):  # noqa
+def get_version_blast(any_blast_bin):
     out, _ = call([any_blast_bin, '-version'])
     if type(out) not in (bytes, str) or out == b'':
         return VER_UNK
@@ -124,7 +121,7 @@ def get_version_blast(any_blast_bin):  # noqa
     return v
 
 
-def get_version_vsearch(vsearch):  # noqa
+def get_version_vsearch(vsearch):
     _, err = call([vsearch, '-version'])
     if type(err) not in (bytes, str) or err == b'':
         return VER_UNK
@@ -134,7 +131,7 @@ def get_version_vsearch(vsearch):  # noqa
     return v
 
 
-def get_version_spades(spades):  # noqa
+def get_version_spades(spades):
     out, err = call([spades, '--version'])
     if err is not None and err != b'':
         out = err
@@ -146,7 +143,7 @@ def get_version_spades(spades):  # noqa
     return v
 
 
-def get_version_bowtie2(bowtie2):  # noqa
+def get_version_bowtie2(bowtie2):
     out, _ = call([bowtie2, '--version'])
     if type(out) not in (bytes, str) or out == b'':
         return VER_UNK
@@ -156,7 +153,7 @@ def get_version_bowtie2(bowtie2):  # noqa
     return v
 
 
-def get_version_rcorrector(rcorrector):  # noqa
+def get_version_rcorrector(rcorrector):
     out, _ = call([rcorrector, '-version'])
     if type(out) not in (bytes, str) or out == b'':
         return VER_UNK
@@ -166,7 +163,7 @@ def get_version_rcorrector(rcorrector):  # noqa
     return v
 
 
-def get_version_kraken2(kraken2):  # noqa
+def get_version_kraken2(kraken2):
     out, _ = call([kraken2, '--version'])
     if type(out) not in (bytes, str) or out == b'':
         return VER_UNK
@@ -178,7 +175,7 @@ def get_version_kraken2(kraken2):  # noqa
 
 
 # Seqtk
-def dep_check_seqtk(force=False, logger=print): # noqa
+def dep_check_seqtk(force=False, logger=print):
     url = 'https://github.com/lh3/seqtk/archive/master.zip'
     dnld_path = opj(DIR_DEP, 'seqtk.zip')
     dir_bin = opj(DIR_DEP, 'seqtk-master')
@@ -221,7 +218,7 @@ def dep_check_seqtk(force=False, logger=print): # noqa
     return seqtk
 
 
-def _write_trimmomatic_adapters_file(logger=print): # noqa
+def _write_trimmomatic_adapters_file(logger=print):
 
     path_adapters = opj(DIR_DEP, 'trimmomatic_adapters.fasta')
 
@@ -273,7 +270,7 @@ def _write_trimmomatic_adapters_file(logger=print): # noqa
 
 
 # Trimmomatic
-def dep_check_trimmomatic(logger=print): # noqa
+def dep_check_trimmomatic(logger=print):
     url = ('http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/'
            'Trimmomatic-0.39.zip')
     dnld_path = opj(DIR_DEP, 'Trimmomatic-0.39.zip')
@@ -299,7 +296,7 @@ def dep_check_trimmomatic(logger=print): # noqa
 
 
 # SRA Toolkit
-def dep_check_sra_toolkit(force=False, logger=print): # noqa
+def dep_check_sra_toolkit(force=False, logger=print):
     if OS_ID == 'mac':
         url = ('https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.9.6/'
                'sratoolkit.2.9.6-mac64.tar.gz')
@@ -345,7 +342,7 @@ def dep_check_sra_toolkit(force=False, logger=print): # noqa
 
 
 # BLAST+
-def dep_check_blast(force=False, logger=print): # noqa
+def dep_check_blast(force=False, logger=print):
     if OS_ID == 'mac':
         url = ('https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.10.0/'
                'ncbi-blast-2.10.0+-x64-macosx.tar.gz')
@@ -402,7 +399,7 @@ def dep_check_blast(force=False, logger=print): # noqa
 
 
 # VSEARCH
-def dep_check_vsearch(force=False, logger=print): # noqa
+def dep_check_vsearch(force=False, logger=print):
     url = 'https://github.com/torognes/vsearch/archive/master.tar.gz'
     dnld_path = opj(DIR_DEP, 'vsearch.tar.gz')
     dir_bin = opj(DIR_DEP, 'vsearch-master')
@@ -442,7 +439,7 @@ def dep_check_vsearch(force=False, logger=print): # noqa
 
 
 # SPAdes
-def dep_check_spades(force=False, logger=print): # noqa
+def dep_check_spades(force=False, logger=print):
     if OS_ID == 'mac':
         url = ('http://cab.spbu.ru/files/release3.14.0/'
                'SPAdes-3.14.0-Darwin.tar.gz')
@@ -483,7 +480,7 @@ def dep_check_spades(force=False, logger=print): # noqa
 
 
 # Bowtie 2
-def dep_check_bowtie2(force=False, logger=print): # noqa
+def dep_check_bowtie2(force=False, logger=print):
     if OS_ID == 'mac':
         url = ('https://sourceforge.net/projects/bowtie-bio/files/bowtie2/'
                '2.3.5.1/bowtie2-2.3.5.1-macos-x86_64.zip/download')
@@ -552,7 +549,7 @@ def dep_check_bowtie2(force=False, logger=print): # noqa
 
 
 # Rcorrector
-def dep_check_rcorrector(force=False, logger=print): # noqa
+def dep_check_rcorrector(force=False, logger=print):
     url = 'https://github.com/mourisl/Rcorrector/archive/master.tar.gz'
     dnld_path = opj(DIR_DEP, 'rcorrector.tar.gz')
 
@@ -595,7 +592,7 @@ def dep_check_rcorrector(force=False, logger=print): # noqa
 
 
 # Kraken2
-def dep_check_kraken2(force=False, logger=print): # noqa
+def dep_check_kraken2(force=False, logger=print):
     url = ('https://github.com/karolisr/kraken2/archive/master.tar.gz')
 
     dnld_path = opj(DIR_DEP, 'kraken2.tar.gz')
@@ -647,7 +644,7 @@ def dep_check_kraken2(force=False, logger=print): # noqa
     return kraken2, kraken2_build
 
 
-def download_kraken2_dbs(dbs_path, dnld):  # noqa
+def download_kraken2_dbs(dbs_path, dnld):
 
     base_kraken2_url = 'ftp://ftp.ccb.jhu.edu/pub/data/kraken2_dbs/'
 

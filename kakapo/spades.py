@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
-"""SPAdes"""
+"""SPAdes."""
 
 from kakapo.shell import call
 
 
-def run_spades_se(spades, out_dir, input_file, threads, memory, rna):  # noqa
+def run_spades_se(spades, out_dir, input_file, threads, memory, rna):
 
     memory = str(memory).split('.')[0]
 
@@ -23,7 +23,7 @@ def run_spades_se(spades, out_dir, input_file, threads, memory, rna):  # noqa
     call(cmd)
 
 
-def run_spades_pe(spades, out_dir, input_files, threads, memory, rna):  # noqa
+def run_spades_pe(spades, out_dir, input_files, threads, memory, rna):
 
     memory = str(memory).split('.')[0]
 

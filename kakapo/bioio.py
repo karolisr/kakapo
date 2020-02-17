@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 """Read and write biological sequence and alignment files."""
 
 import io
@@ -64,7 +65,7 @@ def read_fasta(f, return_type='dict', upper=True, def_to_first_space=False):
     return return_object
 
 
-def dict_to_fasta(d):  # noqa
+def dict_to_fasta(d):
     if len(d) == 0:
         return ''
     return reduce(add, ['>' + k + '\n' + v + '\n' for (k, v) in d.items()])
@@ -75,7 +76,7 @@ def _no_spaces(name, sep='_'):
 
 
 def write_fasta(data, f, handle_types=HANDLE_TYPES):
-    """Write FASTA"""
+    """Write FASTA file."""
     def rec_defn(r):
         org = r['organism']
         defn = r['definition']
@@ -114,7 +115,7 @@ def write_fasta(data, f, handle_types=HANDLE_TYPES):
         f.close()
 
 
-def standardize_fasta_text(text):  # noqa
+def standardize_fasta_text(text):
     parsed_fasta = read_fasta(StringIO(text))
     names = map(_no_spaces, parsed_fasta)
     seqs = parsed_fasta.values()
@@ -122,7 +123,7 @@ def standardize_fasta_text(text):  # noqa
     return dict_to_fasta(fasta_dict)
 
 
-def trim_desc_to_first_space_in_fasta_text(text):  # noqa
+def trim_desc_to_first_space_in_fasta_text(text):
     parsed_fasta = read_fasta(StringIO(text))
     names = map(lambda x: x.split(' ')[0], parsed_fasta)
     seqs = parsed_fasta.values()
@@ -130,7 +131,7 @@ def trim_desc_to_first_space_in_fasta_text(text):  # noqa
     return dict_to_fasta(fasta_dict)
 
 
-def filter_fasta_text_by_length(text, min_len, max_len):  # noqa
+def filter_fasta_text_by_length(text, min_len, max_len):
     x = tuple(read_fasta(StringIO(text)).items())
     seqs = filter(lambda y: min_len <= len(y[1]) <= max_len, x)
     fasta_dict = {k: v for (k, v) in seqs}

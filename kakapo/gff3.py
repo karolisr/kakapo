@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""GFF3"""
+"""GFF3."""
 
 # https://github.com/The-Sequence-Ontology/Specifications/blob/master/gff3.md
 # https://useast.ensembl.org/info/website/upload/gff3.html
@@ -12,7 +12,7 @@ import re
 from collections import OrderedDict
 
 
-def gff_template():  # noqa
+def gff_template():
     t = OrderedDict()
 
     t['seqid'] = '.'
@@ -28,11 +28,11 @@ def gff_template():  # noqa
     return t
 
 
-def gff_text(gff_dict):  # noqa
+def gff_text(gff_dict):
     return '\t'.join(list(gff_dict.values())) + '\n'
 
 
-def gff_orf_blast_hit(ss, json_dict):  # noqa
+def gff_orf_blast_hit(ss, json_dict):
     gff = ''
 
     for rec_key in json_dict:
@@ -59,7 +59,7 @@ def gff_orf_blast_hit(ss, json_dict):  # noqa
         entry_blast_hit['strand'] = '+'
         entry_blast_hit['phase'] = str(0)
         query_name = ann['query_name'].replace('_', ' ')
-        name = 'name=' + ann['query_name'] + '; Hit frame ' + str(frame)
+        name = 'name=' + query_name + '; Hit frame ' + str(frame)
         entry_blast_hit['attributes'] = name + ';note=Merged tblastn hits;'
         gff = gff + gff_text(entry_blast_hit)
 
@@ -85,7 +85,7 @@ def gff_orf_blast_hit(ss, json_dict):  # noqa
     return gff
 
 
-def gff_orf_bad_blast_hit(ss, json_dict):  # noqa
+def gff_orf_bad_blast_hit(ss, json_dict):
     gff = ''
 
     for rec_key in json_dict:
@@ -122,7 +122,7 @@ def gff_orf_bad_blast_hit(ss, json_dict):  # noqa
     return gff
 
 
-def gff_pfam(ss, json_dict):  # noqa
+def gff_pfam(ss, json_dict):
     gff = ''
 
     for rec_key in json_dict:
@@ -185,7 +185,7 @@ def gff_pfam(ss, json_dict):  # noqa
     return gff
 
 
-def gff_phobius(ss, json_dict):  # noqa
+def gff_phobius(ss, json_dict):
     gff = ''
 
     phobius_translations = {'SIGNAL_PEPTIDE': 'SigPept',
@@ -239,7 +239,7 @@ def gff_phobius(ss, json_dict):  # noqa
     return gff
 
 
-def gff_panther(ss, json_dict):  # noqa
+def gff_panther(ss, json_dict):
     gff = ''
 
     for rec_key in json_dict:
@@ -298,7 +298,7 @@ def gff_panther(ss, json_dict):  # noqa
     return gff
 
 
-def gff_from_kakapo_ips5_json_file(ss, json_path, gff_path=None):  # noqa
+def gff_from_kakapo_ips5_json_file(ss, json_path, gff_path=None):
 
     with open(json_path, 'r') as f:
         json_dict = json.load(f)

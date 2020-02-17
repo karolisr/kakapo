@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
+
 """
-Wraps with NCBI's Entrez Programming Utilities (E-utilities).
+Wrap NCBI's Entrez Programming Utilities (E-utilities).
 
 More information on E-utilities at:
     http://www.ncbi.nlm.nih.gov/books/NBK25497
@@ -22,7 +23,6 @@ from kakapo.bioio import read_fasta
 from kakapo.http_k import get
 from kakapo.http_k import post
 from kakapo.parsers import parse_efetch_sra_csv_text
-from kakapo.parsers import parse_esummary_xml_text
 from kakapo.parsers import parse_gbseq_xml_text
 
 ENTREZ_BASE_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/'
@@ -47,7 +47,8 @@ def _check_for_api_key():
 term = '"RefSeq"[Keyword] AND "arabidopsis"[Primary Organism] AND "chloroplast"[filter]'
 db = 'nuccore'
 
-def esearch(term, db, api_key=None, ret_type='uilist'):  # noqa
+
+def esearch(term, db, api_key=None, ret_type='uilist'):
 
     # rettype='uilist'
     # rettype='acc'
@@ -79,7 +80,7 @@ def esearch(term, db, api_key=None, ret_type='uilist'):  # noqa
     return return_dict
 
 
-def epost(ids, db, api_key=None):  # noqa
+def epost(ids, db, api_key=None):
 
     if api_key is None:
         api_key = _check_for_api_key()
@@ -126,7 +127,7 @@ def epost(ids, db, api_key=None):  # noqa
     return return_dict
 
 
-def efetch(data, parser, ret_type=None, ret_mode='xml', api_key=None):  # noqa
+def efetch(data, parser, ret_type=None, ret_mode='xml', api_key=None):
 
     # TODO: Print progress.
 
@@ -173,7 +174,7 @@ def efetch(data, parser, ret_type=None, ret_mode='xml', api_key=None):  # noqa
     return return_list
 
 
-def esummary(accs, db, api_key=None):  # noqa
+def esummary(accs, db, api_key=None):
 
     if api_key is None:
         api_key = _check_for_api_key()
@@ -218,7 +219,7 @@ def esummary(accs, db, api_key=None):  # noqa
     return return_list
 
 
-def taxids_for_accs(accs, db):  # noqa
+def taxids_for_accs(accs, db):
     summ = esummary(accs, db)
     ret_dict = dict()
     for x in summ:
@@ -229,25 +230,25 @@ def taxids_for_accs(accs, db):  # noqa
     return ret_dict
 
 
-def accessions(data):  # noqa
+def accessions(data):
     ids = efetch(data=data, ret_type='uilist', ret_mode='text',
                  parser=lambda x: x.strip().split('\n'))
     return ids
 
 
-def dnld_seqs(accs, db):  # noqa
+def dnld_seqs(accs, db):
     data = epost(accs, db)
     efetch_results = efetch(data, parse_gbseq_xml_text, 'gb')
     return efetch_results
 
 
-def dnld_seqs_gb_format(accs, db):  # noqa
+def dnld_seqs_gb_format(accs, db):
     data = epost(accs, db)
     efetch_results = efetch(data, lambda x: x.split('\n\n')[:-1], 'gb', 'text')
     return efetch_results
 
 
-def _process_fasta_efetch_results(efetch_results):  # noqa
+def _process_fasta_efetch_results(efetch_results):
     ret_list = []
     for x in efetch_results:
         x = x.strip('>\n')
@@ -258,20 +259,20 @@ def _process_fasta_efetch_results(efetch_results):  # noqa
     return parsed_fasta
 
 
-def dnld_seqs_fasta_format(accs, db):  # noqa
+def dnld_seqs_fasta_format(accs, db):
     data = epost(accs, db)
     efetch_results = efetch(data, lambda x: x.split('\n>'), 'fasta', 'text')
     return _process_fasta_efetch_results(efetch_results)
 
 
-def dnld_cds_nt_fasta(accs):  # noqa
+def dnld_cds_nt_fasta(accs):
     data = epost(accs, 'nuccore')
     efetch_results = efetch(data, lambda x: x.split('\n>'),
                             'fasta_cds_na', 'text')
     return _process_fasta_efetch_results(efetch_results)
 
 
-def cds_acc_for_prot_acc(prot_accessions):  # noqa
+def cds_acc_for_prot_acc(prot_accessions):
     prot_dict_list = dnld_seqs(prot_accessions, 'protein')
     ret_dict = dict()
     for rec in prot_dict_list:
@@ -288,7 +289,7 @@ def cds_acc_for_prot_acc(prot_accessions):  # noqa
     return ret_dict
 
 
-def sra_run_info(acc_list):  # noqa
+def sra_run_info(acc_list):
     assert type(acc_list) in (tuple, list, set)
     ret_list = []
     page_size = 75

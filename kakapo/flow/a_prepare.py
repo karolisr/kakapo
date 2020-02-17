@@ -6,7 +6,7 @@ from os.path import join as opj
 from kakapo.helpers import make_dir
 
 
-def prepare_output_directories(dir_out, prj_name):  # noqa
+def prepare_output_directories(dir_out, prj_name):
     # TODO: Lock cache files in case of parallel execution -------------------
     dir_temp = opj(dir_out, '00-temp')
     make_dir(dir_temp)

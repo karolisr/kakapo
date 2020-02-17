@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
-"""http"""
+"""http."""
 
 import requests
 
 from requests.adapters import HTTPAdapter
 from requests.exceptions import HTTPError
-from requests.packages.urllib3.util.retry import Retry
+from urllib3.util import Retry
 
 # Possible values for the Accept request-header field:
 ACC_HEAD = {
@@ -24,7 +24,7 @@ def _valid_response_formats():
 
 
 def retry_session(retries=5, backoff_factor=1,
-                  status_forcelist=(500, 502, 504)):  # noqa
+                  status_forcelist=(500, 502, 504)):
 
     session = requests.Session()
 
@@ -45,7 +45,7 @@ def retry_session(retries=5, backoff_factor=1,
 
 def get(url, params=None, response_format='json'):
     """
-    Wrap requests.get
+    Wrap requests.get.
 
     :param url: url
     :type url: str
@@ -70,17 +70,17 @@ def get(url, params=None, response_format='json'):
 
     try:
         response.raise_for_status()
-    except HTTPError as e:
+    except HTTPError:
         pass
-        # print(e)
+    # except HTTPError as e:
+    #     pass
+    #     print(e)
 
     return response
 
 
 def post(url, data, response_format):
-    """
-    Wrap requests.post
-    """
+    """Wrap requests.post."""
     assert response_format in _valid_response_formats()
     headers = ACC_HEAD[response_format]
 
@@ -89,14 +89,16 @@ def post(url, data, response_format):
 
     try:
         response.raise_for_status()
-    except HTTPError as e:
+    except HTTPError:
         pass
-        # print(e)
+    # except HTTPError as e:
+    #     pass
+    #     print(e)
 
     return response
 
 
-def download_file(url, local_path):  # noqa
+def download_file(url, local_path):
     r = get(url)
 
     with open(local_path, 'wb') as f:

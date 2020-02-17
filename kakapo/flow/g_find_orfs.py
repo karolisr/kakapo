@@ -23,7 +23,7 @@ def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,
                         dir_temp, prepend_assmbl, min_target_orf_len,
                         max_target_orf_len, allow_non_aug, allow_no_strt_cod,
                         allow_no_stop_cod, tax, tax_group, tax_ids_user,
-                        min_overlap, linfo=print):  # noqa
+                        min_overlap, linfo=print):
 
     if len(assemblies) > 0:
         linfo('Analyzing BLAST hits for assemblies [' + ss + ']')
@@ -288,8 +288,7 @@ def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,
             a['annotations__' + ss][target_name]['blast_hit_begin'] = ann_hit_b
             a['annotations__' + ss][target_name]['blast_hit_end'] = ann_hit_e
 
-            ##################################################################
-            # Collect ORF and BLAST hit annotations for downstream use.
+            # Collect ORF and BLAST hit annotations for downstream use. ######
             kakapo_json = [{}]
             kakapo_json[0]['kakapo_annotations__' + ss] = (
                 a['annotations__' + ss][target_name])
@@ -321,8 +320,7 @@ def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,
         else:
             a['transcripts_aa_orf_fasta_file__' + ss] = None
 
-        # --------------------------------------------------------------------
-        # Save ORF and BLAST hit annotations for downstream use.
+        # Save ORF and BLAST hit annotations for downstream use.--------------
         with open(json_dump_file_path, 'w') as f:
             json.dump(all_kakapo_results, f, sort_keys=True, indent=4)
         # --------------------------------------------------------------------

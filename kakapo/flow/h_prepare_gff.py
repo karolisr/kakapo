@@ -13,7 +13,7 @@ from kakapo.helpers import combine_text_files
 
 
 def gff_from_json(ss, assemblies, dir_prj_ips, dir_prj_transcripts_combined,
-                  prj_name, linfo=print):  # noqa
+                  prj_name, linfo=print):
     if len(assemblies) > 0:
         linfo('Producing GFF3 files [' + ss + ']')
 

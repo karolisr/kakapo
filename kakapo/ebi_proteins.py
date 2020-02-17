@@ -1,21 +1,19 @@
 # -*- coding: utf-8 -*-
 
-"""
-EMBL-EBI Proteins
-"""
+"""EMBL-EBI Proteins."""
 
 from math import ceil
 
 from kakapo.http_k import get
 
-# Proteins REST API https://www.ebi.ac.uk/proteins/api/doc ------------------
+# Proteins REST API https://www.ebi.ac.uk/proteins/api/doc -------------------
 
 EBI_URL = 'https://www.ebi.ac.uk'
 
 PROT_API_URL = EBI_URL + '/proteins/api'
 
 
-def fasta_by_accession_list(acc_list): # noqa
+def fasta_by_accession_list(acc_list):
     url = PROT_API_URL + '/proteins'
 
     max_recs = 90

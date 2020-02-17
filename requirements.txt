@@ -1,3 +1,4 @@
+urllib3
 requests
 distro
 ncbi-taxonomy-local @ git+git://github.com/karolisr/ncbi-taxonomy-local

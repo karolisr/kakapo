@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 
-"""kraken2"""
+"""Kraken2."""
 
 from collections import OrderedDict
-from os import remove, rename, stat
+from os import remove, stat
 from os.path import join as opj
 from os.path import splitext, basename
 from shutil import move
 
 from kakapo.config import RAM
-from kakapo.helpers import splitext_gz, plain_or_gzip, make_dir
+from kakapo.helpers import splitext_gz, make_dir
 from kakapo.shell import call
 
 
@@ -26,7 +26,7 @@ def _use_memory_mapping(db_path, linfo=print):
 
 
 def run_kraken_se(kraken, db, in_file, out_class_file, out_unclass_file,
-                  report_file, confidence, threads, dir_temp, linfo=print):  # noqa
+                  report_file, confidence, threads, dir_temp, linfo=print):
 
     cmd = [kraken, '--db', db, '--threads', str(threads),
            '--confidence', str(confidence), '--output', '-',
@@ -47,7 +47,7 @@ def run_kraken_se(kraken, db, in_file, out_class_file, out_unclass_file,
 
 def run_kraken_pe(kraken, db, in_file_1, in_file_2, out_class_file,
                   out_unclass_file, report_file, confidence, threads,
-                  dir_temp, linfo=print):  # noqa
+                  dir_temp, linfo=print):
 
     cmd = [kraken, '--db', db, '--threads', str(threads), '--paired',
            '--confidence', str(confidence), '--output', '-',
@@ -67,7 +67,7 @@ def run_kraken_pe(kraken, db, in_file_1, in_file_2, out_class_file,
 
 
 def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,
-                       kraken2, threads, dir_temp, linfo=print):  # noqa
+                       kraken2, threads, dir_temp, linfo=print):
 
     dbs_ordered = OrderedDict()
     for dbn in order:

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""Generate start codon context Python files"""
+
+"""Generate start codon context Python files."""
 
 import autopep8
 import inspect
@@ -20,7 +21,8 @@ sys.path.insert(0, KAKAPO_DIR_PATH)
 SAVED_WD = os.getcwd()
 ##############################################################################
 
-def _read_start_codon_context_csv(file_path):  # noqa
+
+def _read_start_codon_context_csv(file_path):
     with open(file_path, 'r') as f:
         rdr = reader(f)
         cntx_prcnt = tuple(zip(*map(lambda x: tuple(map(int, x)), rdr)))
@@ -32,22 +34,24 @@ def _read_start_codon_context_csv(file_path):  # noqa
         return cntx_frac
 
 
-def read_l(file_path):  # noqa
+def read_l(file_path):
     return tuple(reversed(_read_start_codon_context_csv(file_path)))
 
 
-def read_r(file_path):  # noqa
+def read_r(file_path):
     return _read_start_codon_context_csv(file_path)
 
 
-def generate(dir_path, f_out):  # noqa
+def generate(dir_path, f_out):
 
     file_names = tuple(sorted(filter(lambda x: x.endswith('.csv'),
                                      os.listdir(dir_path))))
 
     file_paths = tuple(map(lambda x: os.path.join(dir_path, x), file_names))
     var_names = tuple(map(lambda x: x.split('.csv')[0], file_names))
-    round2 = lambda x: tuple(map(lambda y: round(y, 2), x))  # noqa
+
+    def round2(x):
+        return tuple(map(lambda y: round(y, 2), x))
 
     context_dict = dict()
 
@@ -70,7 +74,7 @@ def generate(dir_path, f_out):  # noqa
         context_dict[taxid + '_' + side] = context
 
     f = open(f_out, 'w')
-    print('"""Start Codon Context"""\n\n', end='', file=f)
+    print('"""Start Codon Context."""\n\n', end='', file=f)
     print('contexts' + ' = ', end='', file=f)
     pprint(context_dict, f)
     f.close()

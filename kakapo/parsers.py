@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 """Parsers."""
 
 import csv
@@ -6,7 +7,7 @@ import csv
 from xml.etree import ElementTree
 
 
-def parse_esummary_xml_text(esummary_xml_text):  # noqa
+def parse_esummary_xml_text(esummary_xml_text):
     root = ElementTree.fromstring(esummary_xml_text)
 
     return_value = list()
@@ -28,7 +29,7 @@ def parse_esummary_xml_text(esummary_xml_text):  # noqa
     return return_value
 
 
-def parse_efetch_sra_csv_text(efetch_sra_csv_text):  # noqa
+def parse_efetch_sra_csv_text(efetch_sra_csv_text):
     return list(csv.DictReader(efetch_sra_csv_text.splitlines()))
 
 

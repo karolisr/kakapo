@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
-"""Trimmomatic"""
+"""Trimmomatic."""
 
 from kakapo.shell import call
 
 
 def trimmomatic_se(trimmomatic, adapters, in_file, out_file, stats_file,
-                   threads, minlen):  # noqa
+                   threads, minlen):
 
     cmd = ['java', '-jar', trimmomatic, 'SE', '-threads', str(threads),
            '-phred33',
@@ -23,7 +23,7 @@ def trimmomatic_se(trimmomatic, adapters, in_file, out_file, stats_file,
 def trimmomatic_pe(trimmomatic, adapters, in_file_1, in_file_2,
                    out_file_paired_1, out_file_unpaired_1,
                    out_file_paired_2, out_file_unpaired_2,
-                   stats_file, threads, minlen):  # noqa
+                   stats_file, threads, minlen):
 
     cmd = ['java', '-jar', trimmomatic, 'PE', '-threads', str(threads),
            '-phred33',

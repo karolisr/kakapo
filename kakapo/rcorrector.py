@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
-"""rcorrector"""
+"""rcorrector."""
 
 from kakapo.helpers import grouper
 from kakapo.helpers import plain_or_gzip
 from kakapo.shell import call
 
 
-def run_rcorrector_se(rcorrector, in_file, out_dir, threads, dir_temp):  # noqa
+def run_rcorrector_se(rcorrector, in_file, out_dir, threads, dir_temp):
 
     cmd = [rcorrector,
            '-t', str(threads),
@@ -19,7 +19,7 @@ def run_rcorrector_se(rcorrector, in_file, out_dir, threads, dir_temp):  # noqa
 
 
 def run_rcorrector_pe(rcorrector, in_file_1, in_file_2, out_dir, threads,
-                      dir_temp):  # noqa
+                      dir_temp):
 
     cmd = [rcorrector,
            '-t', str(threads),
@@ -37,7 +37,7 @@ def run_rcorrector_pe(rcorrector, in_file_1, in_file_2, out_dir, threads,
 # https://github.com/harvardinformatics/TranscriptomeAssemblyTools
 
 
-def filter_unc_se(in_file, out_file, log_file=None):  # noqa
+def filter_unc_se(in_file, out_file, log_file=None):
 
     r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(in_file)
 
@@ -81,7 +81,7 @@ def filter_unc_se(in_file, out_file, log_file=None):  # noqa
                 counter - unc_count, ((counter - unc_count) / counter) * 100))
 
 
-def filter_unc_pe(in_file_1, in_file_2, out_file_1, out_file_2, log_file=None):  # noqa
+def filter_unc_pe(in_file_1, in_file_2, out_file_1, out_file_2, log_file=None):
 
     r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(in_file_1)
 

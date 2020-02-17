@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 
-"""
-Basic input/output operations.
-"""
+"""Basic input/output operations."""
 
 import fileinput
 import gzip
 import hashlib
 import os
+import pprint
 import sys
 
 from datetime import datetime
@@ -21,9 +20,7 @@ from kakapo.http_k import download_file as download_file_http
 
 
 def python_version():
-    """
-    Determine the Python version.
-    """
+    """Determine the Python version."""
     py_v_hex = sys.hexversion
 
     py_v_1 = sys.version_info[0]
@@ -35,17 +32,16 @@ def python_version():
     return py_v_hex, py_v_str
 
 
-def debug_print(msg=''): # noqa
+def debug_print(msg=''):
     from kakapo.config import DEBUG_MODE
     if DEBUG_MODE:
-        import pprint
         PP = pprint.PrettyPrinter(indent=1, width=110, compact=True)
         PP.pprint(msg)
     else:
         pass
 
 
-def replace_line_in_file(file_path, line_str, replace_str):  # noqa
+def replace_line_in_file(file_path, line_str, replace_str):
     for line in fileinput.input(file_path, inplace=1):
         line_strip = line.strip('\n ')
         if line_strip == line_str:
@@ -54,13 +50,13 @@ def replace_line_in_file(file_path, line_str, replace_str):  # noqa
             print(line.strip('\n'))
 
 
-def make_dir(path):  # noqa
+def make_dir(path):
     if not os.path.exists(path):
         os.makedirs(path)
     return path
 
 
-def list_of_dirs(path, linfo=print):  # noqa
+def list_of_dirs(path, linfo=print):
     try:
         ld = [x for x in os.listdir(path) if os.path.isdir(
             os.path.join(path, x))]
@@ -69,7 +65,7 @@ def list_of_dirs(path, linfo=print):  # noqa
     return ld
 
 
-def list_of_files(path, linfo=print):  # noqa
+def list_of_files(path, linfo=print):
     try:
         lf = [x for x in os.listdir(path) if os.path.isfile(
             os.path.join(path, x))]
@@ -78,14 +74,14 @@ def list_of_files(path, linfo=print):  # noqa
     return lf
 
 
-def generate_md5_hash_for_file(file_path):  # noqa
+def generate_md5_hash_for_file(file_path):
     return_value = None
     with open(file_path, 'rb') as f:
         return_value = hashlib.md5(f.read()).hexdigest()
     return return_value
 
 
-def extract_md5_hash(file_path):  # noqa
+def extract_md5_hash(file_path):
     md5_reported = None
     with open(file_path, 'r') as f_md5:
         line = f_md5.readline()
@@ -93,7 +89,7 @@ def extract_md5_hash(file_path):  # noqa
     return md5_reported
 
 
-def unique_lines_in_file(path):  # noqa
+def unique_lines_in_file(path):
     with open(path, 'r') as f:
         x = f.readlines()
     x = list(set(x))
@@ -101,13 +97,13 @@ def unique_lines_in_file(path):  # noqa
     return x
 
 
-def keep_unique_lines_in_file(path):  # noqa
+def keep_unique_lines_in_file(path):
     x = unique_lines_in_file(path)
     with open(path, 'w') as f:
         f.write(''.join(x))
 
 
-def combine_text_files(paths, out_path):  # noqa
+def combine_text_files(paths, out_path):
     ret = ''
     for p in paths:
         with open(p, 'r') as f:
@@ -118,7 +114,7 @@ def combine_text_files(paths, out_path):  # noqa
         f.write(ret)
 
 
-def sys_ram(os_id):  # noqa
+def sys_ram(os_id):
     ram_b = 0
     try:
         page_size = os.sysconf('SC_PAGE_SIZE')
@@ -128,6 +124,7 @@ def sys_ram(os_id):  # noqa
         ram_b = os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES')
 
     except ValueError:
+
         if os_id == 'mac':
             ram_b = int(float(os.popen("sysctl hw.memsize").readlines()[0].split()[1]))
         elif os_id == 'linux':
@@ -140,11 +137,11 @@ def sys_ram(os_id):  # noqa
     return ram_g
 
 
-def time_stamp():  # noqa
+def time_stamp():
     return datetime.now().strftime(format='%Y%m%d%H%M%S')
 
 
-def overlap(a, b):  # noqa
+def overlap(a, b):
     a = sorted(a)
     b = sorted(b)
     ab = tuple(sorted((a, b), key=itemgetter(0)))
@@ -157,7 +154,7 @@ def overlap(a, b):  # noqa
     return overlap
 
 
-def download_file(url, local_path, protocol='http'):  # noqa
+def download_file(url, local_path, protocol='http'):
     assert protocol in ('http', 'ftp')
 
     if protocol == 'http':
@@ -177,9 +174,9 @@ def download_file(url, local_path, protocol='http'):  # noqa
 
 def splitext_gz(path):
     """
-    Split extension for files that may have a double extension: x.y.(gz|gzip)
+    Split extension for files that may have a double extension: x.y.(gz|gzip).
 
-    Return ('x', '.y', '.(gz|gzip)')
+    Returns ('x', '.y', '.(gz|gzip)').
     """
     ext = splitext(path)
     ext_gz = None
@@ -200,7 +197,7 @@ def _gzip_open(filename, mode='rt', compresslevel=5, encoding=None,
     return gzip.open(filename, mode, compresslevel, encoding, errors, newline)
 
 
-def plain_or_gzip(in_file):  # noqa
+def plain_or_gzip(in_file):
     read_mode = 'r'
     write_mode = 'w'
     append_mode = 'a'
@@ -233,7 +230,7 @@ def grouper(iterable, n, fillvalue=None):
     return zip_longest(fillvalue=fillvalue, *args)
 
 
-def split_mixed_fq(in_file, out_file_1, out_file_2):  # noqa
+def split_mixed_fq(in_file, out_file_1, out_file_2):
 
     r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(in_file)
 
@@ -250,7 +247,7 @@ def split_mixed_fq(in_file, out_file_1, out_file_2):  # noqa
                 out_f_2.write('{}\n'.format(entry_str))
 
 
-def split_seq_defn_for_printing(defn):  # noqa
+def split_seq_defn_for_printing(defn):
     defn_split = defn.split(' ')
     defn_a = defn_split[0]
     defn_b = ' '.join(defn_split[1:]).split('|')[0]

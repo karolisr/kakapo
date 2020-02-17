@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""
-EMBL-EBI Search
-"""
+"""EMBL-EBI Search."""
 
 import csv
 
@@ -68,7 +66,7 @@ def _ebi_search_paged_get(url, params, page_size, data_key,
     return data
 
 
-def pfam_entry(query, fields=()): # noqa
+def pfam_entry(query, fields=()):
 
     params = {'query': query,
               'fields': ','.join(fields)}
@@ -80,7 +78,7 @@ def pfam_entry(query, fields=()): # noqa
     return response
 
 
-def pfam_seqs(query, fields=('NCBI_TAXID', 'UNIPROTKB')): # noqa
+def pfam_seqs(query, fields=('NCBI_TAXID', 'UNIPROTKB')):
 
     params = {'query': query,
               'fields': ','.join(fields)}
@@ -93,13 +91,13 @@ def pfam_seqs(query, fields=('NCBI_TAXID', 'UNIPROTKB')): # noqa
     return response
 
 
-def pfam_tax_prot_ids(pfam_seqs_list): # noqa
+def pfam_tax_prot_ids(pfam_seqs_list):
     txids = [int(x['NCBI_TAXID']) for x in pfam_seqs_list]
     prids = [x['UNIPROTKB'] for x in pfam_seqs_list]
     return {'tax_ids': txids, 'uniprot_ids': prids}
 
 
-def prot_ids_for_tax_ids(pfam_seqs_list, tax_ids): # noqa
+def prot_ids_for_tax_ids(pfam_seqs_list, tax_ids):
     if type(tax_ids) not in (list, tuple, set):
         tax_ids = [int(tax_ids), ]
 

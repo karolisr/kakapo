@@ -19,7 +19,7 @@ from kakapo.helpers import split_seq_defn_for_printing as split_seq_defn
 
 
 def run_inter_pro_scan(ss, assemblies, email, dir_prj_ips, dir_cache_prj,
-                       linfo=print):  # noqa
+                       linfo=print):
     delay = 0.25
 
     if len(assemblies) > 0:

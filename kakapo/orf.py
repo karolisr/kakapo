@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""ORF Finder"""
+"""ORF related code."""
 
 from functools import partial, reduce
 from itertools import accumulate, chain, compress, dropwhile, groupby, starmap
@@ -14,24 +14,22 @@ CONTEXT_NT_CODES = str.maketrans('ACGTUBDHKMNRSVWY', '0123344444444444')
 
 
 def get_codons(seq):
-    """
-    Split seq into codons.
-    """
+    """Split seq into codons."""
     reduce_add = partial(reduce, add)
     return tuple(map(reduce_add, zip(*[iter(seq)] * 3)))
 
 
-def separate_stop_codons(codons, stop_codons):  # noqa
+def separate_stop_codons(codons, stop_codons):
     test = partial(contains, stop_codons)
     return tuple(tuple(v) for k, v in groupby(codons, test))
 
 
-def keep_orf_codons(sep_codons, start_codons):  # noqa
+def keep_orf_codons(sep_codons, start_codons):
     test = partial(lambda *x: not_(contains(*x)), start_codons)
     return tuple(map(lambda x: tuple(dropwhile(test, x)), sep_codons))
 
 
-def get_orf_coords(seq, start_codons, stop_codons):  # noqa
+def get_orf_coords(seq, start_codons, stop_codons):
     sep_codons = separate_stop_codons(get_codons(seq), stop_codons)
 
     orf_len = tuple(map(len, keep_orf_codons(sep_codons, start_codons)))
@@ -45,7 +43,7 @@ def get_orf_coords(seq, start_codons, stop_codons):  # noqa
 
 
 def get_orf_coords_for_forward_frame(seq, start_codons, stop_codons,
-                                     min_len=100, frame=1):  # noqa
+                                     min_len=100, frame=1):
     assert type(frame) is int
     assert frame >= 1
     if len(seq) < min_len:
@@ -66,7 +64,7 @@ def get_orf_coords_for_forward_frame(seq, start_codons, stop_codons,
 
 
 def get_orf_coords_for_frames(seq, start_codons, stop_codons, min_len=100,
-                              frames=(-3, -2, -1, 1, 2, 3)):  # noqa
+                              frames=(-3, -2, -1, 1, 2, 3)):
 
     valid_frames = {-3, -2, -1, 1, 2, 3}
     assert valid_frames | set(frames) == valid_frames
@@ -92,13 +90,13 @@ def get_orf_coords_for_frames(seq, start_codons, stop_codons, min_len=100,
     return results
 
 
-def geometric_mean(x):  # noqa
+def geometric_mean(x):
     x = tuple(x)
     y = reduce(mul, map(lambda i: 1 + i, x), 1)
     return (y ** (1 / len(x))) - 1
 
 
-def start_codon_score_partial(seq, context):  # noqa
+def start_codon_score_partial(seq, context):
     size = min(len(seq), len(context))
     if size == 0:
         return 0
@@ -112,7 +110,7 @@ def start_codon_score_partial(seq, context):  # noqa
     return score / max_score
 
 
-def start_codon_score(seq, idx, context_l, context_r):  # noqa
+def start_codon_score(seq, idx, context_l, context_r):
     seq_l = seq[0:idx:][::-1]
     seq_r = seq[idx + 3:]
     q_l = start_codon_score_partial(seq_l, context_l)
@@ -123,7 +121,7 @@ def start_codon_score(seq, idx, context_l, context_r):  # noqa
 
 
 def find_orf_for_blast_hit(seq, frame, hit_start, hit_end, start_codons,
-                           stop_codons, context_l, context_r, min_overlap):  # noqa
+                           stop_codons, context_l, context_r, min_overlap):
 
     assert type(frame) is int
 

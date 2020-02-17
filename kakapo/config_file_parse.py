@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""
-Parse kakapo project configuration (.ini) file
-"""
+"""Parse kakapo project configuration (.ini) file."""
 
 import datetime
 import re
@@ -34,7 +32,7 @@ def _parse_taxa(taxa, tax_group, taxonomy, config_file_path, linfo=print):
         if tax.isdigit():
             txids.append(int(tax))
         else:
-            tax_orig = tax
+            # tax_orig = tax
             txid = taxonomy.tax_id_for_name_and_group_tax_id(
                 name=tax, group_tax_id=tax_group)
 
@@ -84,7 +82,7 @@ def _parse_pfam(pfam_entries, config_file_path):
     return pfam_acc
 
 
-def ss_file_parse(file_path, linfo=print):  # noqa
+def ss_file_parse(file_path, linfo=print):
 
     linfo('Reading search strategies file: ' + file_path)
 
@@ -203,7 +201,7 @@ def ss_file_parse(file_path, linfo=print):  # noqa
     return ret_dict
 
 
-def config_file_parse(file_path, taxonomy, linfo=print):  # noqa
+def config_file_parse(file_path, taxonomy, linfo=print):
 
     linfo('Reading configuration file: ' + file_path)
 

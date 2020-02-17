@@ -30,7 +30,7 @@ from kakapo.vsearch import run_cluster_fast
 
 
 def pfam_uniprot_accessions(ss, pfam_acc, tax_ids, dir_cache_pfam_acc,
-                            linfo=print):  # noqa
+                            linfo=print):
     if len(pfam_acc) > 0:
         linfo('Downloading UniProt accessions for Pfam accessions [' + ss + ']')
     pfam_seqs_list = []
@@ -56,7 +56,7 @@ def pfam_uniprot_accessions(ss, pfam_acc, tax_ids, dir_cache_pfam_acc,
 
 
 def dnld_pfam_uniprot_seqs(ss, uniprot_acc, aa_uniprot_file, dir_cache_prj,
-                           linfo=print):  # noqa
+                           linfo=print):
     if len(uniprot_acc) != 0:
         __ = opj(dir_cache_prj, 'aa_uniprot_acc_cache__' + ss)
         prev_uniprot_acc = []
@@ -86,7 +86,7 @@ def dnld_pfam_uniprot_seqs(ss, uniprot_acc, aa_uniprot_file, dir_cache_prj,
 
 
 def user_entrez_search(ss, queries, dir_cache_prj, ncbi_longevity,
-                       linfo=print):  # noqa
+                       linfo=print):
     dnld_needed = True
     accs = []
     if len(queries) != 0:
@@ -122,7 +122,7 @@ def user_entrez_search(ss, queries, dir_cache_prj, ncbi_longevity,
 
 
 def user_protein_accessions(ss, prot_acc_user, dir_cache_prj, taxonomy,
-                            linfo=print):  # noqa
+                            linfo=print):
     if len(prot_acc_user) > 0:
         linfo('Reading user provided protein accessions [' + ss + ']')
         pickle_file = opj(dir_cache_prj, 'ncbi_prot_metadata_cache__' + ss)
@@ -174,7 +174,7 @@ def user_protein_accessions(ss, prot_acc_user, dir_cache_prj, taxonomy,
         return prot_acc_user
 
 
-def dnld_prot_seqs(ss, prot_acc_user, aa_prot_ncbi_file, linfo=print):  # noqa
+def dnld_prot_seqs(ss, prot_acc_user, aa_prot_ncbi_file, linfo=print):
     if len(prot_acc_user) != 0:
         acc_old = set()
         if ope(aa_prot_ncbi_file):
@@ -217,7 +217,7 @@ def dnld_prot_seqs(ss, prot_acc_user, aa_prot_ncbi_file, linfo=print):  # noqa
     return prot_acc_user
 
 
-def user_aa_fasta(ss, user_queries, aa_prot_user_file, linfo=print):  # noqa
+def user_aa_fasta(ss, user_queries, aa_prot_user_file, linfo=print):
     _ = ''
     if len(user_queries) > 0:
         linfo('Reading user provided AA sequences [' + ss + ']')
@@ -230,7 +230,7 @@ def user_aa_fasta(ss, user_queries, aa_prot_user_file, linfo=print):  # noqa
             f.write(standardize_fasta_text(_))
 
 
-def combine_aa_fasta(ss, fasta_files, aa_queries_file, linfo=print):  # noqa
+def combine_aa_fasta(ss, fasta_files, aa_queries_file, linfo=print):
     linfo('Combining all AA query sequences [' + ss + ']')
     _ = ''
     for fasta_file in fasta_files:
@@ -248,7 +248,7 @@ def combine_aa_fasta(ss, fasta_files, aa_queries_file, linfo=print):  # noqa
 
 def filter_queries(ss, aa_queries_file, min_query_length,
                    max_query_length, max_query_identity, vsearch,
-                   prot_acc_user, overwrite, linfo=print): # noqa
+                   prot_acc_user, overwrite, linfo=print):
     _ = ''
     with open(aa_queries_file, 'r') as f:
         _ = f.read()

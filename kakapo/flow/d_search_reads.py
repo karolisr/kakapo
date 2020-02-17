@@ -21,7 +21,7 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                          blast_1_qcov_hsp_perc, blast_1_best_hit_overhang,
                          blast_1_best_hit_score_edge, blast_1_max_target_seqs,
                          dir_blast_results_fa_trim, fpatt, ss, threads,
-                         seqtk, vsearch, linfo=print): # noqa
+                         seqtk, vsearch, linfo=print):
 
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
 
@@ -146,7 +146,7 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
 
 def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
                          dir_vsearch_results_fa_trim, fpatt, ss, seqtk,
-                         linfo=print): # noqa
+                         linfo=print):
 
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
         if vsearch is None:
