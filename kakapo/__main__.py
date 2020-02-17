@@ -27,6 +27,7 @@ from ncbi_taxonomy_local import taxonomy
 
 from kakapo import __version__, __script_name__
 from kakapo import dependencies as deps
+
 from kakapo.config import CONYELL, CONSDFL
 from kakapo.config import DIR_CFG, DIR_DEP, DIR_TAX, DIR_KRK
 from kakapo.config import MT_PT_KRKN_DB
@@ -38,36 +39,42 @@ from kakapo.helpers import make_dir
 from kakapo.helpers import time_stamp
 from kakapo.logging_k import prepare_logger
 from kakapo.translation_tables import TranslationTable
-from kakapo.workflow_00_prepare import prepare_output_directories
-from kakapo.workflow_01_process_queries import combine_aa_fasta
-from kakapo.workflow_01_process_queries import dnld_pfam_uniprot_seqs
-from kakapo.workflow_01_process_queries import dnld_prot_seqs
-from kakapo.workflow_01_process_queries import filter_queries
-from kakapo.workflow_01_process_queries import pfam_uniprot_accessions
-from kakapo.workflow_01_process_queries import user_aa_fasta
-from kakapo.workflow_01_process_queries import user_entrez_search
-from kakapo.workflow_01_process_queries import user_protein_accessions
-from kakapo.workflow_02_process_reads import dnld_sra_fastq_files
-from kakapo.workflow_02_process_reads import dnld_sra_info
-from kakapo.workflow_02_process_reads import file_name_patterns
-from kakapo.workflow_02_process_reads import filtered_fq_to_fa
-from kakapo.workflow_02_process_reads import makeblastdb_fq
-from kakapo.workflow_02_process_reads import min_accept_read_len
-from kakapo.workflow_02_process_reads import run_bt2_fq
-from kakapo.workflow_02_process_reads import run_kraken2
-from kakapo.workflow_02_process_reads import run_rcorrector
-from kakapo.workflow_02_process_reads import run_trimmomatic
-from kakapo.workflow_02_process_reads import user_fastq_files
-from kakapo.workflow_03_search_reads import run_tblastn_on_reads
-from kakapo.workflow_03_search_reads import run_vsearch_on_reads
-from kakapo.workflow_04_assemble_reads import combine_assemblies
-from kakapo.workflow_04_assemble_reads import makeblastdb_assemblies
-from kakapo.workflow_04_assemble_reads import run_spades
-from kakapo.workflow_05_search_assemblies import run_tblastn_on_assemblies
-from kakapo.workflow_06_find_orfs import find_orfs_translate
-from kakapo.workflow_07_produce_gff_files import gff_from_json
-from kakapo.workflow_08_run_inter_pro_scan import run_inter_pro_scan
-from kakapo.workflow_09_dnld_cds_for_aa_queries import dnld_cds_for_ncbi_prot_acc
+
+from kakapo.flow.a_prepare import prepare_output_directories
+
+from kakapo.flow.b_process_queries import combine_aa_fasta
+from kakapo.flow.b_process_queries import dnld_pfam_uniprot_seqs
+from kakapo.flow.b_process_queries import dnld_prot_seqs
+from kakapo.flow.b_process_queries import filter_queries
+from kakapo.flow.b_process_queries import pfam_uniprot_accessions
+from kakapo.flow.b_process_queries import user_aa_fasta
+from kakapo.flow.b_process_queries import user_entrez_search
+from kakapo.flow.b_process_queries import user_protein_accessions
+
+from kakapo.flow.c_process_reads import dnld_sra_fastq_files
+from kakapo.flow.c_process_reads import dnld_sra_info
+from kakapo.flow.c_process_reads import file_name_patterns
+from kakapo.flow.c_process_reads import filtered_fq_to_fa
+from kakapo.flow.c_process_reads import makeblastdb_fq
+from kakapo.flow.c_process_reads import min_accept_read_len
+from kakapo.flow.c_process_reads import run_bt2_fq
+from kakapo.flow.c_process_reads import run_kraken2
+from kakapo.flow.c_process_reads import run_rcorrector
+from kakapo.flow.c_process_reads import run_trimmomatic
+from kakapo.flow.c_process_reads import user_fastq_files
+
+from kakapo.flow.d_search_reads import run_tblastn_on_reads
+from kakapo.flow.d_search_reads import run_vsearch_on_reads
+
+from kakapo.flow.e_process_assmbl import combine_assemblies
+from kakapo.flow.e_process_assmbl import makeblastdb_assemblies
+from kakapo.flow.e_process_assmbl import run_spades
+
+from kakapo.flow.f_search_assmbl import run_tblastn_on_assemblies
+from kakapo.flow.g_find_orfs import find_orfs_translate
+from kakapo.flow.h_prepare_gff import gff_from_json
+from kakapo.flow.i_inter_pro_scan import run_inter_pro_scan
+from kakapo.flow.j_dnld_aa_query_cds import dnld_cds_for_ncbi_prot_acc
 
 # Command line arguments -----------------------------------------------------
 USAGE = '{} --cfg path/to/config_file ' \
