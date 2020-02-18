@@ -448,17 +448,41 @@ def main():
     pe_fastq_files = pe_fastq_files_sra.copy()
     pe_fastq_files.update(pe_fastq_files_usr)
 
-    for se in se_fastq_files:
-        taxid = se_fastq_files[se]['tax_id']
+    def gc_tt(k, d, tax):
+        taxid = d[k]['tax_id']
+
         gc = tax.genetic_code_for_taxid(taxid)
-        se_fastq_files[se]['gc_id'] = gc
-        se_fastq_files[se]['gc_tt'] = TranslationTable(gc)
+
+        d[k]['gc_id'] = gc
+        d[k]['gc_tt'] = TranslationTable(gc)
+
+        gc_mito = None
+        tt_mito = None
+
+        gc_plastid = None
+        tt_plastid = None
+
+        if tax.is_eukaryote(taxid) is True:
+            gc_mito = tax.mito_genetic_code_for_taxid(taxid)
+            if gc_mito != '0':
+                tt_mito = TranslationTable(gc_mito)
+
+            if tax.contains_plastid(taxid) is True:
+                gc_plastid = tax.plastid_genetic_code_for_taxid(taxid)
+                if gc_plastid != '0':
+                    tt_plastid = TranslationTable(gc_plastid)
+
+        d[k]['gc_id_mito'] = gc_mito
+        d[k]['gc_tt_mito'] = tt_mito
+
+        d[k]['gc_id_plastid'] = gc_plastid
+        d[k]['gc_tt_plastid'] = tt_plastid
+
+    for se in se_fastq_files:
+        gc_tt(se, se_fastq_files, tax)
 
     for pe in pe_fastq_files:
-        taxid = pe_fastq_files[pe]['tax_id']
-        gc = tax.genetic_code_for_taxid(taxid)
-        pe_fastq_files[pe]['gc_id'] = gc
-        pe_fastq_files[pe]['gc_tt'] = TranslationTable(gc)
+        gc_tt(pe, pe_fastq_files, tax)
 
     # Minimum acceptable read length -----------------------------------------
     min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
@@ -586,6 +610,7 @@ def main():
 
         min_target_orf_len_ss = sss[ss]['min_target_orf_length']
         max_target_orf_len_ss = sss[ss]['max_target_orf_length']
+        organelle = sss[ss]['organelle']
 
         blast_2_qcov_hsp_perc_ss = sss[ss]['blast_2_qcov_hsp_perc']
 
@@ -597,7 +622,7 @@ def main():
                             max_target_orf_len_ss, allow_non_aug,
                             allow_no_strt_cod,
                             allow_no_stop_cod, tax, tax_group, tax_ids_user,
-                            blast_2_qcov_hsp_perc_ss, linfo)
+                            blast_2_qcov_hsp_perc_ss, organelle, linfo)
 
     # GFF3 files from kakapo results JSON files ------------------------------
     for ss in sss:

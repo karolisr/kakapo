@@ -98,7 +98,8 @@ def ss_file_parse(file_path, linfo=print):
               file_path)
         exit(1)
 
-    required_options = set(('min_query_length',
+    required_options = set(('organelle',
+                            'min_query_length',
                             'max_query_length',
                             'max_query_identity',
                             'min_target_orf_length',
@@ -114,8 +115,15 @@ def ss_file_parse(file_path, linfo=print):
 
         if not required_options <= set(o):
             missing = required_options - (required_options & set(o))
-            print('Missing required option(s):', ', '.join(missing),
+            linfo('Missing required option(s):', ', '.join(missing),
                   'for search strategy', s + '.')
+            exit(1)
+
+        organelle = cfg[s]['organelle']
+
+        if organelle not in ('nucleus', 'plastid', 'mitochondrion'):
+            linfo('Organelle "' + organelle + '" should be one of: ' +
+                  'nucleus, plastid, or mitochondrion.')
             exit(1)
 
         min_query_length = int(cfg[s]['min_query_length'])
@@ -180,7 +188,8 @@ def ss_file_parse(file_path, linfo=print):
             fasta_files_aa = sorted(fasta_files_aa)
 
         section_dict = OrderedDict(
-            {'min_query_length': min_query_length,
+            {'organelle': organelle,
+             'min_query_length': min_query_length,
              'max_query_length': max_query_length,
              'max_query_identity': max_query_identity,
              'min_target_orf_length': min_target_orf_length,

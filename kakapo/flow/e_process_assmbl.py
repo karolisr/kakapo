@@ -116,6 +116,11 @@ def combine_assemblies(se_fastq_files, pe_fastq_files, user_assemblies, tax,
             a['tax_id'] = se_fastq_files[se]['tax_id']
             a['gc_id'] = se_fastq_files[se]['gc_id']
             a['gc_tt'] = se_fastq_files[se]['gc_tt']
+            a['gc_id_mito'] = se_fastq_files[se]['gc_id_mito']
+            a['gc_tt_mito'] = se_fastq_files[se]['gc_tt_mito']
+            a['gc_id_plastid'] = se_fastq_files[se]['gc_id_plastid']
+            a['gc_tt_plastid'] = se_fastq_files[se]['gc_tt_plastid']
+
             assemblies.append(a)
 
         for pe in pe_fastq_files:
@@ -129,6 +134,11 @@ def combine_assemblies(se_fastq_files, pe_fastq_files, user_assemblies, tax,
             a['tax_id'] = pe_fastq_files[pe]['tax_id']
             a['gc_id'] = pe_fastq_files[pe]['gc_id']
             a['gc_tt'] = pe_fastq_files[pe]['gc_tt']
+            a['gc_id_mito'] = pe_fastq_files[pe]['gc_id_mito']
+            a['gc_tt_mito'] = pe_fastq_files[pe]['gc_tt_mito']
+            a['gc_id_plastid'] = pe_fastq_files[pe]['gc_id_plastid']
+            a['gc_tt_plastid'] = pe_fastq_files[pe]['gc_tt_plastid']
+
             assemblies.append(a)
 
     for us in user_assemblies:
@@ -141,6 +151,30 @@ def combine_assemblies(se_fastq_files, pe_fastq_files, user_assemblies, tax,
         a['tax_id'] = us[0]
         a['gc_id'] = gc
         a['gc_tt'] = TranslationTable(gc)
+
+        # TODO: Refactor this with the code from __main__.py -----------------
+        gc_mito = None
+        tt_mito = None
+
+        gc_plastid = None
+        tt_plastid = None
+
+        if tax.is_eukaryote(a['tax_id']) is True:
+            gc_mito = tax.mito_genetic_code_for_taxid(a['tax_id'])
+            if gc_mito != '0':
+                tt_mito = TranslationTable(gc_mito)
+
+            if tax.contains_plastid(a['tax_id']) is True:
+                gc_plastid = tax.plastid_genetic_code_for_taxid(a['tax_id'])
+                if gc_plastid != '0':
+                    tt_plastid = TranslationTable(gc_plastid)
+
+        a['gc_id_mito'] = gc_mito
+        a['gc_tt_mito'] = tt_mito
+        a['gc_id_plastid'] = gc_plastid
+        a['gc_tt_plastid'] = tt_plastid
+        # --------------------------------------------------------------------
+
         assemblies.append(a)
 
     assemblies = sorted(assemblies, key=itemgetter('name'), reverse=False)

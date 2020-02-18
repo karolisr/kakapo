@@ -23,7 +23,7 @@ def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,
                         dir_temp, prepend_assmbl, min_target_orf_len,
                         max_target_orf_len, allow_non_aug, allow_no_strt_cod,
                         allow_no_stop_cod, tax, tax_group, tax_ids_user,
-                        min_overlap, linfo=print):
+                        min_overlap, organelle, linfo=print):
 
     if len(assemblies) > 0:
         linfo('Analyzing BLAST hits for assemblies [' + ss + ']')
@@ -43,7 +43,14 @@ def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,
         parsed_hits = a['blast_hits_aa__' + ss]
 
         a_path = a['path']
+
         gc_tt = a['gc_tt']
+        if tax.is_eukaryote(tax_id) is True:
+            if organelle == 'mitochondrion':
+                gc_tt = a['gc_tt_mito']
+            if tax.contains_plastid(tax_id) is True:
+                if organelle == 'plastid':
+                    gc_tt = a['gc_tt_plastid']
 
         transcripts_nt_fasta_file = opj(
             dir_prj_transcripts, assmbl_name + '_transcripts_nt__' + ss + '.fasta')

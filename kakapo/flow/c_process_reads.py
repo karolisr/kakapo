@@ -591,7 +591,8 @@ def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
             linfo('kraken2 is not available. ' +
                   'Cannot continue. Exiting.')
             exit(0)
-    nuclear = ''
+
+    nuclear = None
     for nuc in order:
         if nuc[1] == 'nuclear':
             nuclear = nuc[0]
@@ -605,7 +606,12 @@ def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
             continue
 
         dir_fq_filter_data_sample = opj(dir_fq_filter_data, se)
-        out_f = opj(dir_fq_filter_data_sample, nuclear, se + '.fastq')
+
+        if nuclear is None:
+            out_f = opj(dir_fq_filter_data_sample, se + '.fastq')
+        else:
+            out_f = opj(dir_fq_filter_data_sample, nuclear, se + '.fastq')
+
         se_fastq_files[se]['filter_path_fq'] = out_f
         if ope(dir_fq_filter_data_sample):
             linfo('Kraken2 filtered FASTQ file for sample ' + se +
@@ -633,7 +639,12 @@ def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
             continue
 
         dir_fq_filter_data_sample = opj(dir_fq_filter_data, pe)
-        dir_name_nuclear = dir_fq_filter_data_sample + ops + nuclear
+
+        if nuclear is None:
+            dir_name_nuclear = dir_fq_filter_data_sample
+        else:
+            dir_name_nuclear = dir_fq_filter_data_sample + ops + nuclear
+
         out_fs = [x.replace('@D@', dir_name_nuclear) for x in fpatt]
         out_fs = [x.replace('@N@', pe) for x in out_fs]
         pe_fastq_files[pe]['filter_path_fq'] = out_fs
@@ -728,7 +739,7 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
                 gc = taxonomy.mito_genetic_code_for_taxid(taxid)
                 new_se_fastq_files[new_se]['gc_id'] = gc
             elif db == 'chloroplast':
-                gc = taxonomy.plastid_genetic_code()
+                gc = taxonomy.plastid_genetic_code_for_taxid(taxid)
                 new_se_fastq_files[new_se]['gc_id'] = gc
             new_se_fastq_files[new_se]['gc_tt'] = TranslationTable(gc)
             new_se_fastq_files[new_se]['filter_path_fq'] = out_f
@@ -772,7 +783,7 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
                 gc = taxonomy.mito_genetic_code_for_taxid(taxid)
                 new_pe_fastq_files[new_pe]['gc_id'] = gc
             elif db == 'chloroplast':
-                gc = taxonomy.plastid_genetic_code()
+                gc = taxonomy.plastid_genetic_code_for_taxid(taxid)
                 new_pe_fastq_files[new_pe]['gc_id'] = gc
             new_pe_fastq_files[new_pe]['gc_tt'] = TranslationTable(gc)
             new_pe_fastq_files[new_pe]['filter_path_fq'] = out_fs
