@@ -242,6 +242,8 @@ def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,
                     a['annotations__' + ss][target_name]['orf_begin'] = ann_orf_b
                     a['annotations__' + ss][target_name]['orf_end'] = ann_orf_e
                     a['annotations__' + ss][target_name]['orf_grade'] = good_orf[3]
+                    a['annotations__' + ss][target_name]['orf_tt_id'] = str(gc_tt.gc_id)
+                    a['annotations__' + ss][target_name]['orf_tt_name'] = gc_tt.gc_name
 
                     transcripts_nt_orf[target_def] = orf_seq
 
@@ -284,6 +286,8 @@ def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,
                 orf_bad_dict['orf_end'] = ann_orf_e
                 orf_bad_dict['orf_frame'] = abs(bad_orf_frame)
                 orf_bad_dict['orf_grade'] = bad_orf[3]
+                orf_bad_dict['orf_tt_id'] = str(gc_tt.gc_id)
+                orf_bad_dict['orf_tt_name'] = gc_tt.gc_name
 
                 orfs_bad_list.append(orf_bad_dict)
 

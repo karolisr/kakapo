@@ -72,13 +72,16 @@ def prepare_output_directories(dir_out, prj_name):
     dir_fq_trim_data = opj(dir_global, '03-trimmed-fq-data')
     make_dir(dir_fq_trim_data)
 
-    dir_fq_filter_data = opj(dir_global, '04-filtered-fq-data')
-    make_dir(dir_fq_filter_data)
+    dir_fq_filter_bt2_data = opj(dir_global, '04-bowtie2-filtered-fq-data')
+    make_dir(dir_fq_filter_bt2_data)
 
-    dir_fa_trim_data = opj(dir_global, '05-fa-data')
+    dir_fq_filter_krkn2_data = opj(dir_global, '05-kraken2-filtered-fq-data')
+    make_dir(dir_fq_filter_krkn2_data)
+
+    dir_fa_trim_data = opj(dir_global, '06-fa-data')
     make_dir(dir_fa_trim_data)
 
-    dir_blast_fa_trim = opj(dir_global, '06-fa-blast-db-data')
+    dir_blast_fa_trim = opj(dir_global, '07-fa-blast-db-data')
     make_dir(dir_blast_fa_trim)
 
     ret_dict = {'dir_blast_fa_trim': dir_blast_fa_trim,
@@ -91,7 +94,8 @@ def prepare_output_directories(dir_out, prj_name):
                 'dir_fq_cor_data': dir_fq_cor_data,
                 'dir_fq_data': dir_fq_data,
                 'dir_fq_trim_data': dir_fq_trim_data,
-                'dir_fq_filter_data': dir_fq_filter_data,
+                'dir_fq_filter_bt2_data': dir_fq_filter_bt2_data,
+                'dir_fq_filter_krkn2_data': dir_fq_filter_krkn2_data,
                 'dir_prj': dir_prj,
                 'dir_prj_logs': dir_prj_logs,
                 'dir_prj_assmbl_blast_results': dir_prj_assmbl_blast_results,

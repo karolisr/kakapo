@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """Kakapo main file."""
@@ -30,7 +30,6 @@ from kakapo import dependencies as deps
 
 from kakapo.config import CONYELL, CONSDFL
 from kakapo.config import DIR_CFG, DIR_DEP, DIR_TAX, DIR_KRK
-from kakapo.config import MT_PT_KRKN_DB
 from kakapo.config import SCRIPT_INFO
 from kakapo.config import THREADS, RAM
 from kakapo.config_file_parse import config_file_parse
@@ -306,6 +305,20 @@ def main():
     tax_ids_user = _['tax_ids']
     user_assemblies = _['assmbl']
 
+    # Write Kakapo version information to the output directory ---------------
+    version_file = opj(dir_out, 'kakapo_version.txt')
+    if ope(version_file):
+        with open(version_file, 'r') as f:
+            version_prev = f.read().strip()
+            if __version__ != version_prev:
+                linfo('The output directory contains data produced by a ' +
+                      'different version of Kakapo: ' + version_prev +
+                      '. Currently running version is: ' + __version__ + '. ' +
+                      'Delete "kakapo_version.txt" file if you would like to continue.')
+                exit(0)
+    with open(version_file, 'w') as f:
+        f.write(__version__)
+
     # Parse search strategies file -------------------------------------------
     sss = ss_file_parse(SS_FILE_PATH, linfo)
 
@@ -329,7 +342,8 @@ def main():
     dir_fq_data = _['dir_fq_data']
     dir_fq_cor_data = _['dir_fq_cor_data']
     dir_fq_trim_data = _['dir_fq_trim_data']
-    dir_fq_filter_data = _['dir_fq_filter_data']
+    dir_fq_filter_bt2_data = _['dir_fq_filter_bt2_data']
+    dir_fq_filter_krkn2_data = _['dir_fq_filter_krkn2_data']
     dir_fa_trim_data = _['dir_fa_trim_data']
     dir_blast_fa_trim = _['dir_blast_fa_trim']
     dir_prj_blast_results_fa_trim = _['dir_prj_blast_results_fa_trim']
@@ -506,25 +520,23 @@ def main():
                     trimmomatic, adapters, pe_trim_fq_file_patterns, THREADS,
                     linfo)
 
+    # Run Bowtie 2 -----------------------------------------------------------
+    run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_bt2_data,
+               bowtie2, bowtie2_build, THREADS, dir_temp,
+               pe_trim_fq_file_patterns, tax, dir_cache_refseqs,
+               linfo)
+
     # Run Kraken2 ------------------------------------------------------------
     run_kraken2(krkn_order, kraken2_dbs, se_fastq_files, pe_fastq_files,
-                dir_fq_filter_data, kraken_confidence, kraken2, THREADS,
+                dir_fq_filter_krkn2_data, kraken_confidence, kraken2, THREADS,
                 dir_temp, pe_trim_fq_file_patterns, linfo)
-
-    # Run Bowtie 2 -----------------------------------------------------------
-    krkn_dbs_used = [x[0] for x in krkn_order]
-    if MT_PT_KRKN_DB in krkn_dbs_used:
-        dbs = ('mitochondrion', 'chloroplast')
-        run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
-                   bowtie2, bowtie2_build, THREADS, dir_temp, MT_PT_KRKN_DB,
-                   dbs, pe_trim_fq_file_patterns, tax, dir_cache_refseqs,
-                   linfo)
 
     se_fastq_files = OrderedDict(se_fastq_files)
     pe_fastq_files = OrderedDict(pe_fastq_files)
 
     se_fastq_files = OrderedDict(sorted(se_fastq_files.items(),
                                         key=lambda x: x[1]['filter_path_fq']))
+
     pe_fastq_files = OrderedDict(sorted(pe_fastq_files.items(),
                                         key=lambda x: x[1]['filter_path_fq']))
 

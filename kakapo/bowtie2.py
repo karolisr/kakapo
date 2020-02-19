@@ -17,36 +17,43 @@ def build_bt2_index(bowtie2_build, input_files, output_path, threads):
 
 
 def run_bowtie2_se(bowtie2, input_file,
-                   output_file, sam_output_file,
+                   output_file, output_file_un, sam_output_file,
                    index, threads, dir_temp):
 
     cmd = [bowtie2, '--threads', str(threads), '--very-sensitive-local',
-           '--phred33', '--no-unal', '--no-mixed', '--no-discordant',
+           '--phred33', '--no-unal', '--no-mixed', '--no-discordant', '-a',
            '-x', index,
            '-U', input_file,
            '--al', output_file,
+           '--un', output_file_un,
            '-S', sam_output_file]
 
     call(cmd, cwd=dir_temp)
 
 
 def run_bowtie2_pe(bowtie2, input_files, paired_out_pattern,
-                   unpaired_out_1, unpaired_out_2, sam_output_file,
+                   paired_out_pattern_un,
+                   unpaired_out_1, unpaired_out_2,
+                   unpaired_out_1_un, unpaired_out_2_un, sam_output_file,
                    index, threads, dir_temp):
 
     temp_unpaired_file = opj(dir_temp, 'temp_unpaired.fastq')
+    temp_unpaired_file_un = opj(dir_temp, 'temp_unpaired_un.fastq')
 
     cmd = [bowtie2, '--threads', str(threads), '--very-sensitive-local',
-           '--phred33', '--no-unal', '--no-mixed', '--no-discordant',
+           '--phred33', '--no-unal', '--no-mixed', '--no-discordant', '-a',
            '-x', index,
            '-1', input_files[0], '-2', input_files[1],
            '-U', input_files[2] + ',' + input_files[3],
            '--al-conc', paired_out_pattern, '--al', temp_unpaired_file,
+           '--un-conc', paired_out_pattern_un, '--un', temp_unpaired_file_un,
            '-S', sam_output_file]
 
     call(cmd, cwd=dir_temp)
     split_mixed_fq(temp_unpaired_file, unpaired_out_1, unpaired_out_2)
     remove(temp_unpaired_file)
+    split_mixed_fq(temp_unpaired_file_un, unpaired_out_1_un, unpaired_out_2_un)
+    remove(temp_unpaired_file_un)
 
 
 # --threads 4

@@ -44,10 +44,6 @@ def _check_for_api_key():
     return ncbi_api_key
 
 
-term = '"RefSeq"[Keyword] AND "arabidopsis"[Primary Organism] AND "chloroplast"[filter]'
-db = 'nuccore'
-
-
 def esearch(term, db, api_key=None, ret_type='uilist'):
 
     # rettype='uilist'
@@ -142,7 +138,7 @@ def efetch(data, parser, ret_type=None, ret_mode='xml', api_key=None):
     query_keys = data['query_keys']
     web_env = data['web_env']
 
-    ret_max = 10
+    ret_max = 25
     ret_start = 0
 
     return_list = []

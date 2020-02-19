@@ -59,7 +59,7 @@ def gff_orf_blast_hit(ss, json_dict):
         entry_blast_hit['strand'] = '+'
         entry_blast_hit['phase'] = str(0)
         query_name = ann['query_name'].replace('_', ' ')
-        name = 'name=' + query_name + '; Hit frame ' + str(frame)
+        name = 'name=' + query_name + ';Hit frame ' + str(frame)
         entry_blast_hit['attributes'] = name + ';note=Merged tblastn hits;'
         gff = gff + gff_text(entry_blast_hit)
 
@@ -72,11 +72,12 @@ def gff_orf_blast_hit(ss, json_dict):
         orf_begin = ann['orf_begin']
         orf_end = ann['orf_end']
         entry_orf = entry_blast_hit
-        entry_orf['type'] = 'ORF'
+        entry_orf['type'] = 'CDS'
         entry_orf['start'] = str(orf_begin + 1)
         entry_orf['end'] = str(orf_end)
         entry_orf['score'] = str(ann['orf_grade'])
-        name = 'name=ORF frame ' + str(frame)
+        tt = 'transl_table=' + ann['orf_tt_id'] + ';transl_table_name=' + ann['orf_tt_name']
+        name = 'name=ORF frame ' + str(frame) + ';' + tt
         entry_orf['attributes'] = name
         gff = gff + gff_text(entry_orf)
 
@@ -113,7 +114,8 @@ def gff_orf_bad_blast_hit(ss, json_dict):
             entry_orf['score'] = str(bad['orf_grade'])
             entry_orf['strand'] = '+'
             entry_orf['phase'] = str(0)
-            name = 'name=ORF BAD {} frame {}'.format(i, orf_frame)
+            tt = 'transl_table=' + bad['orf_tt_id'] + ';transl_table_name=' + bad['orf_tt_name']
+            name = 'name=ORF BAD {} frame {}'.format(i, orf_frame) + ';' + tt
             entry_orf['attributes'] = name
             gff = gff + gff_text(entry_orf)
 

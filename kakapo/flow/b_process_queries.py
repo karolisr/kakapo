@@ -242,6 +242,8 @@ def combine_aa_fasta(ss, fasta_files, aa_queries_file, linfo=print):
         with open(aa_queries_file, 'w') as f:
             f.write(_)
     else:
+        # TODO: Do not exit here. Stop at the point in the workflow
+        # when the queries are actually needed.
         linfo('No queries were provided for ' + ss + '. Exiting.')
         exit(0)
 

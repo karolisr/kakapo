@@ -85,7 +85,7 @@ def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,
             make_dir(dir_out_db)
             report_file = opj(dir_out_db, base_name + '.txt')
             out_class_file = opj(dir_out_db, base_name + in_file_ext)
-            out_unclass_file = opj(dir_temp, 'zzztemp_' + db + in_file_ext)
+            out_unclass_file = opj(dir_temp, base_name + '_' + db + '_kraken2_unclassified' + in_file_ext)
 
             run_kraken_se(
                 kraken=kraken2,
@@ -106,7 +106,7 @@ def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,
         move(in_file, opj(dir_out, base_name + in_file_ext))
 
     # PE
-    elif isinstance(in_files, (list, tuple, set)):
+    elif isinstance(in_files, (list, tuple)):
 
         assert len(in_files) > 1
 
@@ -124,7 +124,7 @@ def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,
                 make_dir(dir_out_db)
                 report_file = opj(dir_out_db, base_name + '_unpaired_1.txt')
                 out_class_file = opj(dir_out_db, base_name + '_unpaired_1' + in_file_ext)
-                out_unclass_file = opj(dir_temp, 'zzztemp_' + db + in_file_ext)
+                out_unclass_file = opj(dir_temp, base_name + '_' + db + '_kraken2_unclassified' + in_file_ext)
 
                 run_kraken_se(
                     kraken=kraken2,
@@ -153,7 +153,7 @@ def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,
                 make_dir(dir_out_db)
                 report_file = opj(dir_out_db, base_name + '_unpaired_2.txt')
                 out_class_file = opj(dir_out_db, base_name + '_unpaired_2' + in_file_ext)
-                out_unclass_file = opj(dir_temp, 'zzztemp_' + db + in_file_ext)
+                out_unclass_file = opj(dir_temp, base_name + '_' + db + '_kraken2_unclassified' + in_file_ext)
 
                 run_kraken_se(
                     kraken=kraken2,
@@ -180,7 +180,7 @@ def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,
             make_dir(dir_out_db)
             report_file = opj(dir_out_db, base_name + '_paired.txt')
             out_class_file = opj(dir_out_db, base_name + '_paired#' + in_file_ext)
-            out_unclass_file = opj(dir_temp, 'zzztemp_' + db + '_paired#' + in_file_ext)
+            out_unclass_file = opj(dir_temp, base_name + '_' + db + '_kraken2_unclassified' + '_paired#' + in_file_ext)
 
             run_kraken_pe(
                 kraken=kraken2,

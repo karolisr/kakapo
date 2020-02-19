@@ -13,7 +13,9 @@ from datetime import datetime
 from ftplib import FTP
 from itertools import zip_longest
 from operator import itemgetter
+from os import remove
 from os.path import splitext
+from shutil import move
 from urllib.parse import urlparse
 
 from kakapo.http_k import download_file as download_file_http
@@ -245,6 +247,26 @@ def split_mixed_fq(in_file, out_file_1, out_file_2):
                 out_f_1.write('{}\n'.format(entry_str))
             elif ' 2:N:' in head:
                 out_f_2.write('{}\n'.format(entry_str))
+
+
+def rename_fq_seqs(in_file, prefix, suffix):
+
+    r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(in_file)
+
+    out_file_temp = in_file + '.temp'
+
+    with fqopen(in_file, r_mode) as in_f, \
+            fqopen(out_file_temp, w_mode) as out_f:
+        entries = grouper(in_f, 4)
+        for i, entry in enumerate(entries):
+            head, seq, plhld, qual = [x.strip() for x in entry]
+            head = '@' + prefix + '.' + str(i + 1) + ' ' + suffix
+            plhld = '+'
+            entry_str = '\n'.join([head, seq, plhld, qual])
+            out_f.write('{}\n'.format(entry_str))
+
+    remove(in_file)
+    move(out_file_temp, in_file)
 
 
 def split_seq_defn_for_printing(defn):
