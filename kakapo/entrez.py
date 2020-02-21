@@ -16,6 +16,7 @@ import re
 
 from io import StringIO
 from math import ceil
+from sys import exit
 from time import sleep
 from xml.etree import ElementTree
 
@@ -59,13 +60,33 @@ def esearch(term, db, api_key=None, ret_type='uilist'):
               'retmode': 'json', 'usehistory': 'y', 'api_key': api_key,
               'retmax': 0}
 
-    response = get(url, params, 'json')
-    parsed = response.json()
-    data = parsed['esearchresult']
+    retry = True
+    retry_count = 0
+    max_retries = 5
 
-    counts = [int(data['count'])]
-    query_keys = [int(data['querykey'])]
-    web_env = data['webenv']
+    while retry is True:
+
+        response = get(url, params, 'json')
+        parsed = response.json()
+        data = parsed['esearchresult']
+
+        if ('count' in data) and ('querykey' in data) and ('webenv' in data):
+            retry = False
+        elif retry_count >= max_retries:
+            retry = False
+        else:
+            retry_count += 1
+            sleep(DELAY)
+
+    try:
+        # TODO: Is this enough to handle this? Not even sure why 'count' is
+        #       sometimes missing in data.
+        counts = [int(data['count'])]
+        query_keys = [int(data['querykey'])]
+        web_env = data['webenv']
+    except Exception as e:
+        print(e)
+        exit(0)
 
     return_dict = {
         'db': db,
