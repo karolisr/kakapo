@@ -305,6 +305,17 @@ def main():
     tax_ids_user = _['tax_ids']
     user_assemblies = _['assmbl']
 
+    # Parse search strategies file -------------------------------------------
+    sss = ss_file_parse(SS_FILE_PATH, linfo)
+
+    # Create output directory ------------------------------------------------
+    if dir_out is not None:
+        if ope(dir_out):
+            linfo('Found output directory: ' + dir_out)
+        else:
+            linfo('Creating output directory: ' + dir_out)
+            make_dir(dir_out)
+
     # Write Kakapo version information to the output directory ---------------
     version_file = opj(dir_out, 'kakapo_version.txt')
     if ope(version_file):
@@ -319,17 +330,7 @@ def main():
     with open(version_file, 'w') as f:
         f.write(__version__)
 
-    # Parse search strategies file -------------------------------------------
-    sss = ss_file_parse(SS_FILE_PATH, linfo)
-
-    # Create output directory with all the subdirectories --------------------
-    if dir_out is not None:
-        if ope(dir_out):
-            linfo('Found output directory: ' + dir_out)
-        else:
-            linfo('Creating output directory: ' + dir_out)
-            make_dir(dir_out)
-
+    # Create subdirectories in the output directory --------------------------
     _ = prepare_output_directories(dir_out, prj_name)
 
     dir_temp = _['dir_temp']
