@@ -640,7 +640,9 @@ def dnld_refseqs_for_taxid(taxid, filter_term, taxonomy, dir_cache_refseqs,
             break
         else:
             linfo('No RefSeq {} sequences were found for {}.'.format(filter_term, tax_term))
-    cache_path = opj(dir_cache_refseqs, filter_term + '_' + tax_term + '.fasta')
+
+    cache_path = opj(dir_cache_refseqs, filter_term + '__' +
+                     tax_term.replace(' ', '_') + '.fasta')
     parsed_fasta_cache = {}
     if ope(cache_path):
         parsed_fasta_cache = read_fasta(cache_path, def_to_first_space=True)
