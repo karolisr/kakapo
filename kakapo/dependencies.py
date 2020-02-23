@@ -8,8 +8,11 @@ import stat
 import tarfile
 import zipfile
 
+from os import remove
 from os.path import join as opj
+from os.path import exists as ope
 from shutil import move
+from shutil import rmtree
 
 from kakapo.config import DIR_DEP, OS_ID, DIST_ID
 from kakapo.helpers import download_file
@@ -550,10 +553,17 @@ def dep_check_bowtie2(force=False, logger=print):
 
 # Rcorrector
 def dep_check_rcorrector(force=False, logger=print):
-    url = 'https://github.com/mourisl/Rcorrector/archive/master.tar.gz'
+    url = 'https://github.com/karolisr/Rcorrector/archive/master.tar.gz'
     dnld_path = opj(DIR_DEP, 'rcorrector.tar.gz')
 
     try:
+        try:
+            jellyfish = 'jellyfish'
+            call(jellyfish)
+        except Exception:
+            dir_bin = opj(DIR_DEP, rcorrector_dir_name(path=DIR_DEP))
+            jellyfish = opj(dir_bin, 'jellyfish', 'bin', 'jellyfish')
+            raise
         if force is True:
             raise
         rcorrector = 'run_rcorrector.pl'
@@ -561,11 +571,26 @@ def dep_check_rcorrector(force=False, logger=print):
     except Exception:
         try:
             dir_bin = opj(DIR_DEP, rcorrector_dir_name(path=DIR_DEP))
-            rcorrector = opj(dir_bin, 'run_rcorrector.pl')
-            call(rcorrector)
+            try:
+                rcorrector = opj(dir_bin, 'run_rcorrector.pl')
+                call(rcorrector)
+            except Exception:
+                logger('Rcorrector was not found on this system, trying to '
+                       'download.')
+                raise
+            try:
+                call(jellyfish)
+            except Exception:
+                logger('jellyfish is required by Rcorrector, but was not found. '
+                       'Trying to download and recompile Rcorrector and '
+                       'jellyfish.')
+                raise
         except Exception:
-            logger('Rcorrector was not found on this system, trying to '
-                   'download.')
+            if ope(dnld_path):
+                remove(dnld_path)
+            dir_no_rc = opj(DIR_DEP, '')
+            if dir_bin != dir_no_rc:
+                rmtree(dir_bin)
             download_file(url, dnld_path)
             tar_ref = tarfile.open(dnld_path, 'r:gz')
             tar_ref.extractall(DIR_DEP)
@@ -578,11 +603,12 @@ def dep_check_rcorrector(force=False, logger=print):
                 os.chmod(rcorrector, stat.S_IRWXU | stat.S_IRGRP |
                          stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
                 call(rcorrector)
+                call(jellyfish)
             except Exception:
                 logger('Something went wrong while trying to compile '
                        'Rcorrector.')
                 logger('Try downloading and installing it manually from: '
-                       'https://github.com/mourisl/Rcorrector')
+                       'https://github.com/karolisr/Rcorrector')
                 return None
 
     v = get_version_rcorrector(rcorrector)
@@ -633,7 +659,7 @@ def dep_check_kraken2(force=False, logger=print):
                 logger('Something went wrong while trying to compile '
                        'Kraken2.')
                 logger('Try downloading and installing it manually from: '
-                       'https://github.com/DerrickWood/kraken2')
+                       'https://github.com/karolisr/kraken2')
                 return None, None
 
     v = get_version_kraken2(kraken2)
