@@ -556,15 +556,29 @@ def main():
 
     # Run tblastn on reads ---------------------------------------------------
     for ss in sss:
-        run_tblastn_on_reads(se_fastq_files, pe_fastq_files,
-                             aa_queries_files[ss], tblastn, blast_1_evalue,
-                             blast_1_max_hsps, blast_1_qcov_hsp_perc,
-                             blast_1_best_hit_overhang,
-                             blast_1_best_hit_score_edge,
-                             blast_1_max_target_seqs,
-                             dir_prj_blast_results_fa_trim,
-                             pe_blast_results_file_patterns, ss, THREADS,
-                             seqtk, vsearch, linfo)
+        changed_blast_1 = run_tblastn_on_reads(
+            se_fastq_files, pe_fastq_files, aa_queries_files[ss], tblastn,
+            blast_1_evalue, blast_1_max_hsps, blast_1_qcov_hsp_perc,
+            blast_1_best_hit_overhang, blast_1_best_hit_score_edge,
+            blast_1_max_target_seqs, dir_prj_blast_results_fa_trim,
+            pe_blast_results_file_patterns, ss, THREADS, seqtk, vsearch,
+            dir_cache_prj, linfo)
+
+        if changed_blast_1 is True:
+            if ope(dir_prj_vsearch_results_fa_trim):
+                rmtree(dir_prj_vsearch_results_fa_trim)
+            if ope(dir_prj_spades_assemblies):
+                rmtree(dir_prj_spades_assemblies)
+            if ope(dir_prj_blast_assmbl):
+                rmtree(dir_prj_blast_assmbl)
+            if ope(dir_prj_assmbl_blast_results):
+                rmtree(dir_prj_assmbl_blast_results)
+            if ope(dir_prj_transcripts):
+                rmtree(dir_prj_transcripts)
+            if ope(dir_prj_transcripts_combined):
+                rmtree(dir_prj_transcripts_combined)
+
+    prepare_output_directories(dir_out, prj_name)
 
     # Run vsearch on reads ---------------------------------------------------
     for ss in sss:

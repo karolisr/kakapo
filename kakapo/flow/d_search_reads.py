@@ -2,13 +2,17 @@
 
 """Kakapo workflow: Search Reads."""
 
+import pickle
+
 from os import remove as osremove
 from os.path import exists as ope
 from os.path import join as opj
 from shutil import copyfile
 
+from kakapo.bioio import read_fasta
 from kakapo.blast import BLST_RES_COLS_1
 from kakapo.blast import run_blast
+from kakapo.config import PICKLE_PROTOCOL
 from kakapo.helpers import combine_text_files
 from kakapo.helpers import keep_unique_lines_in_file
 from kakapo.helpers import make_dir
@@ -21,10 +25,12 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                          blast_1_qcov_hsp_perc, blast_1_best_hit_overhang,
                          blast_1_best_hit_score_edge, blast_1_max_target_seqs,
                          dir_blast_results_fa_trim, fpatt, ss, threads,
-                         seqtk, vsearch, linfo=print):
+                         seqtk, vsearch, dir_cache_prj, linfo=print):
+
+    changed_blast_1 = False
 
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
-
+        linfo('Running BLAST on reads [' + ss + ']')
         if tblastn is None:
             linfo('tblastn is not available. ' +
                   'Cannot continue. Exiting.')
@@ -40,6 +46,24 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                   'Cannot continue. Exiting.')
             exit(0)
 
+    cache_file = opj(dir_cache_prj, 'blast_1_settings_cache__' + ss)
+
+    pickled = dict()
+    settings = {'blast_1_evalue': blast_1_evalue,
+                'blast_1_max_hsps': blast_1_max_hsps,
+                'blast_1_qcov_hsp_perc': blast_1_qcov_hsp_perc,
+                'blast_1_best_hit_overhang': blast_1_best_hit_overhang,
+                'blast_1_best_hit_score_edge': blast_1_best_hit_score_edge,
+                'blast_1_max_target_seqs': blast_1_max_target_seqs,
+                'queries': read_fasta(aa_queries_file)}
+
+    linfo('evalue: ' + str(blast_1_evalue))
+    linfo('max_hsps: ' + str(blast_1_max_hsps))
+    linfo('qcov_hsp_perc: ' + str(blast_1_qcov_hsp_perc))
+    linfo('best_hit_overhang: ' + str(blast_1_best_hit_overhang))
+    linfo('best_hit_score_edge: ' + str(blast_1_best_hit_score_edge))
+    linfo('max_target_seqs: ' + str(blast_1_max_target_seqs))
+
     ident = 0.85
 
     for se in se_fastq_files:
@@ -52,9 +76,17 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
         se_fastq_files[se]['blast_results_path' + '__' + ss] = out_f_fasta
         genetic_code = se_fastq_files[se]['gc_id']
 
-        if ope(out_f_fasta):
-            linfo('BLAST results for sample ' + se + ' already exists [' + ss + ']')
+        if ope(out_f_fasta) and ope(cache_file):
+            with open(cache_file, 'rb') as f:
+                pickled = pickle.load(f)
+
+        if ope(out_f_fasta) and pickled == settings:
+            linfo('The provided BLAST settings and query sequences did not ' +
+                  'change since the previous run. BLAST results for ' +
+                  'sample "' + se + '" already exist [' + ss + ']')
+
         else:
+            changed_blast_1 = True
             make_dir(dir_results)
             linfo('Running tblastn on: ' + blast_db_path + ' [' + ss + ']')
             run_blast(exec_file=tblastn,
@@ -100,9 +132,17 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
         pe_fastq_files[pe]['blast_results_path' + '__' + ss] = out_f_fasta
         genetic_code = pe_fastq_files[pe]['gc_id']
 
-        if ope(out_f_fasta):
-            linfo('BLAST results for sample ' + pe + ' already exist [' + ss + ']')
+        if ope(out_f_fasta) and ope(cache_file):
+            with open(cache_file, 'rb') as f:
+                pickled = pickle.load(f)
+
+        if ope(out_f_fasta) and pickled == settings:
+            linfo('The provided BLAST settings and query sequences did not ' +
+                  'change since the previous run. BLAST results for ' +
+                  'sample "' + pe + '" already exist [' + ss + ']')
+
         else:
+            changed_blast_1 = True
             make_dir(dir_results)
             pe_trim_files = zip(blast_db_paths, out_fs, fq_paths, out_fs_fastq,
                                 out_fs_fasta)
@@ -142,6 +182,11 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
 
             for x in out_fs_fasta:
                 osremove(x)
+
+    with open(cache_file, 'wb') as f:
+        pickle.dump(settings, f, protocol=PICKLE_PROTOCOL)
+
+    return changed_blast_1
 
 
 def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
