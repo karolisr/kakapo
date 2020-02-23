@@ -7,6 +7,7 @@ from os import remove, stat
 from os.path import join as opj
 from os.path import splitext, basename
 from shutil import move
+from shutil import copyfile
 
 from kakapo.config import RAM
 from kakapo.helpers import splitext_gz, make_dir
@@ -87,17 +88,21 @@ def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,
             out_class_file = opj(dir_out_db, base_name + in_file_ext)
             out_unclass_file = opj(dir_temp, base_name + '_' + db + '_kraken2_unclassified' + in_file_ext)
 
-            run_kraken_se(
-                kraken=kraken2,
-                db=dbs_ordered[db],
-                in_file=in_file,
-                out_class_file=out_class_file,
-                out_unclass_file=out_unclass_file,
-                report_file=report_file,
-                confidence=confidence,
-                threads=threads,
-                dir_temp=dir_temp,
-                linfo=linfo)
+            if stat(in_file).st_size > 0:  # Kraken2 freaks out if the file is empty.
+                run_kraken_se(
+                    kraken=kraken2,
+                    db=dbs_ordered[db],
+                    in_file=in_file,
+                    out_class_file=out_class_file,
+                    out_unclass_file=out_unclass_file,
+                    report_file=report_file,
+                    confidence=confidence,
+                    threads=threads,
+                    dir_temp=dir_temp,
+                    linfo=linfo)
+            else:
+                copyfile(in_file, out_class_file)
+                copyfile(in_file, out_unclass_file)
 
             if i > 0:
                 remove(in_file)
@@ -126,17 +131,21 @@ def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,
                 out_class_file = opj(dir_out_db, base_name + '_unpaired_1' + in_file_ext)
                 out_unclass_file = opj(dir_temp, base_name + '_' + db + '_kraken2_unclassified' + in_file_ext)
 
-                run_kraken_se(
-                    kraken=kraken2,
-                    db=dbs_ordered[db],
-                    in_file=in_file,
-                    out_class_file=out_class_file,
-                    out_unclass_file=out_unclass_file,
-                    report_file=report_file,
-                    confidence=confidence,
-                    threads=threads,
-                    dir_temp=dir_temp,
-                    linfo=linfo)
+                if stat(in_file).st_size > 0:
+                    run_kraken_se(
+                        kraken=kraken2,
+                        db=dbs_ordered[db],
+                        in_file=in_file,
+                        out_class_file=out_class_file,
+                        out_unclass_file=out_unclass_file,
+                        report_file=report_file,
+                        confidence=confidence,
+                        threads=threads,
+                        dir_temp=dir_temp,
+                        linfo=linfo)
+                else:
+                    copyfile(in_file, out_class_file)
+                    copyfile(in_file, out_unclass_file)
 
                 if i > 0:
                     remove(in_file)
@@ -155,17 +164,21 @@ def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,
                 out_class_file = opj(dir_out_db, base_name + '_unpaired_2' + in_file_ext)
                 out_unclass_file = opj(dir_temp, base_name + '_' + db + '_kraken2_unclassified' + in_file_ext)
 
-                run_kraken_se(
-                    kraken=kraken2,
-                    db=dbs_ordered[db],
-                    in_file=in_file,
-                    out_class_file=out_class_file,
-                    out_unclass_file=out_unclass_file,
-                    report_file=report_file,
-                    confidence=confidence,
-                    threads=threads,
-                    dir_temp=dir_temp,
-                    linfo=linfo)
+                if stat(in_file).st_size > 0:
+                    run_kraken_se(
+                        kraken=kraken2,
+                        db=dbs_ordered[db],
+                        in_file=in_file,
+                        out_class_file=out_class_file,
+                        out_unclass_file=out_unclass_file,
+                        report_file=report_file,
+                        confidence=confidence,
+                        threads=threads,
+                        dir_temp=dir_temp,
+                        linfo=linfo)
+                else:
+                    copyfile(in_file, out_class_file)
+                    copyfile(in_file, out_unclass_file)
 
                 if i > 0:
                     remove(in_file)
@@ -182,18 +195,24 @@ def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,
             out_class_file = opj(dir_out_db, base_name + '_paired#' + in_file_ext)
             out_unclass_file = opj(dir_temp, base_name + '_' + db + '_kraken2_unclassified' + '_paired#' + in_file_ext)
 
-            run_kraken_pe(
-                kraken=kraken2,
-                db=dbs_ordered[db],
-                in_file_1=in_file_R1,
-                in_file_2=in_file_R2,
-                out_class_file=out_class_file,
-                out_unclass_file=out_unclass_file,
-                report_file=report_file,
-                confidence=confidence,
-                threads=threads,
-                dir_temp=dir_temp,
-                linfo=linfo)
+            if stat(in_file_R1).st_size > 0 and stat(in_file_R2).st_size > 0:
+                run_kraken_pe(
+                    kraken=kraken2,
+                    db=dbs_ordered[db],
+                    in_file_1=in_file_R1,
+                    in_file_2=in_file_R2,
+                    out_class_file=out_class_file,
+                    out_unclass_file=out_unclass_file,
+                    report_file=report_file,
+                    confidence=confidence,
+                    threads=threads,
+                    dir_temp=dir_temp,
+                    linfo=linfo)
+            else:
+                copyfile(in_file_R1, copyfile(in_file_R1, out_class_file.replace('#', '_1')))
+                copyfile(in_file_R2, copyfile(in_file_R2, out_class_file.replace('#', '_2')))
+                copyfile(in_file_R1, copyfile(in_file_R1, out_unclass_file.replace('#', '_1')))
+                copyfile(in_file_R2, copyfile(in_file_R2, out_unclass_file.replace('#', '_2')))
 
             if i > 0:
                 remove(in_file_R1)
