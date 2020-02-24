@@ -238,14 +238,8 @@ def combine_aa_fasta(ss, fasta_files, aa_queries_file, linfo=print):
             with open(fasta_file, 'r') as f:
                 _ = _ + f.read()
 
-    if _ != '':
-        with open(aa_queries_file, 'w') as f:
-            f.write(_)
-    else:
-        # TODO: Do not exit here. Stop at the point in the workflow
-        # when the queries are actually needed.
-        linfo('No queries were provided for ' + ss + '. Exiting.')
-        exit(0)
+    with open(aa_queries_file, 'w') as f:
+        f.write(_)
 
 
 def filter_queries(ss, aa_queries_file, min_query_length,

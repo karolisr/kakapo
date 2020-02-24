@@ -18,6 +18,7 @@ import argparse
 
 from collections import OrderedDict
 from io import StringIO
+from os import stat
 from os.path import exists as ope
 from os.path import join as opj
 from shutil import rmtree
@@ -437,10 +438,11 @@ def main():
 
         # Dereplicate only NCBI queries. CDS for these will be downloaded
         # later for reference.
-        prot_acc_user_filtered[ss] = filter_queries(
-            ss, aa_prot_ncbi_files[ss], min_query_length, max_query_length,
-            max_query_identity, vsearch, prot_acc_user[ss], overwrite=False,
-            linfo=lambda x: x)
+        if ope(aa_prot_ncbi_files[ss]):
+            prot_acc_user_filtered[ss] = filter_queries(
+                ss, aa_prot_ncbi_files[ss], min_query_length, max_query_length,
+                max_query_identity, vsearch, prot_acc_user[ss],
+                overwrite=False, linfo=lambda x: x)
 
     # Download SRA run metadata if needed ------------------------------------
     sra_runs_info, sras_acceptable = dnld_sra_info(sras, dir_cache_prj, linfo)
@@ -554,8 +556,21 @@ def main():
     makeblastdb_fq(se_fastq_files, pe_fastq_files, dir_blast_fa_trim,
                    makeblastdb, pe_blast_db_file_patterns, linfo)
 
+    # Check if there are any query sequences.
+    any_queries = False
+    for ss in sss:
+        if stat(aa_queries_files[ss]).st_size == 0:
+            continue
+        else:
+            any_queries = True
+
+    if any_queries is False:
+        linfo('No query sequences were provided.')
+
     # Run tblastn on reads ---------------------------------------------------
     for ss in sss:
+        if stat(aa_queries_files[ss]).st_size == 0:
+            continue
         changed_blast_1 = run_tblastn_on_reads(
             se_fastq_files, pe_fastq_files, aa_queries_files[ss], tblastn,
             blast_1_evalue, blast_1_max_hsps, blast_1_qcov_hsp_perc,
@@ -582,6 +597,8 @@ def main():
 
     # Run vsearch on reads ---------------------------------------------------
     for ss in sss:
+        if stat(aa_queries_files[ss]).st_size == 0:
+            continue
         run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
                              dir_prj_vsearch_results_fa_trim,
                              pe_vsearch_results_file_patterns, ss, seqtk,
@@ -589,6 +606,12 @@ def main():
 
     # Run SPAdes -------------------------------------------------------------
     for ss in sss:
+        if stat(aa_queries_files[ss]).st_size == 0:
+            for se in se_fastq_files:
+                se_fastq_files[se]['spades_assembly' + '__' + ss] = None
+            for pe in pe_fastq_files:
+                pe_fastq_files[pe]['spades_assembly' + '__' + ss] = None
+            continue
         run_spades(se_fastq_files, pe_fastq_files, dir_prj_spades_assemblies,
                    spades, dir_temp, ss, THREADS, RAM, linfo)
 
@@ -602,6 +625,9 @@ def main():
 
     # Run tblastn on assemblies ----------------------------------------------
     for ss in sss:
+
+        if stat(aa_queries_files[ss]).st_size == 0:
+            continue
 
         blast_2_evalue_ss = sss[ss]['blast_2_evalue']
         blast_2_max_hsps_ss = sss[ss]['blast_2_max_hsps']
@@ -635,6 +661,9 @@ def main():
     # Prepare BLAST hits for analysis: find ORFs, translate ------------------
     for ss in sss:
 
+        if stat(aa_queries_files[ss]).st_size == 0:
+            continue
+
         min_target_orf_len_ss = sss[ss]['min_target_orf_length']
         max_target_orf_len_ss = sss[ss]['max_target_orf_length']
         organelle = sss[ss]['organelle']
@@ -653,12 +682,17 @@ def main():
 
     # GFF3 files from kakapo results JSON files ------------------------------
     for ss in sss:
+        if stat(aa_queries_files[ss]).st_size == 0:
+            continue
         gff_from_json(ss, assemblies, dir_prj_ips,
                       dir_prj_transcripts_combined, prj_name, linfo)
 
     # Run InterProScan 5 -----------------------------------------------------
     if inter_pro_scan is True:
         for ss in sss:
+
+            if stat(aa_queries_files[ss]).st_size == 0:
+                continue
 
             run_inter_pro_scan(ss, assemblies, email, dir_prj_ips,
                                dir_cache_prj, linfo)
@@ -670,6 +704,10 @@ def main():
     # Download CDS for NCBI protein queries ----------------------------------
     prot_cds_ncbi_files = OrderedDict()
     for ss in sss:
+
+        if stat(aa_queries_files[ss]).st_size == 0:
+            continue
+
         prot_cds_ncbi_files[ss] = opj(dir_prj_transcripts_combined, prj_name +
                                       '_ncbi_query_cds__' + ss + '.fasta')
         if len(prot_acc_user_filtered[ss]) > 0:
