@@ -2,14 +2,16 @@
 
 """Kakapo workflow: Produce GFF3 files."""
 
-import json
+# import json
 
-from os import remove as osremove
+# from os import remove as osremove
 from os.path import exists as ope
 from os.path import join as opj
 
-from kakapo.gff3 import gff_from_kakapo_ips5_json_file
+from kakapo.gff3 import gff_from_json_dict
 from kakapo.helpers import combine_text_files
+from kakapo.seq_annotations import parse_kakapo_json_file
+from kakapo.seq_annotations import merge_kakapo_and_ips_annotations
 
 
 def gff_from_json(ss, assemblies, dir_prj_ips, dir_prj_transcripts_combined,
@@ -20,8 +22,10 @@ def gff_from_json(ss, assemblies, dir_prj_ips, dir_prj_transcripts_combined,
     all_fas_paths = []
     all_gff_paths = []
 
-    combined_fas_path = opj(dir_prj_transcripts_combined, prj_name + '__' + ss + '.fasta')
-    combined_gff_path = opj(dir_prj_transcripts_combined, prj_name + '__' + ss + '.gff')
+    combined_fas_path = opj(dir_prj_transcripts_combined, prj_name +
+                            '__' + ss + '.fasta')
+    combined_gff_path = opj(dir_prj_transcripts_combined, prj_name +
+                            '__' + ss + '.gff')
 
     for a in assemblies:
 
@@ -31,37 +35,27 @@ def gff_from_json(ss, assemblies, dir_prj_ips, dir_prj_transcripts_combined,
         assmbl_name = a['name']
         transcripts_nt_path = a['transcripts_nt_fasta_file__' + ss]
 
-        kakapo_json_path = opj(dir_prj_ips, assmbl_name + '_ann_kakapo__' + ss + '.json')
-        ips_json_path = opj(dir_prj_ips, assmbl_name + '_ann_ips__' + ss + '.json')
-        json_path = opj(dir_prj_ips, assmbl_name + '_ann__' + ss + '.json')
+        kakapo_json_path = opj(dir_prj_ips, assmbl_name + '_ann_kakapo__'
+                               + ss + '.json')
+        ips_json_path = opj(dir_prj_ips, assmbl_name + '_ann_ips__'
+                            + ss + '.json')
 
         gff_path = transcripts_nt_path.replace('.fasta', '.gff')
 
-        ips_json_dict = {}
-        kakapo_json_dict = {}
+        json_dict = {}
 
-        if ope(ips_json_path):
-            with open(ips_json_path, 'r') as f:
-                ips_json_dict = json.load(f)
+        if ope(ips_json_path) and ope(kakapo_json_path):
+            json_dict = merge_kakapo_and_ips_annotations(kakapo_json_path,
+                                                         ips_json_path)
 
-        if ope(kakapo_json_path):
-            with open(kakapo_json_path, 'r') as f:
-                kakapo_json_dict = json.load(f)
+        elif ope(kakapo_json_path):
+            json_dict = parse_kakapo_json_file(kakapo_json_path)
 
-        json_dict = kakapo_json_dict.copy()
-        json_dict.update(ips_json_dict)
+        linfo(assmbl_name)
+        gff_from_json_dict(json_dict, gff_path)
 
-        with open(json_path, 'w') as f:
-            json.dump(json_dict, f, sort_keys=True, indent=4)
-
-        if ope(json_path):
-            linfo(assmbl_name)
-            gff_from_kakapo_ips5_json_file(ss, json_path, gff_path)
-
-            osremove(json_path)
-
-            all_gff_paths.append(gff_path)
-            all_fas_paths.append(transcripts_nt_path)
+        all_gff_paths.append(gff_path)
+        all_fas_paths.append(transcripts_nt_path)
 
     combine_text_files(all_fas_paths, combined_fas_path)
     combine_text_files(all_gff_paths, combined_gff_path)

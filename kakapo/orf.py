@@ -5,7 +5,7 @@
 from functools import partial, reduce
 from itertools import accumulate, chain, compress, dropwhile, groupby, starmap
 from operator import add, contains, itemgetter, mul, ne, not_, sub
-from statistics import stdev
+from statistics import stdev, mean, harmonic_mean
 
 from kakapo.helpers import overlap
 from kakapo.seq import reverse_complement
@@ -121,7 +121,9 @@ def start_codon_score(seq, idx, context_l, context_r):
 
 
 def find_orf_for_blast_hit(seq, frame, hit_start, hit_end, start_codons,
-                           stop_codons, context_l, context_r, min_overlap):
+                           stop_codons, context_l, context_r, min_overlap,
+                           min_len, max_len, allow_no_strt_cod,
+                           allow_no_stop_cod):
 
     assert type(frame) is int
 
@@ -142,10 +144,10 @@ def find_orf_for_blast_hit(seq, frame, hit_start, hit_end, start_codons,
         hit_len = hit_end - hit_start
         frames = [-1, -2, -3]
 
-    min_len = 200
+    min_len_to_consider = 200
 
     results = get_orf_coords_for_frames(seq, start_codons, stop_codons,
-                                        min_len, frames=frames)
+                                        min_len_to_consider, frames=frames)
     orfs = list()
 
     for r in results:
@@ -185,12 +187,13 @@ def find_orf_for_blast_hit(seq, frame, hit_start, hit_end, start_codons,
         ovrlp = overlap((hit_start, hit_end), (orf_start, orf_end))
         ovrlp = ovrlp / max(orf_len, hit_len)
         orf['ovrlp'] = ovrlp
-        orf['grade'] = (ovrlp ** 2) * orf['sc_score']
+        orf['grade'] = (ovrlp ** 1.25) * orf['sc_score']
 
     orfs = sorted(orfs, key=itemgetter('grade'), reverse=True)
 
-    good_orf = None
+    good_orfs = list()
     bad_orfs = list()
+
     for orf in orfs:
         orf_start = orf['orf_coords'][0]
         orf_end = orf['orf_coords'][1]
@@ -202,10 +205,12 @@ def find_orf_for_blast_hit(seq, frame, hit_start, hit_end, start_codons,
         orf_grade = orf['grade']
         stop_codon = orf['stop_codon']
 
+        tmp = orf_seq + stop_codon
+
         log_str += ('{:.4f}'.format(orf_grade) + ' ' +
                     '{:.4f}'.format(ovrlp) + ' ' +
                     '{:.4f}'.format(sc_score) + ' ' +
-                    str(len(orf_seq)).rjust(5) + ' ' +
+                    str(len(tmp)).rjust(5) + ' ' +
                     context.rjust(10) + ' ' +
                     orf_seq[0:3] + ' ' +
                     orf_seq[3:13] + ' ' +
@@ -217,98 +222,120 @@ def find_orf_for_blast_hit(seq, frame, hit_start, hit_end, start_codons,
 
         min_overlap = max(min_overlap - 0.1, 0.75)
 
-        if good_orf is None and orf_frame == frame and ovrlp >= min_overlap:
-            log_str += ' <<<\n'
-            good_orf = (orf_start, orf_end, orf_frame, orf_grade)
+        orf_to_check = (orf_start, orf_end, orf_frame, orf_grade)
+        passed = True
+
+        if ovrlp < min_overlap:
+            log_str += ' overlap;'
+            passed = False
+        if len(tmp) < min_len:
+            log_str += ' min_len;'
+            passed = False
+        if len(tmp) > max_len:
+            log_str += ' max_len;'
+            passed = False
+        if allow_no_strt_cod is False and tmp[0:3] not in start_codons:
+            log_str += ' no_start_codon;'
+            passed = False
+        if allow_no_stop_cod is False and tmp[-3:] not in stop_codons:
+            log_str += ' no_stop_codon;'
+            passed = False
+        if orf_frame != frame:
+            log_str += ' frame;'
+            passed = False
+
+        if passed is True:
+            log_str += ' <<<'
+            good_orfs.append(orf_to_check)
         else:
-            log_str += '\n'
-            bad_orfs.append((orf_start, orf_end, orf_frame, orf_grade))
+            bad_orfs.append(orf_to_check)
 
-    return good_orf, bad_orfs, log_str
+        log_str += '\n'
 
+    return good_orfs, bad_orfs, log_str
 
-# if __name__ == '__main__':
+# ----------------------------------------------------------------------------
 
-#     # from kakapo.data.start_codon_context import contexts
+# from kakapo.data.start_codon_context import contexts
 
-#     # context_l = contexts['71240_L']
-#     # context_r = contexts['71240_R']
+# context_l = contexts['71240_L']
+# context_r = contexts['71240_R']
 
-#     # print()
+# print()
 
-#     # cntx = (('GGGGCGTCGTATGCTCCGGCGGC'),  # min
-#     #         ('AAAAAAAAAAATGGCTACTACTT'),  # max
-#     #         ('AAGTAGCATAATGAAGTTGGTAA'),
-#     #         ('CATCACCACCATGGGAATGTCTT'),
-#     #         ('CAAGAAAAATATGATTATCATTA'),
-#     #         ('AGAGAGATTCATGGCTTCCTTCA'),
-#     #         ('GTGTCTGATGATGAAATTCTTCA'),
-#     #         ('ATCAAAGAGTATGGAGCAGTTAA'),
-#     #         ('GTTTTTAATCATGGATTCGACCC'),
-#     #         ('ATGTATGTTTATGTGTGTGATGA'),
-#     #         ('NNNNNNNNNNATGNNNNNNNNNN'))
+# cntx = (('GGGGCGTCGTATGCTCCGGCGGC'),  # min
+#         ('AAAAAAAAAAATGGCTACTACTT'),  # max
+#         ('AAGTAGCATAATGAAGTTGGTAA'),
+#         ('CATCACCACCATGGGAATGTCTT'),
+#         ('CAAGAAAAATATGATTATCATTA'),
+#         ('AGAGAGATTCATGGCTTCCTTCA'),
+#         ('GTGTCTGATGATGAAATTCTTCA'),
+#         ('ATCAAAGAGTATGGAGCAGTTAA'),
+#         ('GTTTTTAATCATGGATTCGACCC'),
+#         ('ATGTATGTTTATGTGTGTGATGA'),
+#         ('NNNNNNNNNNATGNNNNNNNNNN'))
 
-#     # idx = 10
-#     # scores = map(lambda x:
-#     #              (x, start_codon_score(x, idx, context_l, context_r)), cntx)
-#     # scores_sorted = sorted(scores, key=itemgetter(1), reverse=True)
-#     # for row in scores_sorted:
-#     #     print(row[0][0:idx], row[0][idx:idx + 3], row[0][idx + 3:], row[1])
+# idx = 10
+# scores = map(lambda x:
+#              (x, start_codon_score(x, idx, context_l, context_r)), cntx)
+# scores_sorted = sorted(scores, key=itemgetter(1), reverse=True)
+# for row in scores_sorted:
+#     print(row[0][0:idx], row[0][idx:idx + 3], row[0][idx + 3:], row[1])
 
-#     # Output for Dicot context tables
-#     # AAAAAAAAAA ATG GCTACTACTT 0.9873978242424901
-#     # GTTTTTAATC ATG GATTCGACCC 0.773632539225221
-#     # CATCACCACC ATG GGAATGTCTT 0.728750526701568
-#     # AGAGAGATTC ATG GCTTCCTTCA 0.7252860244056911
-#     # ATCAAAGAGT ATG GAGCAGTTAA 0.7224272426679093
-#     # CAAGAAAAAT ATG ATTATCATTA 0.6563008719425
-#     # AAGTAGCATA ATG AAGTTGGTAA 0.6198800275759498
-#     # GTGTCTGATG ATG AAATTCTTCA 0.5417082975187391
-#     # ATGTATGTTT ATG TGTGTGATGA 0.47114422524821586
-#     # GGGGCGTCGT ATG CTCCGGCGGC 0.28096710993186846
+# # Output for Dicot context tables
+# # AAAAAAAAAA ATG GCTACTACTT 0.9873978242424901
+# # GTTTTTAATC ATG GATTCGACCC 0.773632539225221
+# # CATCACCACC ATG GGAATGTCTT 0.728750526701568
+# # AGAGAGATTC ATG GCTTCCTTCA 0.7252860244056911
+# # ATCAAAGAGT ATG GAGCAGTTAA 0.7224272426679093
+# # CAAGAAAAAT ATG ATTATCATTA 0.6563008719425
+# # AAGTAGCATA ATG AAGTTGGTAA 0.6198800275759498
+# # GTGTCTGATG ATG AAATTCTTCA 0.5417082975187391
+# # ATGTATGTTT ATG TGTGTGATGA 0.47114422524821586
+# # GGGGCGTCGT ATG CTCCGGCGGC 0.28096710993186846
 
-#     # cntx_good = (('AAAAGGAAAAATGGGGCACATAA'),
-#     #              ('AAGTAGCATAATGAAGTTGGTAA'),
-#     #              ('AATTTTTGGAATGCAGTTAACTC'),
-#     #              ('AGAGAGATTCATGGCTTCCTTCA'),
-#     #              ('AGAGAGATTCATGGCTTTCTTCA'),
-#     #              ('AGGCAGCAAAATGAAGTTGCAGC'),
-#     #              ('AGGTAGCAGTATGAAATTGGTAG'),
-#     #              ('ATCAAAGAGTATGGAGCAGTTAA'),
-#     #              ('ATGTATGTTTATGTGTGTGATGA'),
-#     #              ('CAAGAAAAATATGATTATCATTA'),
-#     #              ('CAAGTTCTACATGCATGGCCTTT'),
-#     #              ('CATCACCACCATGGGAATGTCTT'),
-#     #              ('CTAAGTCTTTATGGAGAAGTTCA'),
-#     #              ('GTGTCTGATGATGAAATTCTTCA'),
-#     #              ('TAAATTCTACATGCATGGACTTT'),
-#     #              ('TGCAAGAAAAATGATTATCATTC'),
-#     #              ('TTCTACATGCATGGACTTTGGCC'),
-#     #              ('TTGGAGAAGCATGAACAACATTA'),
-#     #              ('TTTATTTGACATGCAGCTAAGTC'))
+# cntx_good = (('AAAAGGAAAAATGGGGCACATAA'),
+#              ('AAGTAGCATAATGAAGTTGGTAA'),
+#              ('AATTTTTGGAATGCAGTTAACTC'),
+#              ('AGAGAGATTCATGGCTTCCTTCA'),
+#              ('AGAGAGATTCATGGCTTTCTTCA'),
+#              ('AGGCAGCAAAATGAAGTTGCAGC'),
+#              ('AGGTAGCAGTATGAAATTGGTAG'),
+#              ('ATCAAAGAGTATGGAGCAGTTAA'),
+#              ('ATGTATGTTTATGTGTGTGATGA'),
+#              ('CAAGAAAAATATGATTATCATTA'),
+#              ('CAAGTTCTACATGCATGGCCTTT'),
+#              ('CATCACCACCATGGGAATGTCTT'),
+#              ('CTAAGTCTTTATGGAGAAGTTCA'),
+#              ('GTGTCTGATGATGAAATTCTTCA'),
+#              ('TAAATTCTACATGCATGGACTTT'),
+#              ('TGCAAGAAAAATGATTATCATTC'),
+#              ('TTCTACATGCATGGACTTTGGCC'),
+#              ('TTGGAGAAGCATGAACAACATTA'),
+#              ('TTTATTTGACATGCAGCTAAGTC'))
 
-#     # cntx_bad = (('AACTTACTGTATGAGTGATGAAA'),
-#     #             ('AATGAACAAGATGTGGTTGATAG'),
-#     #             ('AGCACCACAAATGAACAAGATGT'),
-#     #             ('ATGCTTTATAATGTTATGCTTTG'),
-#     #             ('ATGTATGTTTATGTGTCTGATGA'),
-#     #             ('CACCATGGGAATGTCTTCTCAGG'),
-#     #             ('CATTATCTTTATGTGCCTTGCTG'),
-#     #             ('CCACAACAGCATGATTGGCATTC'),
-#     #             ('CGGGTCTTTGATGCTGGTACTTC'),
-#     #             ('CTTCTTCTCTATGAAGCTCTACT'),
-#     #             ('CTTTTTGCTTATGTGTCCAGGTT'),
-#     #             ('GAAGTTGGTAATGCCCCTTCTTT'),
-#     #             ('GTTTTTAATCATGGATTCGACCC'),
-#     #             ('TATGTGTCTGATGATGAAATTCT'),
-#     #             ('TATGTGTGTGATGATAAAATTCT'),
-#     #             ('TTTCTTATGTATGTTTATGTGTC'),
-#     #             ('TTTCTTATGTATGTTTATGTGTG'))
+# cntx_bad = (('AACTTACTGTATGAGTGATGAAA'),
+#             ('AATGAACAAGATGTGGTTGATAG'),
+#             ('AGCACCACAAATGAACAAGATGT'),
+#             ('ATGCTTTATAATGTTATGCTTTG'),
+#             ('ATGTATGTTTATGTGTCTGATGA'),
+#             ('CACCATGGGAATGTCTTCTCAGG'),
+#             ('CATTATCTTTATGTGCCTTGCTG'),
+#             ('CCACAACAGCATGATTGGCATTC'),
+#             ('CGGGTCTTTGATGCTGGTACTTC'),
+#             ('CTTCTTCTCTATGAAGCTCTACT'),
+#             ('CTTTTTGCTTATGTGTCCAGGTT'),
+#             ('GAAGTTGGTAATGCCCCTTCTTT'),
+#             ('GTTTTTAATCATGGATTCGACCC'),
+#             ('TATGTGTCTGATGATGAAATTCT'),
+#             ('TATGTGTGTGATGATAAAATTCT'),
+#             ('TTTCTTATGTATGTTTATGTGTC'),
+#             ('TTTCTTATGTATGTTTATGTGTG'))
 
-#     # idx = 10
-#     # scores = map(lambda x:
-#     #              (x, start_codon_score(x, idx, context_l, context_r)),
-#     #              cntx_good)
-#     # scores_sorted = sorted(scores, key=itemgetter(1), reverse=True)
-#     # for row in scores_sorted:
-#     #     print(row[0][0:idx], row[0][idx:idx + 3], row[0][idx + 3:], row[1])
+# idx = 10
+# scores = map(lambda x:
+#              (x, start_codon_score(x, idx, context_l, context_r)),
+#              cntx_good)
+# scores_sorted = sorted(scores, key=itemgetter(1), reverse=True)
+# for row in scores_sorted:
+#     print(row[0][0:idx], row[0][idx:idx + 3], row[0][idx + 3:], row[1])

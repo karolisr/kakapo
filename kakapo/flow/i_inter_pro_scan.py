@@ -37,7 +37,8 @@ def run_inter_pro_scan(ss, assemblies, email, dir_prj_ips, dir_cache_prj,
 
         assmbl_name = a['name']
 
-        json_dump_file_path = opj(dir_prj_ips, assmbl_name + '_ann_ips__' + ss + '.json')
+        json_dump_file_path = opj(dir_prj_ips, assmbl_name + '_ann_ips__' +
+                                  ss + '.json')
 
         if ope(json_dump_file_path):
             linfo('InterProScan results for assembly ' + assmbl_name + ', ' +
@@ -70,8 +71,10 @@ def run_inter_pro_scan(ss, assemblies, email, dir_prj_ips, dir_cache_prj,
         all_ips_results = {}
 
         # Nicer printing
-        max_title_a_len = 2 + max([len(split_seq_defn(x)[0]) for x in list(jobs['finished'].keys())])
-        max_title_b_len = 2 + max([len(split_seq_defn(x)[1]) for x in list(jobs['finished'].keys())])
+        max_title_a_len = 2 + max(
+            [len(split_seq_defn(x)[0]) for x in list(jobs['finished'].keys())])
+        max_title_b_len = 2 + max(
+            [len(split_seq_defn(x)[1]) for x in list(jobs['finished'].keys())])
 
         for i, job in enumerate(jobs['finished']):
 
@@ -102,9 +105,6 @@ def run_inter_pro_scan(ss, assemblies, email, dir_prj_ips, dir_cache_prj,
             del ips_json[0]['xref']
 
             job_no_def = job.split(' ')[0]
-
-            # kakapo annotations
-            ips_json[0]['kakapo_annotations__' + ss] = a['annotations__' + ss][job_no_def]
 
             all_ips_results[job_no_def] = ips_json
 

@@ -53,19 +53,24 @@ def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,
                     gc_tt = a['gc_tt_plastid']
 
         transcripts_nt_fasta_file = opj(
-            dir_prj_transcripts, assmbl_name + '_transcripts_nt__' + ss + '.fasta')
+            dir_prj_transcripts, assmbl_name + '_transcripts_nt__' + ss +
+            '.fasta')
 
         transcripts_nt_orf_fasta_file = opj(
-            dir_prj_transcripts, assmbl_name + '_transcripts_nt_orf__' + ss + '.fasta')
+            dir_prj_transcripts, assmbl_name + '_transcripts_nt_orf__' + ss +
+            '.fasta')
 
         transcripts_aa_orf_fasta_file = opj(
-            dir_prj_transcripts, assmbl_name + '_transcripts_aa_orf__' + ss + '.fasta')
+            dir_prj_transcripts, assmbl_name + '_transcripts_aa_orf__' + ss +
+            '.fasta')
 
         transcripts_nt = {}
         transcripts_nt_orf = {}
         transcripts_aa_orf = {}
 
-        a['annotations__' + ss] = {}
+        ann_key = 'annotations__'
+
+        a[ann_key + ss] = {}
 
         collated = collate_blast_results(parsed_hits)
 
@@ -175,7 +180,11 @@ def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,
                 start_codons=start_codons,
                 context_l=cntx_l,
                 context_r=cntx_r,
-                min_overlap=min_overlap)
+                min_overlap=min_overlap,
+                min_len=min_target_orf_len,
+                max_len=max_target_orf_len,
+                allow_no_strt_cod=allow_no_strt_cod,
+                allow_no_stop_cod=allow_no_stop_cod)
 
             orf_log_str += orf[2]
 
@@ -191,118 +200,99 @@ def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,
 
             target_def = target_name + ' ' + query_name + rev_comp_def_str
 
-            a['annotations__' + ss][target_name] = {}
+            a[ann_key + ss][target_name] = {}
 
-            good_orf = orf[0]
+            good_orfs = orf[0]
             bad_orfs = orf[1]
 
-            if good_orf is not None:
+            if len(good_orfs) > 0:
+                a[ann_key + ss][target_name]['orfs_good'] = dict()
+                orfs_good_dict = a[ann_key + ss][target_name]['orfs_good']
+                orf_log_str += '\n' + 'VALID'.center(90) + '\n'
 
-                if hit_frame > 0:
-                    ann_orf_b = good_orf[0]
-                    ann_orf_e = good_orf[1] + 3
-                    orf_seq = target_seq[ann_orf_b:ann_orf_e]
-                else:
-                    ann_orf_b = len(target_seq) - good_orf[1]
-                    ann_orf_e = len(target_seq) - good_orf[0] + 3
-                    orf_seq = target_seq[ann_orf_b:ann_orf_e]
+                for i, good_orf in enumerate(good_orfs):
 
-                ##############################################################
-                valid_orf = True
-                invalid_orf_reason = ''
+                    good_orf_frame = good_orf[2]
 
-                if allow_non_aug is False and \
-                        orf_seq[0:3] != 'ATG':
-                    valid_orf = False
-                    invalid_orf_reason = 'Start codon is not ATG.'
+                    if good_orf_frame > 0:
+                        ann_orf_b = good_orf[0]
+                        ann_orf_e = good_orf[1] + 3
+                        orf_seq = target_seq[ann_orf_b:ann_orf_e]
+                    else:
+                        ann_orf_b = len(target_seq) - good_orf[1]
+                        ann_orf_e = len(target_seq) - good_orf[0] + 3
+                        orf_seq = target_seq[ann_orf_b:ann_orf_e]
 
-                elif allow_no_strt_cod is False and \
-                        orf_seq[0:3] not in start_codons:
-                    valid_orf = False
-                    invalid_orf_reason = 'No start codon.'
+                    orf_good_dict = dict()
+                    orf_good_dict['orf_begin'] = ann_orf_b
+                    orf_good_dict['orf_end'] = ann_orf_e
+                    orf_good_dict['orf_frame'] = abs(good_orf_frame)
+                    orf_good_dict['orf_grade'] = good_orf[3]
+                    orf_good_dict['orf_tt_id'] = str(gc_tt.gc_id)
+                    orf_good_dict['orf_tt_name'] = gc_tt.gc_name
 
-                elif allow_no_stop_cod is False and \
-                        orf_seq[-3:] not in stop_codons:
-                    valid_orf = False
-                    invalid_orf_reason = 'No stop codon.'
+                    orfs_good_dict['ORF{:03d}'.format(i + 1)] = orf_good_dict
 
-                elif len(orf_seq) < min_target_orf_len:
-                    valid_orf = False
-                    invalid_orf_reason = 'ORF is not long enough.'
+                    target_def_orf = (target_name +
+                                      '__ORF{:03d}'.format(i + 1) + ' ' +
+                                      query_name + rev_comp_def_str)
 
-                elif len(orf_seq) > max_target_orf_len:
-                    valid_orf = False
-                    invalid_orf_reason = 'ORF is too long.'
-                ##############################################################
-
-                if valid_orf is True:
-
-                    orf_log_str += '\n' + 'VALID'.center(90) + '\n'
-
-                    a['annotations__' + ss][target_name]['orf_begin'] = ann_orf_b
-                    a['annotations__' + ss][target_name]['orf_end'] = ann_orf_e
-                    a['annotations__' + ss][target_name]['orf_grade'] = good_orf[3]
-                    a['annotations__' + ss][target_name]['orf_tt_id'] = str(gc_tt.gc_id)
-                    a['annotations__' + ss][target_name]['orf_tt_name'] = gc_tt.gc_name
-
-                    transcripts_nt_orf[target_def] = orf_seq
+                    transcripts_nt_orf[target_def_orf] = orf_seq
 
                     transl_seq = translate(orf_seq,
                                            gc_tt.table_ambiguous,
                                            start_codons)
 
-                    transcripts_aa_orf[target_def] = transl_seq[:-1]
-
-                else:
-                    msg = 'INVALID: ' + invalid_orf_reason
-                    orf_log_str += '\n' + msg.center(90) + '\n'
-                    bad_orfs.append(good_orf)
+                    transcripts_aa_orf[target_def_orf] = transl_seq[:-1]
 
             else:
-                orf_log_str += '\n' + 'INVALID'.center(90) + '\n'
+                orf_log_str += '\n' + 'NOT VALID'.center(90) + '\n'
 
             orf_log_str += '\n' + '-' * 90 + '\n'
             print(orf_log_str)
 
             if len(bad_orfs) > 0:
-                a['annotations__' + ss][target_name]['orfs_bad'] = list()
-                orfs_bad_list = a['annotations__' + ss][target_name]['orfs_bad']
+                a[ann_key + ss][target_name]['orfs_bad'] = dict()
+                orfs_bad_dict = a[ann_key + ss][target_name]['orfs_bad']
 
-            for bad_orf in bad_orfs:
+                for i, bad_orf in enumerate(bad_orfs):
 
-                bad_orf_frame = bad_orf[2]
+                    bad_orf_frame = bad_orf[2]
 
-                if bad_orf_frame > 0:
-                    ann_orf_b = bad_orf[0]
-                    ann_orf_e = bad_orf[1] + 3
-                    orf_seq = target_seq[ann_orf_b:ann_orf_e]
-                else:
-                    ann_orf_b = len(target_seq) - bad_orf[1]
-                    ann_orf_e = len(target_seq) - bad_orf[0] + 3
-                    orf_seq = target_seq[ann_orf_b:ann_orf_e]
+                    if bad_orf_frame > 0:
+                        ann_orf_b = bad_orf[0]
+                        ann_orf_e = bad_orf[1] + 3
+                        orf_seq = target_seq[ann_orf_b:ann_orf_e]
+                    else:
+                        ann_orf_b = len(target_seq) - bad_orf[1]
+                        ann_orf_e = len(target_seq) - bad_orf[0] + 3
+                        orf_seq = target_seq[ann_orf_b:ann_orf_e]
 
-                orf_bad_dict = dict()
-                orf_bad_dict['orf_begin'] = ann_orf_b
-                orf_bad_dict['orf_end'] = ann_orf_e
-                orf_bad_dict['orf_frame'] = abs(bad_orf_frame)
-                orf_bad_dict['orf_grade'] = bad_orf[3]
-                orf_bad_dict['orf_tt_id'] = str(gc_tt.gc_id)
-                orf_bad_dict['orf_tt_name'] = gc_tt.gc_name
+                    orf_bad_dict = dict()
+                    orf_bad_dict['orf_begin'] = ann_orf_b
+                    orf_bad_dict['orf_end'] = ann_orf_e
+                    orf_bad_dict['orf_frame'] = abs(bad_orf_frame)
+                    orf_bad_dict['orf_grade'] = bad_orf[3]
+                    orf_bad_dict['orf_tt_id'] = str(gc_tt.gc_id)
+                    orf_bad_dict['orf_tt_name'] = gc_tt.gc_name
 
-                orfs_bad_list.append(orf_bad_dict)
+                    orfs_bad_dict['ORF{:03d}'.format(i + 1)] = orf_bad_dict
 
             transcripts_nt[target_def] = target_seq
 
-            a['annotations__' + ss][target_name]['query_name'] = query_name
-            a['annotations__' + ss][target_name]['evalue'] = hit_evalue
-            a['annotations__' + ss][target_name]['frame'] = abs(hit_frame)
-            a['annotations__' + ss][target_name]['blast_hit_begin'] = ann_hit_b
-            a['annotations__' + ss][target_name]['blast_hit_end'] = ann_hit_e
+            a[ann_key + ss][target_name]['blast_hit'] = dict()
+            blast_hit_dict = a[ann_key + ss][target_name]['blast_hit']
+            blast_hit_dict['query_name'] = query_name
+            blast_hit_dict['query_id'] = ss
+            blast_hit_dict['evalue'] = hit_evalue
+            blast_hit_dict['frame'] = abs(hit_frame)
+            blast_hit_dict['blast_hit_begin'] = ann_hit_b
+            blast_hit_dict['blast_hit_end'] = ann_hit_e
 
             # Collect ORF and BLAST hit annotations for downstream use. ######
             kakapo_json = [{}]
             kakapo_json[0]['kakapo_annotations__' + ss] = (
-                a['annotations__' + ss][target_name])
+                a[ann_key + ss][target_name])
             all_kakapo_results[target_name] = kakapo_json
             ##################################################################
 
