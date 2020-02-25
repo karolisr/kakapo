@@ -6,11 +6,13 @@ import fileinput
 import pickle
 import re
 
+from collections import OrderedDict
 from copy import deepcopy
 from os import remove
 from os.path import basename
 from os.path import commonprefix
 from os.path import exists as ope
+from os.path import isfile
 from os.path import join as opj
 from os.path import sep as ops
 from os.path import splitext
@@ -24,7 +26,7 @@ from kakapo.bioio import write_fasta
 from kakapo.blast import make_blast_db
 from kakapo.bowtie2 import build_bt2_index, run_bowtie2_se, run_bowtie2_pe
 from kakapo.config import PICKLE_PROTOCOL
-from kakapo.config import CONBLUE, CONGREE, CONSRED
+from kakapo.config import CONBLUE, CONGREE, CONSRED, CONSDFL
 from kakapo.entrez import accessions as accessions_ncbi
 from kakapo.entrez import dnld_seqs_fasta_format
 from kakapo.entrez import esearch
@@ -40,6 +42,10 @@ from kakapo.seqtk import seqtk_fq_to_fa
 from kakapo.shell import call
 from kakapo.translation_tables import TranslationTable
 from kakapo.trimmomatic import trimmomatic_se, trimmomatic_pe
+
+
+MT = 'mitochondrion'
+PT = 'plastid'
 
 
 def dnld_sra_info(sras, dir_cache_prj, linfo=print):
@@ -666,40 +672,67 @@ def dnld_refseqs_for_taxid(taxid, filter_term, taxonomy, dir_cache_refseqs,
     return cache_path
 
 
+def _should_run_bt2(taxid, taxonomy, bt2_order, bowtie2, bowtie2_build,
+                    linfo=print):
+
+    dbs = OrderedDict()
+
+    msg_fnf = CONSRED + 'File not found: {}' + CONSDFL
+
+    for x in bt2_order:
+        db_path_ok = False
+
+        if x == MT:
+            if taxonomy.is_eukaryote(taxid) is True:
+                if bt2_order[MT] == '':
+                    dbs[MT] = MT
+                    db_path_ok = True
+
+        elif x == PT:
+            if taxonomy.is_eukaryote(taxid) is True:
+                if taxonomy.contains_plastid(taxid) is True:
+                    if bt2_order[PT] == '':
+                        dbs[PT] = PT
+                        db_path_ok = True
+
+        if db_path_ok is False:
+            db_path = bt2_order[x]
+            if ope(db_path) and isfile(db_path):
+                dbs[x] = db_path
+            else:
+                linfo(msg_fnf.format(db_path))
+                exit(1)
+
+    if len(dbs) > 0:
+
+        if bowtie2 is None:
+            linfo(CONSRED + 'bowtie2 is not available. ' +
+                  'Cannot continue. Exiting.')
+            exit(0)
+
+        if bowtie2_build is None:
+            linfo(CONSRED + 'bowtie2-build is not available. ' +
+                  'Cannot continue. Exiting.')
+            exit(0)
+
+    return dbs
+
+
 def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
-               bowtie2, bowtie2_build, threads, dir_temp,
+               bowtie2, bowtie2_build, threads, dir_temp, bt2_order,
                fpatt, taxonomy, dir_cache_refseqs, linfo=print):
-
-    if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
-        linfo(CONBLUE + 'Running Bowtie2')
-
-    def should_run_bt2(dbs, bowtie2, bowtie2_build):
-        if len(dbs) > 0:
-
-            if bowtie2 is None:
-                linfo(CONSRED + 'bowtie2 is not available. ' +
-                      'Cannot continue. Exiting.')
-                exit(0)
-
-            if bowtie2_build is None:
-                linfo(CONSRED + 'bowtie2-build is not available. ' +
-                      'Cannot continue. Exiting.')
-                exit(0)
 
     new_se_fastq_files = dict()
     new_pe_fastq_files = dict()
+
+    msg_printed = False
 
     # SE
     for se in se_fastq_files:
 
         taxid = se_fastq_files[se]['tax_id']
-        dbs = []
-        if taxonomy.is_eukaryote(taxid) is True:
-            dbs.append('mitochondrion')
-            if taxonomy.contains_plastid(taxid) is True:
-                dbs.append('plastid')
-
-        should_run_bt2(dbs, bowtie2, bowtie2_build)
+        dbs = _should_run_bt2(taxid, taxonomy, bt2_order, bowtie2,
+                              bowtie2_build, linfo)
 
         in_f = se_fastq_files[se]['trim_path_fq']
         in_f_orig = in_f
@@ -708,7 +741,13 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
             se_fastq_files[se]['filter_path_fq'] = in_f
             continue
 
+        if msg_printed is False:
+            linfo(CONBLUE + 'Running Bowtie2')
+            msg_printed = True
+
         for i, db in enumerate(dbs):
+
+            db_path = dbs[db]
 
             dir_fq_bt_data_sample = opj(dir_fq_filter_data, se, db)
             dir_fq_bt_data_sample_un = opj(dir_fq_filter_data, se)
@@ -726,24 +765,36 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
             new_se_fastq_files[new_se]['trim_path_fq'] = None
             taxid = new_se_fastq_files[new_se]['tax_id']
             gc = new_se_fastq_files[new_se]['gc_id']
-            if db == 'mitochondrion':
+            if db == MT:
                 gc = taxonomy.mito_genetic_code_for_taxid(taxid)
                 new_se_fastq_files[new_se]['gc_id'] = gc
-            elif db == 'plastid':
+            elif db == PT:
                 gc = taxonomy.plastid_genetic_code_for_taxid(taxid)
                 new_se_fastq_files[new_se]['gc_id'] = gc
             new_se_fastq_files[new_se]['gc_tt'] = TranslationTable(gc)
             new_se_fastq_files[new_se]['filter_path_fq'] = out_f
             if ope(dir_fq_bt_data_sample):
-                linfo(CONGREE + 'Bowtie2 filtered FASTQ file for sample ' + new_se +
-                      ' already exists')
+                linfo(CONGREE + 'Bowtie2 filtered FASTQ file for sample ' +
+                      new_se + ' already exists')
+                in_f = opj(dir_fq_bt_data_sample_un, se + '.fastq')
             else:
                 linfo('SE mode: ' + new_se)
                 make_dir(dir_fq_bt_data_sample)
-                db_fasta_path = dnld_refseqs_for_taxid(
-                    taxid, db, taxonomy, dir_cache_refseqs, query='',
-                    db='nuccore', linfo=linfo)
-                bt2_idx_path = db_fasta_path.replace('.fasta', '')
+
+                db_fasta_path = None
+                bt2_idx_path = None
+                if db_path in (MT, PT):
+                    db_fasta_path = dnld_refseqs_for_taxid(
+                        taxid, db, taxonomy, dir_cache_refseqs, query='',
+                        db='nuccore', linfo=linfo)
+                    bt2_idx_path = splitext(db_fasta_path)[0]
+                else:
+                    db_fasta_path = db_path
+                    # dir_bt_idx = opj(dir_fq_bt_data_sample, 'bt2')
+                    # make_dir(dir_bt_idx)
+                    bt2_idx_path = opj(dir_cache_refseqs,
+                                       splitext(basename(db_fasta_path))[0])
+
                 if not ope(bt2_idx_path + '.1.bt2'):
                     build_bt2_index(bowtie2_build, [db_fasta_path],
                                     bt2_idx_path, threads)
@@ -774,13 +825,8 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
     for pe in pe_fastq_files:
 
         taxid = pe_fastq_files[pe]['tax_id']
-        dbs = []
-        if taxonomy.is_eukaryote(taxid) is True:
-            dbs.append('mitochondrion')
-            if taxonomy.contains_plastid(taxid) is True:
-                dbs.append('plastid')
-
-        should_run_bt2(dbs, bowtie2, bowtie2_build)
+        dbs = _should_run_bt2(taxid, taxonomy, bt2_order, bowtie2,
+                              bowtie2_build, linfo)
 
         in_fs = pe_fastq_files[pe]['trim_path_fq']
         in_fs_orig = tuple(in_fs)
@@ -789,7 +835,14 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
             pe_fastq_files[pe]['filter_path_fq'] = in_fs
             continue
 
+        if msg_printed is False:
+            linfo(CONBLUE + 'Running Bowtie2')
+            msg_printed = True
+
         for i, db in enumerate(dbs):
+
+            db_path = dbs[db]
+
             dir_fq_bt_data_sample = opj(dir_fq_filter_data, pe, db)
             dir_fq_bt_data_sample_un = opj(dir_fq_filter_data, pe)
 
@@ -808,24 +861,37 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
             new_pe_fastq_files[new_pe]['trim_path_fq'] = None
             taxid = new_pe_fastq_files[new_pe]['tax_id']
             gc = new_pe_fastq_files[new_pe]['gc_id']
-            if db == 'mitochondrion':
+            if db == MT:
                 gc = taxonomy.mito_genetic_code_for_taxid(taxid)
                 new_pe_fastq_files[new_pe]['gc_id'] = gc
-            elif db == 'plastid':
+            elif db == PT:
                 gc = taxonomy.plastid_genetic_code_for_taxid(taxid)
                 new_pe_fastq_files[new_pe]['gc_id'] = gc
             new_pe_fastq_files[new_pe]['gc_tt'] = TranslationTable(gc)
             new_pe_fastq_files[new_pe]['filter_path_fq'] = out_fs
             if ope(dir_fq_bt_data_sample):
-                linfo(CONGREE + 'Bowtie2 filtered FASTQ files for sample '
-                      + new_pe + ' already exist')
+                linfo(CONGREE + 'Bowtie2 filtered FASTQ files for sample ' +
+                      new_pe + ' already exist')
+                in_fs = [x.replace('@D@', dir_fq_bt_data_sample_un) for x in fpatt]
+                in_fs = [x.replace('@N@', pe) for x in in_fs]
             else:
                 linfo('PE mode: ' + new_pe)
                 make_dir(dir_fq_bt_data_sample)
-                db_fasta_path = dnld_refseqs_for_taxid(
-                    taxid, db, taxonomy, dir_cache_refseqs, query='',
-                    db='nuccore', linfo=linfo)
-                bt2_idx_path = db_fasta_path.replace('.fasta', '')
+
+                db_fasta_path = None
+                bt2_idx_path = None
+                if db_path in (MT, PT):
+                    db_fasta_path = dnld_refseqs_for_taxid(
+                        taxid, db, taxonomy, dir_cache_refseqs, query='',
+                        db='nuccore', linfo=linfo)
+                    bt2_idx_path = splitext(db_fasta_path)[0]
+                else:
+                    db_fasta_path = db_path
+                    # dir_bt_idx = opj(dir_fq_bt_data_sample, 'bt2')
+                    # make_dir(dir_bt_idx)
+                    bt2_idx_path = opj(dir_cache_refseqs,
+                                       splitext(basename(db_fasta_path))[0])
+
                 if not ope(bt2_idx_path + '.1.bt2'):
                     build_bt2_index(bowtie2_build, [db_fasta_path],
                                     bt2_idx_path,
@@ -856,10 +922,7 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
                     remove(in_fs[2])
                     remove(in_fs[3])
 
-                in_fs[0] = out_fs_un[0]
-                in_fs[1] = out_fs_un[1]
-                in_fs[2] = out_fs_un[2]
-                in_fs[3] = out_fs_un[3]
+                in_fs = out_fs_un
 
         out_fs_un = [x.replace('@D@', dir_fq_bt_data_sample_un) for x in fpatt]
         out_fs_un = [x.replace('@N@', pe) for x in out_fs_un]
@@ -909,11 +972,11 @@ def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
         se_fastq_files[se]['filter_path_fq'] = out_f
 
         if ope(dir_fq_filter_data_sample):
-            linfo(CONGREE + 'Kraken2 filtered FASTQ file for sample ' + se +
-                  ' already exists')
+            linfo(CONGREE + 'Kraken2 filtered FASTQ files for sample ' + se +
+                  ' already exist')
         else:
             make_dir(dir_fq_filter_data_sample)
-            linfo('Running Kraken2 in SE mode. Confidence: ' +
+            linfo('SE mode. Confidence: ' +
                   str(confidence) + '. ' + se)
             run_kraken_filters(
                 order=order,
@@ -953,7 +1016,7 @@ def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
                   ' already exist')
         else:
             make_dir(dir_fq_filter_data_sample)
-            linfo('Running Kraken2 in PE mode. Confidence: ' +
+            linfo('PE mode. Confidence: ' +
                   str(confidence) + '. ' + pe)
             run_kraken_filters(
                 order=order,

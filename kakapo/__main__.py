@@ -289,6 +289,7 @@ def main():
     fq_pe = _['fq_pe']
     fq_se = _['fq_se']
     inter_pro_scan = _['inter_pro_scan']
+    bt2_order = _['bt2_order']
     kraken_confidence = _['kraken_confidence']
     krkn_order = _['krkn_order']
     prepend_assmbl = _['prepend_assmbl']
@@ -305,7 +306,7 @@ def main():
         sss = ss_file_parse(SS_FILE_PATH, linfo)
     else:
         linfo(CONSRED + 'Search strategies file was not provided. ' +
-              'Will process reads, assemblies and stop.' + CONSDFL)
+              'Will process reads, assemblies and then stop.' + CONSDFL)
         sss = dict()
 
     # Create output directory ------------------------------------------------
@@ -526,7 +527,7 @@ def main():
 
     # Run Bowtie 2 -----------------------------------------------------------
     run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_bt2_data,
-               bowtie2, bowtie2_build, THREADS, dir_temp,
+               bowtie2, bowtie2_build, THREADS, dir_temp, bt2_order,
                pe_trim_fq_file_patterns, tax, dir_cache_refseqs,
                linfo)
 

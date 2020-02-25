@@ -216,8 +216,8 @@ def config_file_parse(file_path, taxonomy, linfo=print):
     try:
         cfg.read(file_path)
     except MissingSectionHeaderError:
-        linfo('Missing section header(s) in the provided configuration file: '
-              + file_path)
+        linfo('Missing section header(s) in the provided ' +
+              'configuration file: ' + file_path)
         exit(1)
 
     try:
@@ -344,6 +344,12 @@ def config_file_parse(file_path, taxonomy, linfo=print):
             all_tax_ids.add(tax_id)
         all_tax_ids = tuple(sorted(all_tax_ids))
 
+        # Bowtie2 filter order
+        bt2_sctn = 'Bowtie2 filter order'
+        bt2_order = []
+        if cfg.has_section(bt2_sctn):
+            bt2_order = OrderedDict(cfg.items(bt2_sctn))
+
         # Kraken2 filter order
         krkn_sctn = 'Kraken2 filter order'
         krkn_order = []
@@ -403,6 +409,7 @@ def config_file_parse(file_path, taxonomy, linfo=print):
                 'fq_pe': fq_pe,
                 'fq_se': fq_se,
                 'inter_pro_scan': inter_pro_scan,
+                'bt2_order': bt2_order,
                 'kraken_confidence': kraken_confidence,
                 'krkn_order': krkn_order,
                 'output_directory': output_directory,
