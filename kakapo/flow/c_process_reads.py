@@ -24,6 +24,7 @@ from kakapo.bioio import write_fasta
 from kakapo.blast import make_blast_db
 from kakapo.bowtie2 import build_bt2_index, run_bowtie2_se, run_bowtie2_pe
 from kakapo.config import PICKLE_PROTOCOL
+from kakapo.config import CONBLUE, CONGREE, CONSRED
 from kakapo.entrez import accessions as accessions_ncbi
 from kakapo.entrez import dnld_seqs_fasta_format
 from kakapo.entrez import esearch
@@ -46,7 +47,7 @@ def dnld_sra_info(sras, dir_cache_prj, linfo=print):
     sras_acceptable = []
 
     if len(sras) > 0:
-        linfo('Downloading SRA run information')
+        linfo(CONBLUE + 'Downloading SRA run information')
     else:
         return sra_runs_info, sras_acceptable
 
@@ -85,19 +86,19 @@ def dnld_sra_info(sras, dir_cache_prj, linfo=print):
             sra_runs_info[sra]['KakapoSampleBaseName'] = sample_base_name
 
             if sra_lib_source != 'transcriptomic':
-                sra_info_str = (
+                sra_info_str = (CONSRED +
                     '{sra}: the SRA library source type "{ltype}" '
                     'is not supported').format(
                     sra=sra, ltype=sra_lib_source)
 
             elif sra_seq_platform != 'Illumina':
-                sra_info_str = (
+                sra_info_str = (CONSRED +
                     '{sra}: the SRA library sequencing platform "{plat}" '
                     'is not supported').format(
                     sra=sra, plat=sra_seq_platform)
 
             else:
-                sra_info_str = ('SRA run {sra} {source} '
+                sra_info_str = (CONGREE + 'SRA run {sra} {source} '
                                 '{layout}-end library. '
                                 'Sourced from {species} '
                                 '(TaxID: {txid}). '
@@ -144,7 +145,7 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
 
     if len(sras) > 0:
         if fasterq_dump is None:
-            linfo('fasterq-dump from SRA Toolkit is not available. ' +
+            linfo(CONSRED + 'fasterq-dump from SRA Toolkit is not available. ' +
                   'Cannot continue. Exiting.')
             exit(0)
 
@@ -187,24 +188,24 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
                 sra_dnld_needed = True
 
         if not sra_dnld_needed:
-            linfo('FASTQ reads for the SRA run ' + sample_base_name +
+            linfo(CONGREE + 'FASTQ reads for the SRA run ' + sample_base_name +
                   ' are available locally')
 
         retry_count = 0
         while sra_dnld_needed:
 
             if retry_count > 50:
-                linfo('Download failed. Exiting.')
+                linfo(CONSRED + 'Download failed. Exiting.')
                 rmtree(dir_temp)
                 exit(1)
 
             elif retry_count > 0:
-                linfo('Download failed. Retrying.')
+                linfo(CONSRED + 'Download failed. Retrying.')
                 sleep(2)
 
             retry_count += 1
 
-            linfo('Downloading FASTQ reads for ' + sample_base_name)
+            linfo(CONBLUE + 'Downloading FASTQ reads for ' + sample_base_name)
 
             cmd = [fasterq_dump,
                    '--threads', str(threads * 4),
@@ -257,7 +258,7 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
 
 def user_fastq_files(fq_se, fq_pe, linfo=print):
     if len(fq_se) > 0 or len(fq_pe) > 0:
-        linfo('Preparing user provided FASTQ files')
+        linfo(CONBLUE + 'Preparing user provided FASTQ files')
 
     se_fastq_files = {}
     pe_fastq_files = {}
@@ -279,7 +280,7 @@ def user_fastq_files(fq_se, fq_pe, linfo=print):
         se_fastq_files[sample_base_name]['src'] = 'usr'
         se_fastq_files[sample_base_name]['avg_len'] = None
         se_fastq_files[sample_base_name]['tax_id'] = tax_id
-        linfo(sample_base_name + ': ' + path)
+        linfo(sample_base_name + ': ' + basename(path))
 
     for pe in fq_pe:
         tax_id = pe[0]
@@ -298,7 +299,8 @@ def user_fastq_files(fq_se, fq_pe, linfo=print):
         pe_fastq_files[sample_base_name]['src'] = 'usr'
         pe_fastq_files[sample_base_name]['avg_len'] = None
         pe_fastq_files[sample_base_name]['tax_id'] = tax_id
-        linfo(sample_base_name + ': ' + path[0] + ', ' + path[1])
+        linfo(sample_base_name + ': ' + basename(path[0]))
+        linfo(' ' * (len(sample_base_name) + 2) + basename(path[1]))
 
     return se_fastq_files, pe_fastq_files
 
@@ -309,9 +311,9 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
     low = 35
 
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
-        linfo('Calculating minimum acceptable read length')
+        linfo(CONBLUE + 'Calculating minimum acceptable read length')
         if vsearch is None:
-            linfo('vsearch is not available. ' +
+            linfo(CONSRED + 'vsearch is not available. ' +
                   'Cannot continue. Exiting.')
             exit(0)
     else:
@@ -395,8 +397,9 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
 def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
                    threads, dir_temp, linfo=print):
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
+        linfo(CONBLUE + 'Running Rcorrector')
         if rcorrector is None:
-            linfo('Rcorrector is not available. ' +
+            linfo(CONSRED + 'Rcorrector is not available. ' +
                   'Cannot continue. Exiting.')
             exit(0)
     for se in se_fastq_files:
@@ -408,10 +411,11 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
         se_fastq_files[se]['cor_path_fq'] = out_f
 
         if ope(dir_fq_cor_data_sample):
-            linfo('Corrected FASTQ file for sample ' + se + ' already exists')
+            linfo(CONGREE + 'Corrected FASTQ file for sample ' + se +
+                  ' already exists')
         else:
             make_dir(dir_fq_cor_data_sample)
-            linfo('Running Rcorrector in SE mode: ' + se)
+            linfo('SE mode: ' + se)
             run_rcorrector_se(rcorrector=rcorrector,
                               in_file=fq_path,
                               out_dir=dir_fq_cor_data_sample,
@@ -443,10 +447,11 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
             pe_fastq_files[pe]['cor_path_fq'].append(out_f_3)
 
         if ope(dir_fq_cor_data_sample):
-            linfo('Corrected FASTQ files for sample ' + pe + ' already exist')
+            linfo(CONGREE + 'Corrected FASTQ files for sample ' + pe +
+                  ' already exist')
         else:
             make_dir(dir_fq_cor_data_sample)
-            linfo('Running Rcorrector in PE mode: ' + pe)
+            linfo('PE mode: ' + pe)
             run_rcorrector_pe(rcorrector=rcorrector,
                               in_file_1=fq_path_1,
                               in_file_2=fq_path_2,
@@ -470,7 +475,7 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
 
             if fq_path_3 is not None:
 
-                linfo('Running Rcorrector in SE mode: ' + pe +
+                linfo('SE mode: ' + pe +
                       ' (Paired-read SRA run contains unpaired reads.)')
 
                 run_rcorrector_se(rcorrector=rcorrector,
@@ -525,8 +530,9 @@ def file_name_patterns():
 def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
                     trimmomatic, adapters, fpatt, threads, linfo=print):
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
+        linfo(CONBLUE + 'Running Trimmomatic')
         if trimmomatic is None:
-            linfo('trimmomatic is not available. ' +
+            linfo(CONSRED + 'trimmomatic is not available. ' +
                   'Cannot continue. Exiting.')
             exit(0)
     for se in se_fastq_files:
@@ -539,10 +545,11 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
         se_fastq_files[se]['trim_path_fq'] = out_f
 
         if ope(dir_fq_trim_data_sample):
-            linfo('Trimmed FASTQ file for sample ' + se + ' already exists')
+            linfo(CONGREE + 'Trimmed FASTQ file for sample ' + se +
+                  ' already exists')
         else:
             make_dir(dir_fq_trim_data_sample)
-            linfo('Running Trimmomatic in SE mode: ' + se)
+            linfo('SE mode: ' + se)
             trimmomatic_se(
                 trimmomatic=trimmomatic,
                 adapters=adapters,
@@ -568,10 +575,11 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
         pe_fastq_files[pe]['trim_path_fq'] = out_fs
 
         if ope(dir_fq_trim_data_sample):
-            linfo('Trimmed FASTQ files for sample ' + pe + ' already exist')
+            linfo(CONGREE + 'Trimmed FASTQ files for sample ' + pe +
+                  ' already exist')
         else:
             make_dir(dir_fq_trim_data_sample)
-            linfo('Running Trimmomatic in PE mode: ' + pe)
+            linfo('PE mode: ' + pe)
             trimmomatic_pe(
                 trimmomatic=trimmomatic,
                 adapters=adapters,
@@ -590,7 +598,7 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
                 out_f = opj(dir_fq_trim_data_sample, 'unpaired.fastq' + ext)
                 stats_f = opj(dir_fq_trim_data_sample, pe + '_unpaired.txt')
 
-                linfo('Running Trimmomatic in SE mode: ' + pe +
+                linfo('SE mode: ' + pe +
                       ' (Paired-read SRA run contains unpaired reads.)')
 
                 trimmomatic_se(
@@ -662,16 +670,19 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
                bowtie2, bowtie2_build, threads, dir_temp,
                fpatt, taxonomy, dir_cache_refseqs, linfo=print):
 
+    if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
+        linfo(CONBLUE + 'Running Bowtie2')
+
     def should_run_bt2(dbs, bowtie2, bowtie2_build):
         if len(dbs) > 0:
 
             if bowtie2 is None:
-                linfo('bowtie2 is not available. ' +
+                linfo(CONSRED + 'bowtie2 is not available. ' +
                       'Cannot continue. Exiting.')
                 exit(0)
 
             if bowtie2_build is None:
-                linfo('bowtie2-build is not available. ' +
+                linfo(CONSRED + 'bowtie2-build is not available. ' +
                       'Cannot continue. Exiting.')
                 exit(0)
 
@@ -724,10 +735,10 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
             new_se_fastq_files[new_se]['gc_tt'] = TranslationTable(gc)
             new_se_fastq_files[new_se]['filter_path_fq'] = out_f
             if ope(dir_fq_bt_data_sample):
-                linfo('Bowtie2 filtered FASTQ file for sample ' + new_se +
+                linfo(CONGREE + 'Bowtie2 filtered FASTQ file for sample ' + new_se +
                       ' already exists')
             else:
-                linfo('Running Bowtie2 in SE mode: ' + new_se)
+                linfo('SE mode: ' + new_se)
                 make_dir(dir_fq_bt_data_sample)
                 db_fasta_path = dnld_refseqs_for_taxid(
                     taxid, db, taxonomy, dir_cache_refseqs, query='',
@@ -806,10 +817,10 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
             new_pe_fastq_files[new_pe]['gc_tt'] = TranslationTable(gc)
             new_pe_fastq_files[new_pe]['filter_path_fq'] = out_fs
             if ope(dir_fq_bt_data_sample):
-                linfo('Bowtie2 filtered FASTQ files for sample ' + new_pe +
-                      ' already exist')
+                linfo(CONGREE + 'Bowtie2 filtered FASTQ files for sample '
+                      + new_pe + ' already exist')
             else:
-                linfo('Running Bowtie2 in PE mode: ' + new_pe)
+                linfo('PE mode: ' + new_pe)
                 make_dir(dir_fq_bt_data_sample)
                 db_fasta_path = dnld_refseqs_for_taxid(
                     taxid, db, taxonomy, dir_cache_refseqs, query='',
@@ -867,8 +878,9 @@ def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
                 confidence, kraken2, threads, dir_temp, fpatt, linfo=print):
 
     if (len(se_fastq_files) > 0 or len(pe_fastq_files) > 0) and len(order) > 0:
+        linfo(CONBLUE + 'Running Kraken2')
         if kraken2 is None:
-            linfo('kraken2 is not available. ' +
+            linfo(CONSRED + 'kraken2 is not available. ' +
                   'Cannot continue. Exiting.')
             exit(0)
 
@@ -897,7 +909,7 @@ def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
         se_fastq_files[se]['filter_path_fq'] = out_f
 
         if ope(dir_fq_filter_data_sample):
-            linfo('Kraken2 filtered FASTQ file for sample ' + se +
+            linfo(CONGREE + 'Kraken2 filtered FASTQ file for sample ' + se +
                   ' already exists')
         else:
             make_dir(dir_fq_filter_data_sample)
@@ -937,7 +949,7 @@ def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
         pe_fastq_files[pe]['filter_path_fq'] = out_fs
 
         if ope(dir_fq_filter_data_sample):
-            linfo('Kraken2 filtered FASTQ files for sample ' + pe +
+            linfo(CONGREE + 'Kraken2 filtered FASTQ files for sample ' + pe +
                   ' already exist')
         else:
             make_dir(dir_fq_filter_data_sample)
@@ -959,8 +971,9 @@ def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
 def filtered_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
                       fpatt, linfo=print):
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
+        linfo(CONBLUE + 'Converting FASTQ to FASTA using Seqtk')
         if seqtk is None:
-            linfo('seqtk is not available. ' +
+            linfo(CONSRED + 'seqtk is not available. ' +
                   'Cannot continue. Exiting.')
             exit(0)
     for se in se_fastq_files:
@@ -970,10 +983,11 @@ def filtered_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
         se_fastq_files[se]['filter_path_fa'] = out_f
 
         if ope(dir_fa_trim_data_sample):
-            linfo('Filtered FASTA files for sample ' + se + ' already exist')
+            linfo(CONGREE + 'Filtered FASTA files for sample ' + se +
+                  ' already exist')
         else:
             make_dir(dir_fa_trim_data_sample)
-            linfo('Converting FASTQ to FASTA using Seqtk: ' + fq_path)
+            linfo(fq_path)
             seqtk_fq_to_fa(seqtk, fq_path, out_f)
 
     for pe in pe_fastq_files:
@@ -984,20 +998,22 @@ def filtered_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
         pe_fastq_files[pe]['filter_path_fa'] = out_fs
 
         if ope(dir_fa_trim_data_sample):
-            linfo('Filtered FASTA files for sample ' + pe + ' already exist')
+            linfo(CONGREE + 'Filtered FASTA files for sample ' + pe +
+                  ' already exist')
         else:
             make_dir(dir_fa_trim_data_sample)
             pe_trim_files = zip(fq_paths, out_fs)
             for x in pe_trim_files:
-                linfo('Converting FASTQ to FASTA using Seqtk: ' + x[0])
+                linfo(x[0])
                 seqtk_fq_to_fa(seqtk, x[0], x[1])
 
 
 def makeblastdb_fq(se_fastq_files, pe_fastq_files, dir_blast_fa_trim,
                    makeblastdb, fpatt, linfo=print):
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
+        linfo(CONBLUE + 'Building BLAST databases for reads')
         if makeblastdb is None:
-            linfo('makeblastdb is not available. ' +
+            linfo(CONSRED + 'makeblastdb is not available. ' +
                   'Cannot continue. Exiting.')
             exit(0)
     for se in se_fastq_files:
@@ -1007,10 +1023,11 @@ def makeblastdb_fq(se_fastq_files, pe_fastq_files, dir_blast_fa_trim,
         se_fastq_files[se]['blast_db_path'] = out_f
 
         if ope(dir_blast_fa_trim_sample):
-            linfo('BLAST database for sample ' + se + ' already exists')
+            linfo(CONGREE + 'BLAST database for sample ' + se +
+                  ' already exists')
         else:
             make_dir(dir_blast_fa_trim_sample)
-            linfo('Building BLAST database for: ' + fa_path)
+            linfo(fa_path)
             make_blast_db(
                 exec_file=makeblastdb,
                 in_file=fa_path,
@@ -1026,12 +1043,13 @@ def makeblastdb_fq(se_fastq_files, pe_fastq_files, dir_blast_fa_trim,
         pe_fastq_files[pe]['blast_db_path'] = out_fs
 
         if ope(dir_blast_fa_trim_sample):
-            linfo('BLAST database for sample ' + pe + ' already exists')
+            linfo(CONGREE + 'BLAST database for sample ' + pe +
+                  ' already exists')
         else:
             make_dir(dir_blast_fa_trim_sample)
             pe_trim_files = zip(fa_paths, out_fs)
             for x in pe_trim_files:
-                linfo('Building BLAST database for: ' + x[0])
+                linfo(x[0])
                 make_blast_db(
                     exec_file=makeblastdb,
                     in_file=x[0],

@@ -84,8 +84,6 @@ def _parse_pfam(pfam_entries, config_file_path):
 
 def ss_file_parse(file_path, linfo=print):
 
-    linfo('Reading search strategies file: ' + file_path)
-
     cfg = ConfigParser(delimiters=('='), allow_no_value=True,
                        empty_lines_in_values=True)
     cfg.optionxform = str
@@ -94,7 +92,7 @@ def ss_file_parse(file_path, linfo=print):
     try:
         cfg.read(file_path)
     except MissingSectionHeaderError:
-        linfo('Error: Missing section header(s) in the provided "Search Strategies" file: ' +
+        linfo('Missing section header(s) in the provided "Search Strategies" file: ' +
               file_path)
         exit(1)
 
@@ -212,15 +210,14 @@ def ss_file_parse(file_path, linfo=print):
 
 def config_file_parse(file_path, taxonomy, linfo=print):
 
-    linfo('Reading configuration file: ' + file_path)
-
     cfg = ConfigParser(delimiters=('='), allow_no_value=True)
     cfg.optionxform = str
 
     try:
         cfg.read(file_path)
     except MissingSectionHeaderError:
-        linfo('Error: Missing section header(s) in the provided configuration file: ' + file_path)
+        linfo('Missing section header(s) in the provided configuration file: '
+              + file_path)
         exit(1)
 
     try:
@@ -370,12 +367,14 @@ def config_file_parse(file_path, taxonomy, linfo=print):
         blast_2_max_target_seqs = cfg.getint('BLAST assemblies', 'max_target_seqs')
 
     except NoSectionError as err:
-        linfo('Error: Missing required section "' + err.section + '" in configuration file: ' + file_path)
+        linfo('Missing required section "' + err.section +
+              '" in configuration file: ' + file_path)
         exit(1)
 
     except NoOptionError as err:
-        linfo('Error: Missing required option "' + err.option +
-              '" under section "' + err.section + '" in configuration file: ' + file_path)
+        linfo('Missing required option "' + err.option +
+              '" under section "' + err.section + '" in configuration file: '
+              + file_path)
         exit(1)
 
     # ------------------------------------------------------------------------

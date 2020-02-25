@@ -13,6 +13,7 @@ from sys import exit
 
 from kakapo.bioio import read_fasta
 from kakapo.blast import make_blast_db
+from kakapo.config import CONSRED, CONBLUE, CONGREE, CONSDFL
 from kakapo.helpers import combine_text_files
 from kakapo.helpers import make_dir
 from kakapo.spades import run_spades_se, run_spades_pe
@@ -24,7 +25,7 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
 
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
         if spades is None:
-            linfo('spades is not available. ' +
+            linfo(CONSRED + 'spades is not available. ' +
                   'Cannot continue. Exiting.')
             exit(0)
 
@@ -34,10 +35,11 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
         se_fastq_files[se]['spades_assembly' + '__' + ss] = None
 
         if ope(dir_results):
-            linfo('SPAdes results for sample ' + se + ' already exist [' + ss + ']')
+            linfo(CONGREE + 'SPAdes assembly for sample ' + se +
+                  ' already exists [' + ss + ']')
         else:
             make_dir(dir_results)
-            linfo('Running SPAdes on: ' + se + ' [' + ss + ']')
+            linfo(CONBLUE + 'Running SPAdes on: ' + se + ' [' + ss + ']')
             run_spades_se(spades,
                           out_dir=dir_results,
                           input_file=fq_path,
@@ -54,7 +56,7 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
             linfo('SPAdes produced ' + str(count) + tr_str + ' [' + ss + ']')
             se_fastq_files[se]['spades_assembly' + '__' + ss] = assmbl_path
         else:
-            linfo('SPAdes produced no transcripts [' + ss + ']')
+            linfo(CONSRED + 'SPAdes produced no transcripts [' + ss + ']')
 
     for pe in pe_fastq_files:
         dir_results = opj(dir_spades_assemblies, pe + '__' + ss)
@@ -62,10 +64,11 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
         pe_fastq_files[pe]['spades_assembly' + '__' + ss] = None
 
         if ope(dir_results):
-            linfo('SPAdes results for sample ' + pe + ' already exist [' + ss + ']')
+            linfo(CONGREE + 'SPAdes assembly for sample ' + pe +
+                  ' already exists [' + ss + ']')
         else:
             make_dir(dir_results)
-            linfo('Running SPAdes on: ' + pe + ' [' + ss + ']')
+            linfo(CONBLUE + 'Running SPAdes on: ' + pe + ' [' + ss + ']')
 
             if osstat(fq_paths[0]).st_size > 0 and \
                osstat(fq_paths[1]).st_size > 0:
@@ -97,7 +100,7 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
             linfo('SPAdes produced ' + str(count) + tr_str + ' [' + ss + ']')
             pe_fastq_files[pe]['spades_assembly' + '__' + ss] = assmbl_path
         else:
-            linfo('SPAdes produced no transcripts [' + ss + ']')
+            linfo(CONSRED + 'SPAdes produced no transcripts [' + ss + ']')
 
 
 def combine_assemblies(se_fastq_files, pe_fastq_files, user_assemblies, tax,
@@ -185,9 +188,9 @@ def combine_assemblies(se_fastq_files, pe_fastq_files, user_assemblies, tax,
 def makeblastdb_assemblies(assemblies, dir_prj_blast_assmbl, makeblastdb,
                            linfo=print):
     if len(assemblies) > 0:
-        linfo('Building BLAST databases for assemblies')
+        linfo(CONBLUE + 'Building BLAST databases for assemblies')
         if makeblastdb is None:
-            linfo('makeblastdb is not available. ' +
+            linfo(CONSRED + 'makeblastdb is not available. ' +
                   'Cannot continue. Exiting.')
             exit(0)
     for a in assemblies:
@@ -199,7 +202,8 @@ def makeblastdb_assemblies(assemblies, dir_prj_blast_assmbl, makeblastdb,
         a['blast_db_path'] = assmbl_blast_db_file
 
         if ope(assmbl_blast_db_dir):
-            linfo('BLAST database for ' + assmbl_name + ' already exists')
+            linfo(CONGREE + 'BLAST database for ' + assmbl_name +
+                  ' already exists')
         else:
             linfo(assmbl_name)
             make_dir(assmbl_blast_db_dir)

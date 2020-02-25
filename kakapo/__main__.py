@@ -29,7 +29,7 @@ from ncbi_taxonomy_local import taxonomy
 from kakapo import __version__, __script_name__
 from kakapo import dependencies as deps
 
-from kakapo.config import CONYELL, CONSDFL
+from kakapo.config import CONYELL, CONSRED, CONGREE, CONBLUE, CONSDFL
 from kakapo.config import DIR_CFG, DIR_DEP, DIR_TAX, DIR_KRK
 from kakapo.config import SCRIPT_INFO
 from kakapo.config import THREADS, RAM
@@ -211,18 +211,10 @@ if CLEAN_CONFIG_DIR is False and SS_FILE_PATH is not None:
     if not ope(SS_FILE_PATH):
         print('Search strategies file ' + SS_FILE_PATH + ' does not exist.')
         exit(0)
-elif INSTALL_DEPS is True or DNLD_KRAKEN_DBS is True:
+elif INSTALL_DEPS is True or DNLD_KRAKEN_DBS is True or SS_FILE_PATH is None:
     pass
 else:
-    print(SCRIPT_INFO)
-    print(CONYELL +
-          'Search strategies file was not provided. Nothing to do.' + CONSDFL)
-    print()
-    print('-' * 80)
-    PARSER.print_help()
-    print('-' * 80)
-    print()
-    exit(0)
+    pass
 
 print(SCRIPT_INFO)
 
@@ -239,13 +231,13 @@ def main():
 
     # Prepare configuration directory ----------------------------------------
     if ope(DIR_CFG):
-        linfo('Found configuration directory: ' + DIR_CFG)
+        linfo(CONGREE + 'Found configuration directory: ' + DIR_CFG)
     else:
-        linfo('Creating configuration directory: ' + DIR_CFG)
+        linfo(CONBLUE + 'Creating configuration directory: ' + DIR_CFG)
         make_dir(DIR_CFG)
 
     # Check for dependencies -------------------------------------------------
-    linfo('Checking for dependencies')
+    linfo(CONBLUE + 'Checking for dependencies')
     make_dir(DIR_DEP)
     make_dir(DIR_KRK)
     seqtk = deps.dep_check_seqtk(FORCE_DEPS, linfo)
@@ -258,8 +250,8 @@ def main():
     rcorrector = deps.dep_check_rcorrector(FORCE_DEPS, linfo)
     kraken2, kraken2_build = deps.dep_check_kraken2(FORCE_DEPS, linfo)
 
+    linfo(CONBLUE + 'Checking for available Kraken2 databases')
     kraken2_dbs = deps.download_kraken2_dbs(DIR_KRK, DNLD_KRAKEN_DBS)
-
     for db in sorted(kraken2_dbs.keys()):
         linfo('Found Kraken2 database: ' + db)
 
@@ -270,6 +262,7 @@ def main():
     tax = taxonomy(data_dir_path=DIR_TAX, linfo=linfo)
 
     # Parse configuration file -----------------------------------------------
+    linfo(CONBLUE + 'Reading configuration file: ' + CONFIG_FILE_PATH)
     _ = config_file_parse(CONFIG_FILE_PATH, tax, linfo)
 
     allow_no_stop_cod = _['allow_no_stop_cod']
@@ -307,14 +300,20 @@ def main():
     user_assemblies = _['assmbl']
 
     # Parse search strategies file -------------------------------------------
-    sss = ss_file_parse(SS_FILE_PATH, linfo)
+    if SS_FILE_PATH is not None:
+        linfo(CONBLUE + 'Reading search strategies file: ' + SS_FILE_PATH)
+        sss = ss_file_parse(SS_FILE_PATH, linfo)
+    else:
+        linfo(CONSRED + 'Search strategies file was not provided. ' +
+              'Will process reads, assemblies and stop.' + CONSDFL)
+        sss = dict()
 
     # Create output directory ------------------------------------------------
     if dir_out is not None:
         if ope(dir_out):
-            linfo('Found output directory: ' + dir_out)
+            linfo(CONGREE + 'Found output directory: ' + dir_out)
         else:
-            linfo('Creating output directory: ' + dir_out)
+            linfo(CONBLUE + 'Creating output directory: ' + dir_out)
             make_dir(dir_out)
 
     # Write Kakapo version information to the output directory ---------------
@@ -323,10 +322,12 @@ def main():
         with open(version_file, 'r') as f:
             version_prev = f.read().strip()
             if __version__ != version_prev:
-                linfo('The output directory contains data produced by a ' +
+                linfo(CONSRED + 'The output directory contains data produced by a ' +
                       'different version of Kakapo: ' + version_prev +
-                      '. Currently running version is: ' + __version__ + '. ' +
-                      'Delete "kakapo_version.txt" file if you would like to continue.')
+                      '. The currently running version is: ' + __version__ + '. ' +
+                      'Delete "kakapo_version.txt" file located in the ' +
+                      'output directory if you would like to continue.' +
+                      CONSDFL)
                 exit(0)
     with open(version_file, 'w') as f:
         f.write(__version__)
@@ -545,7 +546,9 @@ def main():
 
     # Stop After Filter ------------------------------------------------------
     if STOP_AFTER_FILTER is True:
-        linfo('Stopping after Kraken2/Bowtie2 filtering step as requested.')
+        linfo(CONSRED +
+              'Stopping after Kraken2/Bowtie2 filtering step as requested.' +
+              CONSDFL)
         exit(0)
 
     # Convert filtered FASTQ files to FASTA ----------------------------------
@@ -563,9 +566,6 @@ def main():
             continue
         else:
             any_queries = True
-
-    if any_queries is False:
-        linfo('No query sequences were provided.')
 
     # Run tblastn on reads ---------------------------------------------------
     for ss in sss:
@@ -622,6 +622,9 @@ def main():
     # Run makeblastdb on assemblies  -----------------------------------------
     makeblastdb_assemblies(assemblies, dir_prj_blast_assmbl, makeblastdb,
                            linfo)
+
+    if any_queries is False:
+        linfo(CONSRED + 'No query sequences were provided' + CONSDFL)
 
     # Run tblastn on assemblies ----------------------------------------------
     for ss in sss:
