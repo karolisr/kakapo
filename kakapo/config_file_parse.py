@@ -226,7 +226,8 @@ def config_file_parse(file_path, taxonomy, linfo=print):
         email = cfg.get('General', 'email')
         output_directory = abspath(expanduser(cfg.get(
             'General', 'output_directory')))
-        inter_pro_scan = cfg.getboolean('General', 'run_inter_pro_scan')
+        should_run_ipr = cfg.getboolean('General', 'run_inter_pro_scan')
+        should_run_rcorrector = cfg.getboolean('General', 'run_rcorrector')
         prepend_assmbl = cfg.getboolean('General',
                                         'prepend_assembly_name_to_sequence_name')
         kraken_confidence = cfg.getfloat('General', 'kraken_2_confidence')
@@ -408,7 +409,8 @@ def config_file_parse(file_path, taxonomy, linfo=print):
                 'ncbi_longevity': ncbi_longevity,
                 'fq_pe': fq_pe,
                 'fq_se': fq_se,
-                'inter_pro_scan': inter_pro_scan,
+                'should_run_rcorrector': should_run_rcorrector,
+                'should_run_ipr': should_run_ipr,
                 'bt2_order': bt2_order,
                 'kraken_confidence': kraken_confidence,
                 'krkn_order': krkn_order,

@@ -288,7 +288,8 @@ def main():
     ncbi_longevity = _['ncbi_longevity']
     fq_pe = _['fq_pe']
     fq_se = _['fq_se']
-    inter_pro_scan = _['inter_pro_scan']
+    should_run_rcorrector = _['should_run_rcorrector']
+    should_run_ipr = _['should_run_ipr']
     bt2_order = _['bt2_order']
     kraken_confidence = _['kraken_confidence']
     krkn_order = _['krkn_order']
@@ -509,7 +510,7 @@ def main():
 
     # Run Rcorrector ---------------------------------------------------------
     run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
-                   THREADS, dir_temp, linfo)
+                   THREADS, dir_temp, should_run_rcorrector, linfo)
 
     # File name patterns -----------------------------------------------------
     a, b, c, d, e = file_name_patterns()
@@ -692,7 +693,7 @@ def main():
                       dir_prj_transcripts_combined, prj_name, linfo)
 
     # Run InterProScan 5 -----------------------------------------------------
-    if inter_pro_scan is True:
+    if should_run_ipr is True:
         for ss in sss:
 
             if stat(aa_queries_files[ss]).st_size == 0:

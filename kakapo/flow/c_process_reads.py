@@ -410,9 +410,13 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
 
 
 def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
-                   threads, dir_temp, linfo=print):
+                   threads, dir_temp, should_run, linfo=print):
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
-        linfo(CONBLUE + 'Running Rcorrector')
+        if should_run is False:
+            linfo(CONBLUE + 'Skipping Rcorrector as requested')
+        else:
+            linfo(CONBLUE + 'Running Rcorrector')
+
         if rcorrector is None:
             linfo(CONSRED + 'Rcorrector is not available. ' +
                   'Cannot continue. Exiting.')
@@ -423,7 +427,12 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
         r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(fq_path)
         log_f = opj(dir_fq_cor_data_sample, se + '.txt')
         out_f = opj(dir_fq_cor_data_sample, se + '.fastq' + ext)
+
         se_fastq_files[se]['cor_path_fq'] = out_f
+
+        if should_run is False:
+            se_fastq_files[se]['cor_path_fq'] = fq_path
+            continue
 
         if ope(dir_fq_cor_data_sample):
             linfo(CONGREE + 'Corrected FASTQ file for sample ' + se +
@@ -454,12 +463,19 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
         log_f = opj(dir_fq_cor_data_sample, pe + '.txt')
         out_f_1 = opj(dir_fq_cor_data_sample, pe + '_R1.fastq' + ext)
         out_f_2 = opj(dir_fq_cor_data_sample, pe + '_R2.fastq' + ext)
+
         pe_fastq_files[pe]['cor_path_fq'] = [out_f_1, out_f_2]
 
         if len(pe_fastq_files[pe]['path']) == 3:
             fq_path_3 = pe_fastq_files[pe]['path'][2]
             out_f_3 = opj(dir_fq_cor_data_sample, pe + '_R3.fastq' + ext)
             pe_fastq_files[pe]['cor_path_fq'].append(out_f_3)
+
+        if should_run is False:
+            pe_fastq_files[pe]['cor_path_fq'] = [fq_path_1, fq_path_2]
+            if fq_path_3 is not None:
+                pe_fastq_files[pe]['cor_path_fq'].append(fq_path_3)
+            continue
 
         if ope(dir_fq_cor_data_sample):
             linfo(CONGREE + 'Corrected FASTQ files for sample ' + pe +
