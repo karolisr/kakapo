@@ -49,6 +49,7 @@ PT = 'plastid'
 
 
 def dnld_sra_info(sras, dir_cache_prj, linfo=print):
+
     sra_runs_info = {}
     sras_acceptable = []
 
@@ -91,20 +92,28 @@ def dnld_sra_info(sras, dir_cache_prj, linfo=print):
 
             sra_runs_info[sra]['KakapoSampleBaseName'] = sample_base_name
 
-            if sra_lib_source != 'transcriptomic':
+            src_check = sra_lib_source.lower()
+            strategy_check = sra_lib_strategy.lower()
+
+            if not ('transcript' in src_check or
+                    'rna' in src_check or
+                    'rna' in strategy_check):
+
                 sra_info_str = (CONSRED +
-                    '{sra}: the SRA library source type "{ltype}" '
-                    'is not supported').format(
-                    sra=sra, ltype=sra_lib_source)
+                                '{sra}: the SRA library source type "{ltype}" '
+                                'or library strategy "{strategy}" '
+                                'is not supported').format(
+                                    sra=sra, ltype=sra_lib_source,
+                                    strategy=sra_lib_strategy)
 
             elif sra_seq_platform != 'Illumina':
                 sra_info_str = (CONSRED +
-                    '{sra}: the SRA library sequencing platform "{plat}" '
-                    'is not supported').format(
-                    sra=sra, plat=sra_seq_platform)
+                                '{sra}: the SRA library sequencing platform '
+                                '"{plat}" is not supported').format(
+                                    sra=sra, plat=sra_seq_platform)
 
             else:
-                sra_info_str = (CONGREE + 'SRA run {sra} {source} '
+                sra_info_str = (CONGREE + 'SRA run {sra} {strategy} ({source}) '
                                 '{layout}-end library. '
                                 'Sourced from {species} '
                                 '(TaxID: {txid}). '
