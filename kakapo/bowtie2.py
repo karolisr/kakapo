@@ -20,8 +20,10 @@ def run_bowtie2_se(bowtie2, input_file,
                    output_file, output_file_un, sam_output_file,
                    index, threads, dir_temp):
 
-    cmd = [bowtie2, '--threads', str(threads), '--very-sensitive-local',
+    cmd = [bowtie2, '--threads', str(threads), '--very-sensitive',
            '--phred33', '--no-unal', '--no-mixed', '--no-discordant', '-a',
+           '--rdg', '1000,1000',
+           '--rfg', '1000,1000',
            '-x', index,
            '-U', input_file,
            '--al', output_file,
@@ -40,8 +42,10 @@ def run_bowtie2_pe(bowtie2, input_files, paired_out_pattern,
     temp_unpaired_file = opj(dir_temp, 'temp_unpaired.fastq')
     temp_unpaired_file_un = opj(dir_temp, 'temp_unpaired_un.fastq')
 
-    cmd = [bowtie2, '--threads', str(threads), '--very-sensitive-local',
+    cmd = [bowtie2, '--threads', str(threads), '--very-sensitive',
            '--phred33', '--no-unal', '--no-mixed', '--no-discordant', '-a',
+           '--rdg', '1000,1000',
+           '--rfg', '1000,1000',
            '-x', index,
            '-1', input_files[0], '-2', input_files[1],
            '-U', input_files[2] + ',' + input_files[3],
