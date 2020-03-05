@@ -486,10 +486,10 @@ def dep_check_spades(force=False, logger=print):
 def dep_check_bowtie2(force=False, logger=print):
     if OS_ID == 'mac':
         url = ('https://sourceforge.net/projects/bowtie-bio/files/bowtie2/'
-               '2.3.5.1/bowtie2-2.3.5.1-macos-x86_64.zip/download')
+               '2.4.1/bowtie2-2.4.1-macos-x86_64.zip/download')
     elif OS_ID == 'linux':
         url = ('https://sourceforge.net/projects/bowtie-bio/files/bowtie2/'
-               '2.3.5.1/bowtie2-2.3.5.1-linux-x86_64.zip/download')
+               '2.4.1/bowtie2-2.4.1-linux-x86_64.zip/download')
 
     dnld_path = opj(DIR_DEP, 'bowtie2.zip')
 
