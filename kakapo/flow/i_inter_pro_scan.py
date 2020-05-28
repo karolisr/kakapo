@@ -58,7 +58,7 @@ def run_inter_pro_scan(ss, assemblies, email, dir_prj_ips, dir_cache_prj,
 
         else:
             jobs = job_runner(email=email, dir_cache=dir_cache_prj,
-                              seqs=seqs, logger=linfo)
+                              seqs=seqs)
 
             with open(_, 'wb') as f:
                 pickle.dump(jobs, f, protocol=PICKLE_PROTOCOL)
@@ -97,6 +97,8 @@ def run_inter_pro_scan(ss, assemblies, email, dir_prj_ips, dir_cache_prj,
             sleep(delay)
 
             ips_json = result_json(job_id)
+            if ips_json is None:
+                continue
             # ips_version = ips_json['interproscan-version']
             ips_json = ips_json['results']
 

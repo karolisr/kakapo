@@ -1,16 +1,15 @@
-# -*- coding: utf-8 -*-
-
 """
 EMBL-EBI InterProScan 5.
 
-Documentation: https://www.ebi.ac.uk/seqdb/confluence/display/JDSAT/InterProScan+5+Help+and+Documentation#InterProScan5HelpandDocumentation-OpenAPIInterface
+**Documentation** for Open API Interface at:
+
+https://www.ebi.ac.uk/seqdb/confluence/display/JDSAT/InterProScan+5+Help+and+Documentation
 """
 
 import io
 import pickle
 import sys
 import tarfile
-
 from collections import OrderedDict
 from copy import deepcopy
 from os import remove
@@ -32,12 +31,14 @@ def submit_job(email, title, sequence):
     url = IPS_URL + '/run'
     response_format = 'text'
     r = post(url, data, response_format)
-    job_id = r.text
+    if r.status_code != 200:
+        job_id = None
+    else:
+        job_id = r.text
     return job_id
 
 
 def status(job_id):
-
     # Possible response values:
     #
     #   RUNNING: the job is currently being processed.
@@ -58,18 +59,25 @@ def result_types(job_id):
     root = ElementTree.fromstring(r.text)
     types = root.findall('type')
     r = {x.find('identifier').text: {
-         'Accept': x.find('mediaType').text} for x in types}
+        'Accept': x.find('mediaType').text} for x in types}
     return r
 
 
 def _result(job_id, result_type):
-
     available_result_types = result_types(job_id)
 
     if result_type in available_result_types:
         response_format = available_result_types[result_type]
     else:
-        raise Exception
+        # raise Exception
+        # TODO: Just skips if, for some reason, the server
+        #       did not report an error but also did not
+        #       return anything.
+
+        # I noticed that in these cases waiting a little and retrying
+        # sometimes works. Should implement wait and retry in this
+        # function.
+        return None
 
     url = IPS_URL + '/result/' + job_id + '/' + result_type
     response = get(url=url, params=None, response_format=response_format)
@@ -79,16 +87,34 @@ def _result(job_id, result_type):
 
 def result_json(job_id):
     r = _result(job_id, result_type='json')
+    # TODO: Just skips if, for some reason, the server
+    #       did not report an error but also did not
+    #       return anything.
+    if r is None:
+        return None
+    ##################################################
     return r.json()
 
 
 def result_sequence(job_id):
     r = _result(job_id, result_type='sequence')
+    # TODO: Just skips if, for some reason, the server
+    #       did not report an error but also did not
+    #       return anything.
+    if r is None:
+        return None
+    ##################################################
     return r.text
 
 
 def result_html(job_id, out_dir):
     r = _result(job_id, result_type='htmltarball')
+    # TODO: Just skips if, for some reason, the server
+    #       did not report an error but also did not
+    #       return anything.
+    if r is None:
+        return None
+    ##################################################
 
     tar_ref = tarfile.open(fileobj=io.BytesIO(r.content), mode='r:gz')
     tar_ref.extractall(out_dir)
@@ -99,6 +125,12 @@ def result_html(job_id, out_dir):
 
 def result_gff(job_id, out_file=None):
     r = _result(job_id, result_type='gff')
+    # TODO: Just skips if, for some reason, the server
+    #       did not report an error but also did not
+    #       return anything.
+    if r is None:
+        return None
+    ##################################################
     gff_text = r.text
 
     if out_file is not None:
@@ -108,31 +140,28 @@ def result_gff(job_id, out_file=None):
     return gff_text
 
 
-def job_runner(email, dir_cache, seqs=None, logger=print):
+def job_runner(email, dir_cache, seqs=None):
     """Run InterProScan 5."""
-    ##########################################################################
-    MAX_JOBS = 25
-    DELAY = 0.5
-    CFP = opj(dir_cache, 'ips5_cache')
-    ##########################################################################
 
-    ##########################################################################
+    max_jobs = 25
+    delay = 0.5
+    cfp = opj(dir_cache, 'ips5_cache')
+
     def load():
-        with open(CFP, 'rb') as f:
+        with open(cfp, 'rb') as f:
             c = pickle.load(f)
         return c
 
     def dump(c):
-        with open(CFP, 'wb') as f:
+        with open(cfp, 'wb') as f:
             pickle.dump(c, f, protocol=PICKLE_PROTOCOL)
-    ##########################################################################
 
     seqs_orig = deepcopy(seqs)
     seqs = deepcopy(seqs)
 
     jobs = None
 
-    if ope(CFP):
+    if ope(cfp):
         jobs = load()
     else:
         if seqs is not None:
@@ -147,7 +176,7 @@ def job_runner(email, dir_cache, seqs=None, logger=print):
             dump(jobs)
 
         else:
-            logger('No sequences provided.')
+            print('No sequences provided.')
             sys.exit(0)
 
     ##########################################################################
@@ -157,14 +186,16 @@ def job_runner(email, dir_cache, seqs=None, logger=print):
     finished = jobs['finished']
     # error = jobs['error']
     failure = jobs['failure']
-    not_found = jobs['not_found']
+    # not_found = jobs['not_found']
     other = jobs['other']
 
     retry_list = list()
 
     # Nicer printing ---------------------------------------------------------
-    max_title_a_len = 2 + max([len(split_seq_defn(x)[0]) for x in list(seqs_orig.keys())])
-    max_title_b_len = 2 + max([len(split_seq_defn(x)[1]) for x in list(seqs_orig.keys())])
+    max_title_a_len = 2 + max(
+        [len(split_seq_defn(x)[0]) for x in list(seqs_orig.keys())])
+    max_title_b_len = 2 + max(
+        [len(split_seq_defn(x)[1]) for x in list(seqs_orig.keys())])
     # ------------------------------------------------------------------------
 
     queue_size = len(seqs_orig)
@@ -173,44 +204,50 @@ def job_runner(email, dir_cache, seqs=None, logger=print):
     submit_message = True
     while busy:
         dump(jobs)
-        sleep(DELAY)
+        sleep(delay)
 
         if len(queue) > 0:
-            if len(running) < MAX_JOBS:
+            if len(running) < max_jobs:
                 if submit_message is True:
                     print()
-                    logger('Submitting jobs...')
+                    print('Submitting jobs...')
                     print()
+                job_status = 'SUBMITTED '
                 title = list(queue.keys()).pop()
                 sequence = queue.pop(title)
                 job_id = submit_job(email, title, sequence)
-                running[title] = job_id
+                if job_id is None:
+                    job_status = 'WILL_RETRY'
+                    queue[title] = sequence
+                    job_id = ''
+                else:
+                    running[title] = job_id
                 titles_ab = split_seq_defn(title)
                 title_a = titles_ab[0]
                 title_b = titles_ab[1]
 
-                msg = ('SUBMITTED   ' +
+                msg = (job_status + '  ' +
                        title_a.ljust(max_title_a_len) +
                        title_b.ljust(max_title_b_len) + ' ' * 4 +
                        ' ' + job_id)
 
-                logger(msg)
+                print(msg)
 
-        if len(running) < MAX_JOBS and len(queue) > 0:
+        if len(running) < max_jobs and len(queue) > 0:
             submit_message = False
             continue
 
         if len(running) > 0:
             submit_message = True
             print()
-            logger('Looking for finished jobs...')
+            print('Looking for finished jobs...')
             print()
             finished_jobs = False
-            sleep(DELAY + 5)
+            sleep(delay + 5)
             job_statuses = {}
 
             for title in running:
-                sleep(DELAY)
+                sleep(delay)
                 job_id = running[title]
                 job_status = status(job_id)
                 job_statuses[title] = {'job_id': job_id,
@@ -218,9 +255,9 @@ def job_runner(email, dir_cache, seqs=None, logger=print):
                 titles_ab = split_seq_defn(title)
                 if job_status == 'RUNNING':
                     pass
-                    logger(' ' * 10 + '- ' + titles_ab[0])
+                    print(' ' * 10 + '- ' + titles_ab[0])
                 else:
-                    logger(' ' * 10 + '+ ' + titles_ab[0])
+                    print(' ' * 10 + '+ ' + titles_ab[0])
                     finished_jobs = True
 
             if finished_jobs is True:
@@ -258,8 +295,10 @@ def job_runner(email, dir_cache, seqs=None, logger=print):
                     # error[title] = job_id
 
                 elif job_status == 'NOT_FOUND':
+                    job_status = 'WILL_RETRY'
                     job_id = running.pop(title)
-                    not_found[title] = job_id
+                    queue[title] = seqs_orig[title]
+                    # not_found[title] = job_id
 
                 else:
                     job_id = running.pop(title)
@@ -277,12 +316,12 @@ def job_runner(email, dir_cache, seqs=None, logger=print):
                            title_b.ljust(max_title_b_len) +
                            progress_str + ' ' + job_id)
 
-                    logger(msg)
+                    print(msg)
 
         if len(running) == 0 and len(queue) == 0:
             busy = False
 
-    if ope(CFP):
-        remove(CFP)
+    if ope(cfp):
+        remove(cfp)
 
     return jobs
