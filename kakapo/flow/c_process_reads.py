@@ -4,6 +4,7 @@
 
 import fileinput
 import pickle
+import random
 import re
 
 from collections import OrderedDict
@@ -676,6 +677,12 @@ def dnld_refseqs_for_taxid(taxid, filter_term, taxonomy, dir_cache_refseqs,
             if len(accs) == 1:
                 plural = 'sequence'
             linfo('Found {} RefSeq {} {} for {}.'.format(len(accs), filter_term, plural, tax_term))
+            # Random sample ###################################################
+            if len(accs) > 10:
+                linfo('Using a random sample of ten RefSeq sequences.')
+                random.seed(a=len(accs), version=2)
+                accs = set(random.sample(accs), 10)
+            ###################################################################
             break
         else:
             linfo('No RefSeq {} sequences were found for {}.'.format(filter_term, tax_term))
@@ -692,8 +699,9 @@ def dnld_refseqs_for_taxid(taxid, filter_term, taxonomy, dir_cache_refseqs,
         parsed_fasta = dnld_seqs_fasta_format(list(accs), db)
         parsed_fasta.update(parsed_fasta_cache)
         write_fasta(parsed_fasta, cache_path)
-    else:
-        parsed_fasta = parsed_fasta_cache
+    # else:
+    #     parsed_fasta = parsed_fasta_cache
+
     return cache_path
 
 
