@@ -681,7 +681,7 @@ def dnld_refseqs_for_taxid(taxid, filter_term, taxonomy, dir_cache_refseqs,
             if len(accs) > 10:
                 linfo('Using a random sample of ten RefSeq sequences.')
                 random.seed(a=len(accs), version=2)
-                accs = set(random.sample(accs), 10)
+                accs = set(random.sample(accs, 10))
             ###################################################################
             break
         else:
