@@ -11,7 +11,6 @@ def seqtk_fq_to_fa(seqtk, in_file, out_file):
     out, err = call(cmd)
     with open(out_file, mode='wb') as f:
         f.write(out)
-    call(cmd)
 
 
 def seqtk_extract_reads(seqtk, in_file, out_file, ids_file):
@@ -20,4 +19,12 @@ def seqtk_extract_reads(seqtk, in_file, out_file, ids_file):
     out, err = call(cmd)
     with open(out_file, mode='wb') as f:
         f.write(out)
-    call(cmd)
+
+
+def seqtk_sample_reads(seqtk, in_file, out_file, n, seed=11):
+    # n can be a fraction or a number of sequences to sample
+    cmd = [seqtk, 'sample', '-2', '-s', str(seed), in_file, n]
+    # out is stored in memory, could use a lot of RAM
+    out, err = call(cmd)
+    with open(out_file, mode='wb') as f:
+        f.write(out)
