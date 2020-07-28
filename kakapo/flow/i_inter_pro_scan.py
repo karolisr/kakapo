@@ -19,11 +19,13 @@ from kakapo.helpers import split_seq_defn_for_printing as split_seq_defn
 
 
 def run_inter_pro_scan(ss, assemblies, email, dir_prj_ips, dir_cache_prj,
+                       parallel_run_count, max_title_a_len, max_run_id_len,
                        linfo=print):
+
     delay = 0.25
 
-    if len(assemblies) > 0:
-        linfo('Running InterProScan on translated transcripts [' + ss + ']')
+    # if len(assemblies)  0:
+    #     linfo('Running InterProScan on translated transcripts [' + ss + ']')
 
     for a in assemblies:
 
@@ -41,16 +43,30 @@ def run_inter_pro_scan(ss, assemblies, email, dir_prj_ips, dir_cache_prj,
                                   ss + '.json')
 
         if ope(json_dump_file_path):
-            linfo('InterProScan results for assembly ' + assmbl_name + ', ' +
-                  ss + ' have already been downloaded [' + ss + ']')
+            linfo('InterProScan results for assembly ' + assmbl_name +
+                  ', search strategy ' + ss + ' have already been downloaded.')
             continue
+        else:
+            print()
+            linfo('Running InterProScan on translated ' + ss +
+                  ' from ' + assmbl_name + '.')
+            print()
 
         seqs = read_fasta(aa_file)
+
+        # Filter all ORFs except the first one.
+        for seq_def in tuple(seqs.keys()):
+            seq_def_prefix = seq_def.split(' ')[0]
+            if not seq_def_prefix.endswith('ORF001'):
+                del seqs[seq_def]
+
         seqs = OrderedDict(sorted(seqs.items(),
                                   key=lambda x: x[0].split(' ')[1],
                                   reverse=True))
 
-        _ = opj(dir_cache_prj, assmbl_name + '_ips_jobs__' + ss)
+        run_id = ss + '_' + assmbl_name
+
+        _ = opj(dir_cache_prj, 'ips5_cache_done_' + run_id)
 
         if ope(_):
             with open(_, 'rb') as f:
@@ -58,41 +74,38 @@ def run_inter_pro_scan(ss, assemblies, email, dir_prj_ips, dir_cache_prj,
 
         else:
             jobs = job_runner(email=email, dir_cache=dir_cache_prj,
-                              seqs=seqs)
+                              seqs=seqs, run_id=run_id,
+                              parallel_run_count=parallel_run_count,
+                              max_title_a_len=max_title_a_len,
+                              max_run_id_len=max_run_id_len)
 
             with open(_, 'wb') as f:
                 pickle.dump(jobs, f, protocol=PICKLE_PROTOCOL)
 
         print()
-        linfo('Downloading InterProScan results for transcripts in ' +
-              assmbl_name + ' [' + ss + ']')
+        linfo('Downloading InterProScan results for ' + ss +
+              ' in ' + assmbl_name + '.')
         print()
 
         all_ips_results = {}
 
         # Nicer printing
-        max_title_a_len = 2 + max(
-            [len(split_seq_defn(x)[0]) for x in list(jobs['finished'].keys())])
-        max_title_b_len = 2 + max(
-            [len(split_seq_defn(x)[1]) for x in list(jobs['finished'].keys())])
-
         for i, job in enumerate(jobs['finished']):
 
             job_id = jobs['finished'][job]
 
             titles_ab = split_seq_defn(job)
             title_a = titles_ab[0]
-            title_b = titles_ab[1]
 
             progress = round(((i + 1) / len(jobs['finished'])) * 100)
             progress_str = '{:3d}'.format(progress) + '%'
 
             msg = (' ' * 12 +
                    title_a.ljust(max_title_a_len) +
-                   title_b.ljust(max_title_b_len) +
-                   progress_str + ' ' + job_id)
+                   run_id.ljust(max_run_id_len) +
+                   progress_str.rjust(4) + ' ' + job_id)
 
-            linfo(msg)
+            print(msg)
 
             sleep(delay)
 
@@ -110,7 +123,7 @@ def run_inter_pro_scan(ss, assemblies, email, dir_prj_ips, dir_cache_prj,
 
             all_ips_results[job_no_def] = ips_json
 
-        print()
+        # print()
 
         with open(json_dump_file_path, 'w') as f:
             json.dump(all_ips_results, f, sort_keys=True, indent=4)

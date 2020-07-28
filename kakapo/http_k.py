@@ -5,7 +5,7 @@
 import requests
 
 from requests.adapters import HTTPAdapter
-from requests.exceptions import HTTPError
+# from requests.exceptions import HTTPError
 from urllib3.util import Retry
 
 # Possible values for the Accept request-header field:
@@ -65,12 +65,14 @@ def get(url, params=None, response_format='json'):
         assert response_format in _valid_response_formats()
         headers = ACC_HEAD[response_format]
 
+    response = None
+
     with retry_session() as session:
         response = session.get(url=url, params=params, headers=headers)
 
     try:
         response.raise_for_status()
-    except HTTPError:
+    except Exception:
         pass
     # except HTTPError as e:
     #     pass
@@ -84,12 +86,13 @@ def post(url, data, response_format):
     assert response_format in _valid_response_formats()
     headers = ACC_HEAD[response_format]
 
+    response = None
     with retry_session() as session:
         response = session.post(url=url, data=data, headers=headers)
 
     try:
         response.raise_for_status()
-    except HTTPError:
+    except Exception:
         pass
     # except HTTPError as e:
     #     pass

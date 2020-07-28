@@ -140,12 +140,12 @@ def result_gff(job_id, out_file=None):
     return gff_text
 
 
-def job_runner(email, dir_cache, seqs=None):
+def job_runner(email, dir_cache, seqs=None, run_id='', parallel_run_count=1,
+               max_title_a_len=0, max_run_id_len=0):
     """Run InterProScan 5."""
-
-    max_jobs = 25
-    delay = 0.5
-    cfp = opj(dir_cache, 'ips5_cache')
+    max_jobs = int(30 / parallel_run_count)
+    delay = 0.333
+    cfp = opj(dir_cache, 'ips5_cache_running_' + run_id)
 
     def load():
         with open(cfp, 'rb') as f:
@@ -191,13 +191,6 @@ def job_runner(email, dir_cache, seqs=None):
 
     retry_list = list()
 
-    # Nicer printing ---------------------------------------------------------
-    max_title_a_len = 2 + max(
-        [len(split_seq_defn(x)[0]) for x in list(seqs_orig.keys())])
-    max_title_b_len = 2 + max(
-        [len(split_seq_defn(x)[1]) for x in list(seqs_orig.keys())])
-    # ------------------------------------------------------------------------
-
     queue_size = len(seqs_orig)
 
     busy = True
@@ -209,9 +202,10 @@ def job_runner(email, dir_cache, seqs=None):
         if len(queue) > 0:
             if len(running) < max_jobs:
                 if submit_message is True:
-                    print()
-                    print('Submitting jobs...')
-                    print()
+                    pass
+                    # print()
+                    # print('Submitting jobs: ' + run_id)
+                    # print()
                 job_status = 'SUBMITTED '
                 title = list(queue.keys()).pop()
                 sequence = queue.pop(title)
@@ -224,12 +218,11 @@ def job_runner(email, dir_cache, seqs=None):
                     running[title] = job_id
                 titles_ab = split_seq_defn(title)
                 title_a = titles_ab[0]
-                title_b = titles_ab[1]
 
                 msg = (job_status + '  ' +
                        title_a.ljust(max_title_a_len) +
-                       title_b.ljust(max_title_b_len) + ' ' * 4 +
-                       ' ' + job_id)
+                       run_id.ljust(max_run_id_len) +
+                       ' ' * 5 + job_id)
 
                 print(msg)
 
@@ -239,11 +232,11 @@ def job_runner(email, dir_cache, seqs=None):
 
         if len(running) > 0:
             submit_message = True
-            print()
-            print('Looking for finished jobs...')
-            print()
+            # print()
+            # print('Looking for finished jobs: ' + run_id)
+            # print()
             finished_jobs = False
-            sleep(delay + 5)
+            sleep(delay + 7)
             job_statuses = {}
 
             for title in running:
@@ -253,11 +246,14 @@ def job_runner(email, dir_cache, seqs=None):
                 job_statuses[title] = {'job_id': job_id,
                                        'job_status': job_status}
                 titles_ab = split_seq_defn(title)
+                title_a = titles_ab[0]
+                # TODO: Refactor
                 if job_status == 'RUNNING':
-                    pass
-                    print(' ' * 10 + '- ' + titles_ab[0])
+                    print(' ' * 10 + '- ' + title_a.ljust(max_title_a_len) +
+                          run_id.ljust(max_run_id_len) + ' ' * 5 + job_id)
                 else:
-                    print(' ' * 10 + '+ ' + titles_ab[0])
+                    print(' ' * 10 + '+ ' + title_a.ljust(max_title_a_len) +
+                          run_id.ljust(max_run_id_len) + ' ' * 5 + job_id)
                     finished_jobs = True
 
             if finished_jobs is True:
@@ -309,12 +305,11 @@ def job_runner(email, dir_cache, seqs=None):
                     progress_str = '{:3d}'.format(progress) + '%'
                     titles_ab = split_seq_defn(title)
                     title_a = titles_ab[0]
-                    title_b = titles_ab[1]
                     job_status_msg = job_status.ljust(10)
                     msg = (job_status_msg + '  ' +
                            title_a.ljust(max_title_a_len) +
-                           title_b.ljust(max_title_b_len) +
-                           progress_str + ' ' + job_id)
+                           run_id.ljust(max_run_id_len) +
+                           progress_str.rjust(4) + ' ' + job_id)
 
                     print(msg)
 

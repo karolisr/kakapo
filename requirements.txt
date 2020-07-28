@@ -1,4 +1,5 @@
 urllib3
 requests
 distro
+joblib
 ncbi-taxonomy-local @ git+git://github.com/karolisr/ncbi-taxonomy-local

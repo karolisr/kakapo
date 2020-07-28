@@ -15,6 +15,7 @@ sys.path.insert(0, KAKAPO_DIR_PATH)
 ##############################################################################
 
 import argparse
+import logging
 
 from collections import OrderedDict
 from io import StringIO
@@ -24,11 +25,14 @@ from os.path import join as opj
 from shutil import rmtree
 from sys import exit
 
+from joblib import Parallel, delayed
+
 from ncbi_taxonomy_local import taxonomy
 
 from kakapo import __version__, __script_name__
 from kakapo import dependencies as deps
 
+from kakapo.bioio import read_fasta
 from kakapo.config import CONYELL, CONSRED, CONGREE, CONBLUE, CONSDFL
 from kakapo.config import DIR_CFG, DIR_DEP, DIR_TAX, DIR_KRK
 from kakapo.config import SCRIPT_INFO
@@ -75,6 +79,9 @@ from kakapo.flow.g_find_orfs import find_orfs_translate
 from kakapo.flow.h_prepare_gff import gff_from_json
 from kakapo.flow.i_inter_pro_scan import run_inter_pro_scan
 from kakapo.flow.j_dnld_aa_query_cds import dnld_cds_for_ncbi_prot_acc
+
+# Silence urllib3 overly verbose logging.
+logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 # Command line arguments -----------------------------------------------------
 USAGE = '{} --cfg path/to/config_file ' \
@@ -694,31 +701,110 @@ def main():
 
     # Run InterProScan 5 -----------------------------------------------------
     if should_run_ipr is True:
-        for ss in sss:
+
+        ss_names = tuple(sss.keys())
+
+        # Determine the length of printed strings, for better spacing --------
+        max_title_a_len = 0
+        max_run_id_len = 0
+        for a in assemblies:
+            for ss in ss_names:
+                if 'transcripts_aa_orf_fasta_file__' + ss not in a:
+                    continue
+
+                aa_file = a['transcripts_aa_orf_fasta_file__' + ss]
+
+                if aa_file is None:
+                    continue
+
+                assmbl_name = a['name']
+                run_id = ss + '_' + assmbl_name
+                max_run_id_len = max(len(run_id), max_run_id_len)
+
+                seqs = read_fasta(aa_file)
+
+                # Filter all ORFs except the first one.
+                for seq_def in tuple(seqs.keys()):
+                    seq_def_prefix = seq_def.split(' ')[0]
+                    if seq_def_prefix.endswith('ORF001'):
+                        max_title_a_len = max(len(seq_def_prefix),
+                                              max_title_a_len)
+
+        max_title_a_len += 2
+        max_run_id_len += 2
+        # --------------------------------------------------------------------
+
+        # Parallel version BEGIN ---------------------------------------------
+        parallel_run_count = min(THREADS, len(ss_names))
+
+        def run_inter_pro_scan_parallel(ss):
 
             if stat(aa_queries_files[ss]).st_size == 0:
-                continue
+                return
 
             run_inter_pro_scan(ss, assemblies, email, dir_prj_ips,
-                               dir_cache_prj, linfo)
+                               dir_cache_prj, parallel_run_count,
+                               max_title_a_len, max_run_id_len, linfo)
 
-            # GFF3 files from kakapo and InterProScan 5 results JSON files ---
+            # GFF3 files from kakapo and InterProScan 5 results JSON files
             gff_from_json(ss, assemblies, dir_prj_ips,
                           dir_prj_transcripts_combined, prj_name, linfo)
 
+        Parallel(n_jobs=parallel_run_count, verbose=0, require='sharedmem')(
+            delayed(run_inter_pro_scan_parallel)(ss) for ss in ss_names)
+        # Parallel version END -----------------------------------------------
+
+        # Sequential version BEGIN -------------------------------------------
+        # for ss in sss:
+        #     if stat(aa_queries_files[ss]).st_size == 0:
+        #         continue
+        #     run_inter_pro_scan(ss, assemblies, email, dir_prj_ips,
+        #                        dir_cache_prj, 1, max_title_a_len,
+        #                        max_run_id_len, linfo)
+        #     # GFF3 files from kakapo and InterProScan 5 results JSON files
+        #     gff_from_json(ss, assemblies, dir_prj_ips,
+        #                   dir_prj_transcripts_combined, prj_name, linfo)
+        # Sequential version END ---------------------------------------------
+
     # Download CDS for NCBI protein queries ----------------------------------
+
     prot_cds_ncbi_files = OrderedDict()
-    for ss in sss:
+
+    # Parallel version BEGIN -------------------------------------------------
+    def dnld_cds_for_ncbi_prot_acc_parallel(ss):
 
         if stat(aa_queries_files[ss]).st_size == 0:
-            continue
+            return
+
+        if ss not in prot_acc_user_filtered:
+            return
 
         prot_cds_ncbi_files[ss] = opj(dir_prj_transcripts_combined, prj_name +
                                       '_ncbi_query_cds__' + ss + '.fasta')
+
         if len(prot_acc_user_filtered[ss]) > 0:
             dnld_cds_for_ncbi_prot_acc(ss, prot_acc_user_filtered[ss],
                                        prot_cds_ncbi_files[ss], tax,
                                        dir_cache_prj, linfo)
+
+    ss_names = tuple(sss.keys())
+    Parallel(n_jobs=2, verbose=0, require='sharedmem')(
+        delayed(dnld_cds_for_ncbi_prot_acc_parallel)(ss) for ss in ss_names)
+    # Parallel version END ---------------------------------------------------
+
+    # Sequential version BEGIN -----------------------------------------------
+    # for ss in sss:
+    #     if stat(aa_queries_files[ss]).st_size == 0:
+    #         continue
+    #     if ss not in prot_acc_user_filtered:
+    #         continue
+    #     prot_cds_ncbi_files[ss] = opj(dir_prj_transcripts_combined, prj_name +
+    #                                   '_ncbi_query_cds__' + ss + '.fasta')
+    #     if len(prot_acc_user_filtered[ss]) > 0:
+    #         dnld_cds_for_ncbi_prot_acc(ss, prot_acc_user_filtered[ss],
+    #                                    prot_cds_ncbi_files[ss], tax,
+    #                                    dir_cache_prj, linfo)
+    # Sequential version END -------------------------------------------------
 
     # ------------------------------------------------------------------------
 
