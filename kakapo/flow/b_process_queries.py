@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Kakapo workflow: Process Queries."""
 
 import pickle
@@ -10,24 +8,24 @@ from os import remove as osremove
 from os.path import exists as ope
 from os.path import join as opj
 
-from kakapo.bioio import filter_fasta_text_by_length
-from kakapo.bioio import read_fasta
-from kakapo.bioio import standardize_fasta_text
-from kakapo.bioio import write_fasta
-from kakapo.config import PICKLE_PROTOCOL
-from kakapo.config import CONBLUE, CONGREE
-from kakapo.ebi_domain_search import pfam_entry
-from kakapo.ebi_domain_search import pfam_seqs
-from kakapo.ebi_domain_search import prot_ids_for_tax_ids
-from kakapo.ebi_proteins import fasta_by_accession_list
-from kakapo.entrez import accessions as accessions_ncbi
-from kakapo.entrez import dnld_seqs as dnld_ncbi_seqs
-from kakapo.entrez import esearch
-from kakapo.entrez import esummary as entrez_summary
-from kakapo.seq import translate
-from kakapo.seq import untranslate
-from kakapo.translation_tables import TranslationTable
-from kakapo.vsearch import run_cluster_fast
+from kakapo.tools.bioio import filter_fasta_text_by_length
+from kakapo.tools.bioio import read_fasta
+from kakapo.tools.bioio import standardize_fasta_text
+from kakapo.tools.bioio import write_fasta
+from kakapo.tools.config import PICKLE_PROTOCOL
+from kakapo.tools.config import CONBLUE, CONGREE
+from kakapo.tools.ebi_domain_search import pfam_entry
+from kakapo.tools.ebi_domain_search import pfam_seqs
+from kakapo.tools.ebi_domain_search import prot_ids_for_tax_ids
+from kakapo.tools.ebi_proteins import fasta_by_accession_list
+from kakapo.tools.eutils import accs as accessions_ncbi
+from kakapo.tools.eutils import seqs as dnld_ncbi_seqs
+from kakapo.tools.eutils import esearch
+from kakapo.tools.eutils import esummary as entrez_summary
+from kakapo.tools.seq import translate
+from kakapo.tools.seq import untranslate
+from kakapo.tools.transl_tables import TranslationTable
+from kakapo.tools.vsearch import run_cluster_fast
 
 
 def pfam_uniprot_accessions(ss, pfam_acc, tax_ids, dir_cache_pfam_acc,

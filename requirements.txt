@@ -1,5 +1,8 @@
-urllib3
-requests
+click
+colorama
 distro
 joblib
+multipledispatch
+requests
+urllib3
 ncbi-taxonomy-local @ git+git://github.com/karolisr/ncbi-taxonomy-local

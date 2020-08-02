@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
-
 """Kakapo Setup Script."""
 
-from setuptools import setup, find_packages
+from setuptools import find_packages
+from setuptools import setup
 
 from kakapo import __author__ as kakapo_author
 from kakapo import __author_email__ as kakapo_author_email
@@ -28,5 +27,19 @@ setup(name=kakapo_script_name,
       url=kakapo_url,
       packages=find_packages(),
       install_requires=reqs,
-      entry_points={'console_scripts': ['kakapo=kakapo.__main__:run_kakapo']}
+      entry_points={'console_scripts': ['kakapo=kakapo.__main__:run_kakapo']},
+      classifiers=[
+          'Development Status :: 4 - Beta',
+          'Environment :: Console',
+          'Intended Audience :: Science/Research',
+          'Natural Language :: English',
+          'Operating System :: MacOS :: MacOS X',
+          'Operating System :: POSIX :: Linux',
+          'Programming Language :: Python :: 3.6',
+          'Programming Language :: Python :: 3.7',
+          'Programming Language :: Python :: 3.8',
+          'Programming Language :: Python :: 3.9',
+          'Programming Language :: Python :: 3 :: Only',
+          'Topic :: Scientific/Engineering :: Bio-Informatics'
+      ]
       )

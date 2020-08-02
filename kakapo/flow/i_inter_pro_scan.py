@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Kakapo workflow: Run InterProScan."""
 
 import json
@@ -11,11 +9,11 @@ from os.path import exists as ope
 from os.path import join as opj
 from time import sleep
 
-from kakapo.bioio import read_fasta
-from kakapo.config import PICKLE_PROTOCOL
-from kakapo.ebi_iprscan5 import job_runner
-from kakapo.ebi_iprscan5 import result_json
-from kakapo.helpers import split_seq_defn_for_printing as split_seq_defn
+from kakapo.tools.bioio import read_fasta
+from kakapo.tools.config import PICKLE_PROTOCOL
+from kakapo.tools.ebi_iprscan5 import job_runner
+from kakapo.tools.ebi_iprscan5 import result_json
+from kakapo.utils.misc import split_seq_defn_for_printing as split_seq_defn
 
 
 def run_inter_pro_scan(ss, assemblies, email, dir_prj_ips, dir_cache_prj,

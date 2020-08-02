@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Kakapo workflow: Process Reads."""
 
 import fileinput
@@ -22,27 +20,27 @@ from shutil import move
 from shutil import rmtree
 from time import sleep
 
-from kakapo.bioio import read_fasta
-from kakapo.bioio import write_fasta
-from kakapo.blast import make_blast_db
-from kakapo.bowtie2 import build_bt2_index, run_bowtie2_se, run_bowtie2_pe
-from kakapo.config import PICKLE_PROTOCOL
-from kakapo.config import CONBLUE, CONGREE, CONSRED, CONSDFL
-from kakapo.entrez import accessions as accessions_ncbi
-from kakapo.entrez import dnld_seqs_fasta_format
-from kakapo.entrez import esearch
-from kakapo.entrez import sra_run_info
-from kakapo.helpers import make_dir
-from kakapo.helpers import plain_or_gzip
-from kakapo.helpers import splitext_gz
-from kakapo.helpers import rename_fq_seqs
-from kakapo.kraken import run_kraken_filters
-from kakapo.rcorrector import filter_unc_se, filter_unc_pe
-from kakapo.rcorrector import run_rcorrector_se, run_rcorrector_pe
-from kakapo.seqtk import seqtk_fq_to_fa
-from kakapo.shell import call
-from kakapo.translation_tables import TranslationTable
-from kakapo.trimmomatic import trimmomatic_se, trimmomatic_pe
+from kakapo.tools.bioio import read_fasta
+from kakapo.tools.bioio import write_fasta
+from kakapo.tools.blast import make_blast_db
+from kakapo.tools.bowtie2 import build_bt2_index, run_bowtie2_se, run_bowtie2_pe
+from kakapo.tools.config import PICKLE_PROTOCOL
+from kakapo.tools.config import CONBLUE, CONGREE, CONSRED, CONSDFL
+from kakapo.tools.eutils import accs as accessions_ncbi
+from kakapo.tools.eutils import seqs as dnld_ncbi_seqs
+from kakapo.tools.eutils import esearch
+from kakapo.tools.eutils import sra_run_info
+from kakapo.utils.misc import make_dirs
+from kakapo.utils.misc import plain_or_gzip
+from kakapo.utils.misc import splitext_gz
+from kakapo.utils.misc import rename_fq_seqs
+from kakapo.tools.kraken import run_kraken_filters
+from kakapo.tools.rcorrector import filter_unc_se, filter_unc_pe
+from kakapo.tools.rcorrector import run_rcorrector_se, run_rcorrector_pe
+from kakapo.tools.seqtk import seqtk_fq_to_fa
+from kakapo.utils.subp import run
+from kakapo.tools.transl_tables import TranslationTable
+from kakapo.tools.trimmomatic import trimmomatic_se, trimmomatic_pe
 
 
 MT = 'mitochondrion'
@@ -205,7 +203,7 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
 
         if not sra_dnld_needed:
             linfo(CONGREE + 'FASTQ reads for the SRA run ' + sample_base_name +
-                  ' are available locally')
+                  ' are available loruny')
 
         retry_count = 0
         while sra_dnld_needed:
@@ -230,7 +228,7 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
                    '--outdir', dir_fq_data,
                    '--temp', dir_temp, sra]
 
-            call(cmd)
+            run(cmd)
 
             if sra_lib_layout == 'single' or sra_lib_layout_k == 'single':
                 if not ope(se_file):
@@ -378,7 +376,7 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
 
         else:
             cmd = [vsearch, '--fastq_stats', x[1], '--log', x[2]]
-            call(cmd)
+            run(cmd)
 
             with open(x[2]) as f:
                 stats = f.read()
@@ -439,7 +437,7 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
             linfo(CONGREE + 'Corrected FASTQ file for sample ' + se +
                   ' already exists')
         else:
-            make_dir(dir_fq_cor_data_sample)
+            make_dirs(dir_fq_cor_data_sample)
             linfo('SE mode: ' + se)
             run_rcorrector_se(rcorrector=rcorrector,
                               in_file=fq_path,
@@ -482,7 +480,7 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
             linfo(CONGREE + 'Corrected FASTQ files for sample ' + pe +
                   ' already exist')
         else:
-            make_dir(dir_fq_cor_data_sample)
+            make_dirs(dir_fq_cor_data_sample)
             linfo('PE mode: ' + pe)
             run_rcorrector_pe(rcorrector=rcorrector,
                               in_file_1=fq_path_1,
@@ -580,7 +578,7 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
             linfo(CONGREE + 'Trimmed FASTQ file for sample ' + se +
                   ' already exists')
         else:
-            make_dir(dir_fq_trim_data_sample)
+            make_dirs(dir_fq_trim_data_sample)
             linfo('SE mode: ' + se)
             trimmomatic_se(
                 trimmomatic=trimmomatic,
@@ -610,7 +608,7 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
             linfo(CONGREE + 'Trimmed FASTQ files for sample ' + pe +
                   ' already exist')
         else:
-            make_dir(dir_fq_trim_data_sample)
+            make_dirs(dir_fq_trim_data_sample)
             linfo('PE mode: ' + pe)
             trimmomatic_pe(
                 trimmomatic=trimmomatic,
@@ -696,7 +694,7 @@ def dnld_refseqs_for_taxid(taxid, filter_term, taxonomy, dir_cache_refseqs,
             if acc in accs:
                 accs.remove(acc)
     if len(accs) > 0:
-        parsed_fasta = dnld_seqs_fasta_format(list(accs), db)
+        parsed_fasta = dnld_ncbi_seqs(db, list(accs), rettype='fasta')
         parsed_fasta.update(parsed_fasta_cache)
         write_fasta(parsed_fasta, cache_path)
     # else:
@@ -812,7 +810,7 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
                 in_f = opj(dir_fq_bt_data_sample_un, se + '.fastq')
             else:
                 linfo('SE mode: ' + new_se)
-                make_dir(dir_fq_bt_data_sample)
+                make_dirs(dir_fq_bt_data_sample)
 
                 db_fasta_path = None
                 bt2_idx_path = None
@@ -824,7 +822,7 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
                 else:
                     db_fasta_path = db_path
                     # dir_bt_idx = opj(dir_fq_bt_data_sample, 'bt2')
-                    # make_dir(dir_bt_idx)
+                    # make_dirs(dir_bt_idx)
                     bt2_idx_path = opj(dir_cache_refseqs,
                                        splitext(basename(db_fasta_path))[0])
 
@@ -909,7 +907,7 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
                 in_fs = [x.replace('@N@', pe) for x in in_fs]
             else:
                 linfo('PE mode: ' + new_pe)
-                make_dir(dir_fq_bt_data_sample)
+                make_dirs(dir_fq_bt_data_sample)
 
                 db_fasta_path = None
                 bt2_idx_path = None
@@ -921,7 +919,7 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
                 else:
                     db_fasta_path = db_path
                     # dir_bt_idx = opj(dir_fq_bt_data_sample, 'bt2')
-                    # make_dir(dir_bt_idx)
+                    # make_dirs(dir_bt_idx)
                     bt2_idx_path = opj(dir_cache_refseqs,
                                        splitext(basename(db_fasta_path))[0])
 
@@ -1008,7 +1006,7 @@ def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
             linfo(CONGREE + 'Kraken2 filtered FASTQ files for sample ' + se +
                   ' already exist')
         else:
-            make_dir(dir_fq_filter_data_sample)
+            make_dirs(dir_fq_filter_data_sample)
             linfo('SE mode. Confidence: ' +
                   str(confidence) + '. ' + se)
             run_kraken_filters(
@@ -1048,7 +1046,7 @@ def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
             linfo(CONGREE + 'Kraken2 filtered FASTQ files for sample ' + pe +
                   ' already exist')
         else:
-            make_dir(dir_fq_filter_data_sample)
+            make_dirs(dir_fq_filter_data_sample)
             linfo('PE mode. Confidence: ' +
                   str(confidence) + '. ' + pe)
             run_kraken_filters(
@@ -1082,7 +1080,7 @@ def filtered_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
             linfo(CONGREE + 'Filtered FASTA files for sample ' + se +
                   ' already exist')
         else:
-            make_dir(dir_fa_trim_data_sample)
+            make_dirs(dir_fa_trim_data_sample)
             linfo(fq_path)
             seqtk_fq_to_fa(seqtk, fq_path, out_f)
 
@@ -1097,7 +1095,7 @@ def filtered_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
             linfo(CONGREE + 'Filtered FASTA files for sample ' + pe +
                   ' already exist')
         else:
-            make_dir(dir_fa_trim_data_sample)
+            make_dirs(dir_fa_trim_data_sample)
             pe_trim_files = zip(fq_paths, out_fs)
             for x in pe_trim_files:
                 linfo(x[0])
@@ -1122,7 +1120,7 @@ def makeblastdb_fq(se_fastq_files, pe_fastq_files, dir_blast_fa_trim,
             linfo(CONGREE + 'BLAST database for sample ' + se +
                   ' already exists')
         else:
-            make_dir(dir_blast_fa_trim_sample)
+            make_dirs(dir_blast_fa_trim_sample)
             linfo(fa_path)
             make_blast_db(
                 exec_file=makeblastdb,
@@ -1142,7 +1140,7 @@ def makeblastdb_fq(se_fastq_files, pe_fastq_files, dir_blast_fa_trim,
             linfo(CONGREE + 'BLAST database for sample ' + pe +
                   ' already exists')
         else:
-            make_dir(dir_blast_fa_trim_sample)
+            make_dirs(dir_blast_fa_trim_sample)
             pe_trim_files = zip(fa_paths, out_fs)
             for x in pe_trim_files:
                 linfo(x[0])

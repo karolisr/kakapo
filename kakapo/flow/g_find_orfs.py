@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Kakapo workflow: Find ORFs."""
 
 import json
@@ -9,14 +7,14 @@ from io import StringIO
 from os.path import join as opj
 from sys import exit
 
-from kakapo.bioio import read_fasta
-from kakapo.bioio import trim_desc_to_first_space_in_fasta_text
-from kakapo.bioio import write_fasta
-from kakapo.blast import collate_blast_results
+from kakapo.tools.bioio import read_fasta
+from kakapo.tools.bioio import trim_desc_to_first_space_in_fasta_text
+from kakapo.tools.bioio import write_fasta
+from kakapo.tools.blast import collate_blast_results
 from kakapo.data.start_codon_context import contexts as atg_contexts
-from kakapo.orf import find_orf_for_blast_hit
-from kakapo.seq import reverse_complement, translate
-from kakapo.seqtk import seqtk_extract_reads
+from kakapo.tools.orf import find_orf_for_blast_hit
+from kakapo.tools.seq import reverse_complement, translate
+from kakapo.tools.seqtk import seqtk_extract_reads
 
 
 def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,

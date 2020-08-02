@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Kakapo workflow: Search Assemblies."""
 
 import pickle
@@ -8,11 +6,11 @@ from os import remove as osremove
 from os.path import exists as ope
 from os.path import join as opj
 
-from kakapo.bioio import read_fasta
-from kakapo.blast import BLST_RES_COLS_2
-from kakapo.blast import parse_blast_results_file
-from kakapo.blast import run_blast
-from kakapo.config import PICKLE_PROTOCOL
+from kakapo.tools.bioio import read_fasta
+from kakapo.tools.blast import BLST_RES_COLS_2
+from kakapo.tools.blast import parse_blast_results_file
+from kakapo.tools.blast import run_blast
+from kakapo.tools.config import PICKLE_PROTOCOL
 
 
 def run_tblastn_on_assemblies(ss, assemblies, aa_queries_file, tblastn,

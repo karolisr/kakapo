@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Kakapo workflow: Search Reads."""
 
 import pickle
@@ -9,15 +7,15 @@ from os.path import exists as ope
 from os.path import join as opj
 from shutil import copyfile
 
-from kakapo.bioio import read_fasta
-from kakapo.blast import BLST_RES_COLS_1
-from kakapo.blast import run_blast
-from kakapo.config import PICKLE_PROTOCOL
-from kakapo.helpers import combine_text_files
-from kakapo.helpers import keep_unique_lines_in_file
-from kakapo.helpers import make_dir
-from kakapo.seqtk import seqtk_fq_to_fa, seqtk_extract_reads
-from kakapo.vsearch import run_cluster_fast, run_vsearch
+from kakapo.tools.bioio import read_fasta
+from kakapo.tools.blast import BLST_RES_COLS_1
+from kakapo.tools.blast import run_blast
+from kakapo.tools.config import PICKLE_PROTOCOL
+from kakapo.utils.misc import combine_text_files
+from kakapo.utils.misc import keep_unique_lines_in_file
+from kakapo.utils.misc import make_dirs
+from kakapo.tools.seqtk import seqtk_fq_to_fa, seqtk_extract_reads
+from kakapo.tools.vsearch import run_cluster_fast, run_vsearch
 
 
 def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
@@ -87,7 +85,7 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
 
         else:
             changed_blast_1 = True
-            make_dir(dir_results)
+            make_dirs(dir_results)
             linfo('Running tblastn on: ' + blast_db_path + ' [' + ss + ']')
             run_blast(exec_file=tblastn,
                       task='tblastn',
@@ -143,7 +141,7 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
 
         else:
             changed_blast_1 = True
-            make_dir(dir_results)
+            make_dirs(dir_results)
             pe_trim_files = zip(blast_db_paths, out_fs, fq_paths, out_fs_fastq,
                                 out_fs_fasta)
             for x in pe_trim_files:
@@ -217,7 +215,7 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
         if ope(out_f_fastq):
             linfo('Vsearch results for sample ' + se + ' already exists [' + ss + ']')
         else:
-            make_dir(dir_results)
+            make_dirs(dir_results)
             linfo('Running vsearch on: ' + fq_path + ' [' + ss + ']')
             run_vsearch(vsearch,
                         ident=ident,
@@ -246,7 +244,7 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
            ope(out_fs_fastq[2]) and ope(out_fs_fastq[3]):
             linfo('Vsearch results for sample ' + pe + ' already exist [' + ss + ']')
         else:
-            make_dir(dir_results)
+            make_dirs(dir_results)
             pe_trim_files = zip(fq_paths, out_fs, out_fs_fastq)
             for x in pe_trim_files:
                 linfo('Running vsearch on: ' + x[0] + ' [' + ss + ']')

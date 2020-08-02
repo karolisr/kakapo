@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """Kakapo main file."""
 
@@ -30,19 +29,19 @@ from joblib import Parallel, delayed
 from ncbi_taxonomy_local import taxonomy
 
 from kakapo import __version__, __script_name__
-from kakapo import dependencies as deps
+from kakapo.utils import dependencies as deps
 
-from kakapo.bioio import read_fasta
-from kakapo.config import CONYELL, CONSRED, CONGREE, CONBLUE, CONSDFL
-from kakapo.config import DIR_CFG, DIR_DEP, DIR_TAX, DIR_KRK
-from kakapo.config import SCRIPT_INFO
-from kakapo.config import THREADS, RAM
-from kakapo.config_file_parse import config_file_parse
-from kakapo.config_file_parse import ss_file_parse
-from kakapo.helpers import make_dir
-from kakapo.helpers import time_stamp
-from kakapo.logging_k import prepare_logger
-from kakapo.translation_tables import TranslationTable
+from kakapo.tools.bioio import read_fasta
+from kakapo.tools.config import CONYELL, CONSRED, CONGREE, CONBLUE, CONSDFL
+from kakapo.tools.config import DIR_CFG, DIR_DEP, DIR_TAX, DIR_KRK
+from kakapo.tools.config import SCRIPT_INFO
+from kakapo.tools.config import THREADS, RAM
+from kakapo.tools.config_file_parse import config_file_parse
+from kakapo.tools.config_file_parse import ss_file_parse
+from kakapo.utils.misc import make_dirs
+from kakapo.utils.misc import time_stamp
+from kakapo.utils.logging import prepare_logger
+from kakapo.tools.transl_tables import TranslationTable
 
 from kakapo.flow.a_prepare import prepare_output_directories
 
@@ -241,12 +240,12 @@ def main():
         linfo(CONGREE + 'Found configuration directory: ' + DIR_CFG)
     else:
         linfo(CONBLUE + 'Creating configuration directory: ' + DIR_CFG)
-        make_dir(DIR_CFG)
+        make_dirs(DIR_CFG)
 
     # Check for dependencies -------------------------------------------------
     linfo(CONBLUE + 'Checking for dependencies')
-    make_dir(DIR_DEP)
-    make_dir(DIR_KRK)
+    make_dirs(DIR_DEP)
+    make_dirs(DIR_KRK)
     seqtk = deps.dep_check_seqtk(FORCE_DEPS, linfo)
     trimmomatic, adapters = deps.dep_check_trimmomatic(linfo)
     fasterq_dump = deps.dep_check_sra_toolkit(FORCE_DEPS, linfo)
@@ -323,7 +322,7 @@ def main():
             linfo(CONGREE + 'Found output directory: ' + dir_out)
         else:
             linfo(CONBLUE + 'Creating output directory: ' + dir_out)
-            make_dir(dir_out)
+            make_dirs(dir_out)
 
     # Write Kakapo version information to the output directory ---------------
     version_file = opj(dir_out, 'kakapo_version.txt')

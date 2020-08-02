@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Kakapo workflow: Assemble Reads."""
 
 from operator import itemgetter
@@ -11,13 +9,13 @@ from os.path import join as opj
 from os.path import splitext
 from sys import exit
 
-from kakapo.bioio import read_fasta
-from kakapo.blast import make_blast_db
-from kakapo.config import CONSRED, CONBLUE, CONGREE, CONSDFL
-from kakapo.helpers import combine_text_files
-from kakapo.helpers import make_dir
-from kakapo.spades import run_spades_se, run_spades_pe
-from kakapo.translation_tables import TranslationTable
+from kakapo.tools.bioio import read_fasta
+from kakapo.tools.blast import make_blast_db
+from kakapo.tools.config import CONSRED, CONBLUE, CONGREE, CONSDFL
+from kakapo.utils.misc import combine_text_files
+from kakapo.utils.misc import make_dirs
+from kakapo.tools.spades import run_spades_se, run_spades_pe
+from kakapo.tools.transl_tables import TranslationTable
 
 
 def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
@@ -38,7 +36,7 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
             linfo(CONGREE + 'SPAdes assembly for sample ' + se +
                   ' already exists [' + ss + ']')
         else:
-            make_dir(dir_results)
+            make_dirs(dir_results)
             linfo(CONBLUE + 'Running SPAdes on: ' + se + ' [' + ss + ']')
             run_spades_se(spades,
                           out_dir=dir_results,
@@ -67,7 +65,7 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
             linfo(CONGREE + 'SPAdes assembly for sample ' + pe +
                   ' already exists [' + ss + ']')
         else:
-            make_dir(dir_results)
+            make_dirs(dir_results)
             linfo(CONBLUE + 'Running SPAdes on: ' + pe + ' [' + ss + ']')
 
             if osstat(fq_paths[0]).st_size > 0 and \
@@ -206,7 +204,7 @@ def makeblastdb_assemblies(assemblies, dir_prj_blast_assmbl, makeblastdb,
                   ' already exists')
         else:
             linfo(assmbl_name)
-            make_dir(assmbl_blast_db_dir)
+            make_dirs(assmbl_blast_db_dir)
             make_blast_db(exec_file=makeblastdb,
                           in_file=a['path'],
                           out_file=assmbl_blast_db_file,

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Kakapo workflow: Download CDS for NCBI protein queries."""
 
 import pickle
@@ -8,10 +6,10 @@ import re
 from os.path import exists as ope
 from os.path import join as opj
 
-from kakapo.config import PICKLE_PROTOCOL
-from kakapo.entrez import cds_acc_for_prot_acc
-from kakapo.entrez import dnld_cds_nt_fasta as dnld_ncbi_cds_nt_fasta
-from kakapo.entrez import taxids_for_accs
+from kakapo.tools.config import PICKLE_PROTOCOL
+from kakapo.tools.eutils import cds_accs as cds_acc_for_prot_acc
+from kakapo.tools.eutils import cds as dnld_ncbi_cds_nt_fasta
+from kakapo.tools.eutils import taxids as taxids_for_accs
 
 
 def dnld_cds_for_ncbi_prot_acc(ss, prot_acc_user, prot_cds_ncbi_file, tax,
@@ -41,7 +39,7 @@ def dnld_cds_for_ncbi_prot_acc(ss, prot_acc_user, prot_cds_ncbi_file, tax,
             cds_accessions.append(cds_acc)
         cds_accessions = sorted(set(cds_accessions))
         cds_fasta = dnld_ncbi_cds_nt_fasta(cds_accessions)
-        taxids = taxids_for_accs(prot_acc_user, 'protein')
+        taxids = taxids_for_accs('protein', prot_acc_user)
         with open(pickle_file, 'wb') as f:
             pickle.dump((cds_acc_dict, cds_fasta, taxids), f,
                         protocol=PICKLE_PROTOCOL)

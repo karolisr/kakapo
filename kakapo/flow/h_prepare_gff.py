@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Kakapo workflow: Produce GFF3 files."""
 
 # import json
@@ -8,10 +6,10 @@
 from os.path import exists as ope
 from os.path import join as opj
 
-from kakapo.gff3 import gff_from_json_dict
-from kakapo.helpers import combine_text_files
-from kakapo.seq_annotations import parse_kakapo_json_file
-from kakapo.seq_annotations import merge_kakapo_and_ips_annotations
+from kakapo.tools.gff3 import gff_from_json_dict
+from kakapo.utils.misc import combine_text_files
+from kakapo.tools.seq_annotations import parse_kakapo_json_file
+from kakapo.tools.seq_annotations import merge_kakapo_and_ips_annotations
 
 
 def gff_from_json(ss, assemblies, dir_prj_ips, dir_prj_transcripts_combined,
