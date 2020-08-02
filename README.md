@@ -8,6 +8,8 @@ Kakapo is a pipeline that allows users to extract and assemble a specified gene 
 
 Kakapo can be flexibly employed to extract arbitrary loci, such as those commonly used for phylogenetic inference in systematics.
 
+Brief overview of kakapo from the Botany 2020 conference: https://youtu.be/2D04DQlV6CA
+
 ## Installation
 
 Kakapo was designed for, and should work on, machines running macOS or Linux. It should be possible to use Kakapo on the [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/install-win10) but I have not tested it. If you choose to try running Kakapo on Windows Subsystem for Linux, I suggest using the latest available Ubuntu distribution.
