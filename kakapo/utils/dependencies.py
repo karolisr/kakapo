@@ -21,20 +21,6 @@ from kakapo.utils.subp import run_then_grep
 from kakapo.utils.subp import which
 
 
-def install_deps():
-    Log.inf('Checking for dependencies.')
-
-    seqtk = dep_check_seqtk()
-    trimmomatic, adapters = dep_check_trimmomatic()
-    fasterq_dump = dep_check_sra_toolkit()
-    makeblastdb, _, tblastn = dep_check_blast()
-    vsearch = dep_check_vsearch()
-    spades = dep_check_spades()
-    bowtie2, bowtie2_build = dep_check_bowtie2()
-    rcorrector = dep_check_rcorrector()
-    kraken2, kraken2_build = dep_check_kraken2()
-
-
 def dnld_kraken2_dbs():
     Log.inf('Checking for available Kraken2 databases.')
 
@@ -187,10 +173,10 @@ def dep_check_trimmomatic(dir_dep):
         return None, None
 
     v = get_dep_version(['java', '-jar', trimmomatic, '-version'],
-                        r'^\s*(.+)\s*$')
+                        r'\d+\.\d+')
     Log.msg('Trimmomatic is available:', v + ' ' + trimmomatic)
 
-    path_adapters = _write_trimmomatic_adapters_file()
+    path_adapters = _write_trimmomatic_adapters_file(dir_dep)
 
     return trimmomatic, path_adapters
 
@@ -349,13 +335,13 @@ def dep_check_vsearch(dir_dep, force):
 
 
 # SPAdes
-def dep_check_spades(dir_dep, force, os_id):
+def dep_check_spades(dir_dep, os_id, force):
     if os_id == 'mac':
-        url = ('http://cab.spbu.ru/files/release3.14.0/'
-               'SPAdes-3.14.0-Darwin.tar.gz')
+        url = ('http://cab.spbu.ru/files/release3.14.1/'
+               'SPAdes-3.14.1-Darwin.tar.gz')
     elif os_id == 'linux':
-        url = ('http://cab.spbu.ru/files/release3.14.0/'
-               'SPAdes-3.14.0-Linux.tar.gz')
+        url = ('http://cab.spbu.ru/files/release3.14.1/'
+               'SPAdes-3.14.1-Linux.tar.gz')
 
     dnld_path = opj(dir_dep, 'SPAdes.tar.gz')
 
@@ -367,7 +353,7 @@ def dep_check_spades(dir_dep, force, os_id):
     except Exception:
         try:
             dir_bin = opj(dir_dep, get_dep_dir(dir_dep, 'SPAdes'))
-            spades = opj(dir_bin, 'bin', '../tools/spades.py')
+            spades = opj(dir_bin, 'bin', 'spades.py')
             run(spades)
         except Exception:
             Log.wrn('SPAdes was not found on this system, trying to download.')
@@ -377,7 +363,7 @@ def dep_check_spades(dir_dep, force, os_id):
             tar_ref.close()
             try:
                 dir_bin = opj(dir_dep, get_dep_dir(dir_dep, 'SPAdes'))
-                spades = opj(dir_bin, 'bin', '../tools/spades.py')
+                spades = opj(dir_bin, 'bin', 'spades.py')
                 run(spades)
             except Exception:
                 Log.err('Could not download SPAdes.')
@@ -390,7 +376,7 @@ def dep_check_spades(dir_dep, force, os_id):
 
 
 # Bowtie 2
-def dep_check_bowtie2(dir_dep, force, os_id):
+def dep_check_bowtie2(dir_dep, os_id, force):
     if os_id == 'mac':
         url = ('https://sourceforge.net/projects/bowtie-bio/files/bowtie2/'
                '2.4.1/bowtie2-2.4.1-macos-x86_64.zip/download')
@@ -487,7 +473,7 @@ def dep_check_rcorrector(dir_dep, force):
                         'download.')
                 raise
             try:
-                run([jellyfish, '--help'])
+                run([jellyfish, '--version'])
             except Exception:
                 Log.wrn(
                     'jellyfish is required by Rcorrector, but was not found. '
@@ -505,23 +491,15 @@ def dep_check_rcorrector(dir_dep, force):
             tar_ref.extractall(dir_dep)
             tar_ref.close()
             dir_bin = opj(dir_dep, get_dep_dir(dir_dep, 'Rcorrector'))
-            # jellyfish ######################################################
-            jf_tgz_path = opj(dir_bin, 'jellyfish.tar.gz')
-            jf_url = ('https://github.com/gmarcais/Jellyfish/releases/'
-                      'download/v2.3.0/jellyfish-2.3.0.tar.gz')
-            download_file(jf_url, jf_tgz_path)
-            tar_ref = tarfile.open(jf_tgz_path, 'r:gz')
-            tar_ref.extractall(dir_bin)
-            tar_ref.close()
-            ##################################################################
             try:
                 Log.wrn('Compiling Rcorrector.')
                 run('make', cwd=dir_bin)
                 rcorrector = opj(dir_bin, 'run_rcorrector.pl')
+                jellyfish = opj(dir_bin, 'jellyfish', 'bin', 'jellyfish')
                 chmod(rcorrector, stat.S_IRWXU | stat.S_IRGRP |
                       stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
                 run([rcorrector, '-version'])
-                run([jellyfish, '--help'])
+                run([jellyfish, '--version'])
             except Exception:
                 Log.err('Something went wrong while trying to compile '
                         'Rcorrector.')
@@ -611,11 +589,13 @@ def download_kraken2_dbs(dbs_path):
 
     # ------------------------------------------------------------------------
 
-    base = '16S_Silva_20190418'
+    base = '16S_Silva132_20200326'
     url = base_kraken2_url + base + '.tgz'
     tgz = opj(dbs_path, base + '.tgz')
-    p_orig = opj(dbs_path, base)
-    db_name = '16S_Silva'
+    # ToDo: Use pattern matching for the directory name.
+    #       Instead of using 16S_SILVA132_k2db -> 16S_SILVA132
+    p_orig = opj(dbs_path, '16S_SILVA132_k2db')
+    db_name = '16S_Silva132'
     p_new = opj(dbs_path, db_name)
 
     if not ope(p_new):
@@ -629,11 +609,33 @@ def download_kraken2_dbs(dbs_path):
 
     # ------------------------------------------------------------------------
 
-    base = 'minikraken2_v2_8GB_201904_UPDATE'
+    base = '16S_Silva138_20200326'
     url = base_kraken2_url + base + '.tgz'
     tgz = opj(dbs_path, base + '.tgz')
-    p_orig = opj(dbs_path, base)
-    db_name = 'minikraken2_v2'
+    # ToDo: Use pattern matching for the directory name.
+    #       Instead of using 16S_SILVA138_k2db -> 16S_SILVA138
+    p_orig = opj(dbs_path, '16S_SILVA138_k2db')
+    db_name = '16S_Silva138'
+    p_new = opj(dbs_path, db_name)
+
+    if not ope(p_new):
+        Log.msg(msg_prefix + db_name)
+        download_file(url=url, local_path=tgz, protocol='ftp')
+        tar_ref = tarfile.open(tgz, 'r:gz')
+        tar_ref.extractall(dbs_path)
+        tar_ref.close()
+        remove(tgz)
+        move(p_orig, p_new)
+
+    # ------------------------------------------------------------------------
+
+    base = 'minikraken_8GB_202003'
+    url = base_kraken2_url + base + '.tgz'
+    tgz = opj(dbs_path, base + '.tgz')
+    # ToDo: Use pattern matching for the directory name.
+    #       Instead of using minikraken_8GB_20200312 -> minikraken
+    p_orig = opj(dbs_path, 'minikraken_8GB_20200312')
+    db_name = 'minikraken_8GB_2020-03-12'
     p_new = opj(dbs_path, db_name)
 
     if not ope(p_new):

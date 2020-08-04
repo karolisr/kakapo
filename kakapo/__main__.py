@@ -29,18 +29,21 @@ from joblib import Parallel, delayed
 from ncbi_taxonomy_local import taxonomy
 
 from kakapo import __version__, __script_name__
-from kakapo.utils import dependencies as deps
 
-from kakapo.tools.bioio import read_fasta
+from kakapo.utils import dependencies as deps
+from kakapo.utils.logging import prepare_logger
+from kakapo.utils.misc import make_dirs
+from kakapo.utils.misc import time_stamp
+
 from kakapo.tools.config import CONYELL, CONSRED, CONGREE, CONBLUE, CONSDFL
 from kakapo.tools.config import DIR_CFG, DIR_DEP, DIR_TAX, DIR_KRK
 from kakapo.tools.config import SCRIPT_INFO
+from kakapo.tools.config import OS_ID, OS_STR, DIST_ID, DEBIAN_DISTS, REDHAT_DISTS, SUPPORTED_DISTS
 from kakapo.tools.config import THREADS, RAM
 from kakapo.tools.config_file_parse import config_file_parse
 from kakapo.tools.config_file_parse import ss_file_parse
-from kakapo.utils.misc import make_dirs
-from kakapo.utils.misc import time_stamp
-from kakapo.utils.logging import prepare_logger
+
+from kakapo.tools.bioio import read_fasta
 from kakapo.tools.transl_tables import TranslationTable
 
 from kakapo.flow.a_prepare import prepare_output_directories
@@ -246,18 +249,22 @@ def main():
     linfo(CONBLUE + 'Checking for dependencies')
     make_dirs(DIR_DEP)
     make_dirs(DIR_KRK)
-    seqtk = deps.dep_check_seqtk(FORCE_DEPS, linfo)
-    trimmomatic, adapters = deps.dep_check_trimmomatic(linfo)
-    fasterq_dump = deps.dep_check_sra_toolkit(FORCE_DEPS, linfo)
-    makeblastdb, _, tblastn = deps.dep_check_blast(FORCE_DEPS, linfo)
-    vsearch = deps.dep_check_vsearch(FORCE_DEPS, linfo)
-    spades = deps.dep_check_spades(FORCE_DEPS, linfo)
-    bowtie2, bowtie2_build = deps.dep_check_bowtie2(FORCE_DEPS, linfo)
-    rcorrector = deps.dep_check_rcorrector(FORCE_DEPS, linfo)
-    kraken2, kraken2_build = deps.dep_check_kraken2(FORCE_DEPS, linfo)
+    seqtk = deps.dep_check_seqtk(DIR_DEP, FORCE_DEPS)
+    trimmomatic, adapters = deps.dep_check_trimmomatic(DIR_DEP)
+    fasterq_dump = deps.dep_check_sra_toolkit(DIR_DEP, OS_ID, DIST_ID,
+                                              DEBIAN_DISTS, REDHAT_DISTS,
+                                              FORCE_DEPS)
+    makeblastdb, _, tblastn = deps.dep_check_blast(DIR_DEP, OS_ID, DIST_ID,
+                                              DEBIAN_DISTS, REDHAT_DISTS,
+                                              FORCE_DEPS)
+    vsearch = deps.dep_check_vsearch(DIR_DEP, FORCE_DEPS)
+    spades = deps.dep_check_spades(DIR_DEP, OS_ID, FORCE_DEPS)
+    bowtie2, bowtie2_build = deps.dep_check_bowtie2(DIR_DEP, OS_ID, FORCE_DEPS)
+    rcorrector = deps.dep_check_rcorrector(DIR_DEP, FORCE_DEPS)
+    kraken2, kraken2_build = deps.dep_check_kraken2(DIR_DEP, FORCE_DEPS)
 
     linfo(CONBLUE + 'Checking for available Kraken2 databases')
-    kraken2_dbs = deps.download_kraken2_dbs(DIR_KRK, DNLD_KRAKEN_DBS)
+    kraken2_dbs = deps.download_kraken2_dbs(DIR_KRK)
     for db in sorted(kraken2_dbs.keys()):
         linfo('Found Kraken2 database: ' + db)
 

@@ -16,6 +16,9 @@ _ = check_os()
 OS_ID = _['os_id']
 OS_STR = _['os_str']
 DIST_ID = _['dist_id']
+DEBIAN_DISTS = _['debian_dists']
+REDHAT_DISTS = _['redhat_dists']
+SUPPORTED_DISTS = _['supported_dists']
 
 _, PY_V_STR = python_version()
 THREADS = cpu_count()
