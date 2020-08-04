@@ -1,8 +1,8 @@
-click
-colorama
-distro
-joblib
-multipledispatch
-requests
-urllib3
+click>=7.1.2
+colorama>=0.4.3
+distro>=1.5.0
+joblib>=0.16.0
+multipledispatch>=0.6.0
+requests>=2.24.0
+urllib3>=1.25.10
 ncbi-taxonomy-local @ git+git://github.com/karolisr/ncbi-taxonomy-local
