@@ -88,11 +88,16 @@ def dict_to_fasta(d, max_line_len=None):
     return fasta
 
 
-def seq_records_to_fasta(records, max_line_len=None):
-    d = OrderedDict()
+def seq_records_to_dict(records):
+    d = dict()
     for rec in records:
         if type(rec) == SeqRecord:
-            d[rec.definition] = rec.seq
+            d[rec.definition] = str(rec.seq)
+    return d
+
+
+def seq_records_to_fasta(records, max_line_len=None):
+    d = seq_records_to_dict(records)
     return dict_to_fasta(d, max_line_len)
 
 

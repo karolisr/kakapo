@@ -7,10 +7,12 @@ from os.path import exists as ope
 from os.path import join as opj
 
 from kakapo.tools.bioio import read_fasta
+from kakapo.tools.bioio import seq_records_to_dict
 from kakapo.tools.blast import BLST_RES_COLS_2
 from kakapo.tools.blast import parse_blast_results_file
 from kakapo.tools.blast import run_blast
 from kakapo.tools.config import PICKLE_PROTOCOL
+from kakapo.tools.seq import SEQ_TYPE_AA
 
 
 def run_tblastn_on_assemblies(ss, assemblies, aa_queries_file, tblastn,
@@ -40,7 +42,8 @@ def run_tblastn_on_assemblies(ss, assemblies, aa_queries_file, tblastn,
                 'blast_2_best_hit_overhang': blast_2_best_hit_overhang,
                 'blast_2_best_hit_score_edge': blast_2_best_hit_score_edge,
                 'blast_2_max_target_seqs': blast_2_max_target_seqs,
-                'queries': read_fasta(aa_queries_file)}
+                'queries': seq_records_to_dict(
+                    read_fasta(aa_queries_file, SEQ_TYPE_AA))}
 
     linfo('evalue: ' + str(blast_2_evalue))
     linfo('max_hsps: ' + str(blast_2_max_hsps))

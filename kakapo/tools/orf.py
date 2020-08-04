@@ -123,6 +123,8 @@ def find_orf_for_blast_hit(seq, frame, hit_start, hit_end, start_codons,
                            min_len, max_len, allow_no_strt_cod,
                            allow_no_stop_cod):
 
+    seq = str(seq)
+
     assert type(frame) is int
 
     log_str = ''
@@ -146,6 +148,7 @@ def find_orf_for_blast_hit(seq, frame, hit_start, hit_end, start_codons,
 
     results = get_orf_coords_for_frames(seq, start_codons, stop_codons,
                                         min_len_to_consider, frames=frames)
+
     orfs = list()
 
     for r in results:

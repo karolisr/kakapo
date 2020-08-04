@@ -43,7 +43,10 @@ from kakapo.tools.config import THREADS, RAM
 from kakapo.tools.config_file_parse import config_file_parse
 from kakapo.tools.config_file_parse import ss_file_parse
 
+from kakapo.tools.seq import SEQ_TYPE_AA
+
 from kakapo.tools.bioio import read_fasta
+from kakapo.tools.bioio import seq_records_to_dict
 from kakapo.tools.transl_tables import TranslationTable
 
 from kakapo.flow.a_prepare import prepare_output_directories
@@ -727,7 +730,7 @@ def main():
                 run_id = ss + '_' + assmbl_name
                 max_run_id_len = max(len(run_id), max_run_id_len)
 
-                seqs = read_fasta(aa_file)
+                seqs = seq_records_to_dict(read_fasta(aa_file, SEQ_TYPE_AA))
 
                 # Filter all ORFs except the first one.
                 for seq_def in tuple(seqs.keys()):

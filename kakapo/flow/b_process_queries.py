@@ -190,7 +190,6 @@ def dnld_prot_seqs(ss, prot_acc_user, aa_prot_ncbi_file, linfo=print):
                 accession = rec.accession
                 version = rec.version
                 defn = rec.definition
-                print(defn)
                 organism = rec.organism
 
                 if version is not None:

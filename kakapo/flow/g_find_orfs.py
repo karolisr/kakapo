@@ -7,12 +7,13 @@ from io import StringIO
 from os.path import join as opj
 from sys import exit
 
-from kakapo.tools.bioio import read_fasta
+from kakapo.data.start_codon_context import contexts as atg_contexts
+from kakapo.tools.bioio import seq_records_to_dict
 from kakapo.tools.bioio import trim_desc_to_first_space_in_fasta_text
 from kakapo.tools.bioio import write_fasta
 from kakapo.tools.blast import collate_blast_results
-from kakapo.data.start_codon_context import contexts as atg_contexts
 from kakapo.tools.orf import find_orf_for_blast_hit
+from kakapo.tools.seq import SEQ_TYPE_AA, SEQ_TYPE_DNA
 from kakapo.tools.seq import reverse_complement, translate
 from kakapo.tools.seqtk import seqtk_extract_reads
 
@@ -98,9 +99,8 @@ def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,
 
         linfo(assmbl_name)
 
-        _ = trim_desc_to_first_space_in_fasta_text(_)
-
-        parsed_fasta = read_fasta(StringIO(_))
+        parsed_fasta = trim_desc_to_first_space_in_fasta_text(_, SEQ_TYPE_DNA)
+        parsed_fasta = seq_records_to_dict(parsed_fasta)
         ######################################################################
 
         all_kakapo_results = {}

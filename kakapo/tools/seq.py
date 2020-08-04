@@ -1,5 +1,7 @@
 """seq."""
 
+# from itertools import islice
+
 from kakapo.tools.transl_tables import TranslationTable
 from kakapo.tools.iupac import AA_AMBIGUOUS
 from kakapo.tools.iupac import DNA_AMBIGUOUS
@@ -151,6 +153,22 @@ class _Seq(object):
     def __str__(self):
         return self._seq
 
+    def __len__(self):
+        return self.length
+
+    def __add__(self, other):
+        return type(self)(str(self) + str(other))
+
+    def __getitem__(self, key):
+        s = str(self._seq)
+        if isinstance(key, int) and key >= 0:
+            return type(self)(s[key:key + 1])
+        elif isinstance(key, slice):
+            return type(self)(s[key.start:key.stop:key.step])
+        else:
+            raise KeyError('Keys must be integers or slices, '
+                           'not {}'.format(type(key)))
+
     @property
     def gc_code(self):
         return self._gc_code
@@ -173,7 +191,7 @@ class _Seq(object):
 
     @property
     def length(self):
-        return len(self.seq)
+        return len(self._seq)
 
 
 class NTSeq(_Seq):

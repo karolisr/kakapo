@@ -10,9 +10,12 @@ from os.path import join as opj
 from time import sleep
 
 from kakapo.tools.bioio import read_fasta
+from kakapo.tools.bioio import seq_records_to_dict
 from kakapo.tools.config import PICKLE_PROTOCOL
 from kakapo.tools.ebi_iprscan5 import job_runner
 from kakapo.tools.ebi_iprscan5 import result_json
+from kakapo.tools.seq import SEQ_TYPE_AA
+
 from kakapo.utils.misc import split_seq_defn_for_printing as split_seq_defn
 
 
@@ -50,7 +53,7 @@ def run_inter_pro_scan(ss, assemblies, email, dir_prj_ips, dir_cache_prj,
                   ' from ' + assmbl_name + '.')
             print()
 
-        seqs = read_fasta(aa_file)
+        seqs = seq_records_to_dict(read_fasta(aa_file, SEQ_TYPE_AA))
 
         # Filter all ORFs except the first one.
         for seq_def in tuple(seqs.keys()):

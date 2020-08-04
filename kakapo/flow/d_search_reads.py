@@ -8,10 +8,11 @@ from os.path import join as opj
 from shutil import copyfile
 
 from kakapo.tools.bioio import read_fasta
+from kakapo.tools.bioio import seq_records_to_dict
 from kakapo.tools.blast import BLST_RES_COLS_1
 from kakapo.tools.blast import run_blast
 from kakapo.tools.config import PICKLE_PROTOCOL
-from kakapo.tools.seq import SEQ_TYPE_AA, SEQ_TYPE_DNA
+from kakapo.tools.seq import SEQ_TYPE_AA
 from kakapo.tools.seqtk import seqtk_fq_to_fa, seqtk_extract_reads
 from kakapo.tools.vsearch import run_cluster_fast, run_vsearch
 from kakapo.utils.misc import combine_text_files
@@ -54,7 +55,8 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                 'blast_1_best_hit_overhang': blast_1_best_hit_overhang,
                 'blast_1_best_hit_score_edge': blast_1_best_hit_score_edge,
                 'blast_1_max_target_seqs': blast_1_max_target_seqs,
-                'queries': read_fasta(aa_queries_file, SEQ_TYPE_AA)}
+                'queries': seq_records_to_dict(
+                    read_fasta(aa_queries_file, SEQ_TYPE_AA))}
 
     linfo('evalue: ' + str(blast_1_evalue))
     linfo('max_hsps: ' + str(blast_1_max_hsps))
