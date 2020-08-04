@@ -8,23 +8,21 @@ from os import remove as osremove
 from os.path import exists as ope
 from os.path import join as opj
 
-from kakapo.tools.bioio import filter_fasta_text_by_length
+from kakapo.tools.bioio import filter_fasta_by_length
 from kakapo.tools.bioio import read_fasta
-from kakapo.tools.bioio import standardize_fasta_text
+from kakapo.tools.bioio import standardize_fasta, standardize_fasta_text
 from kakapo.tools.bioio import write_fasta
-from kakapo.tools.config import PICKLE_PROTOCOL
 from kakapo.tools.config import CONBLUE, CONGREE
+from kakapo.tools.config import PICKLE_PROTOCOL
 from kakapo.tools.ebi_domain_search import pfam_entry
 from kakapo.tools.ebi_domain_search import pfam_seqs
 from kakapo.tools.ebi_domain_search import prot_ids_for_tax_ids
 from kakapo.tools.ebi_proteins import fasta_by_accession_list
 from kakapo.tools.eutils import accs as accessions_ncbi
-from kakapo.tools.eutils import seqs as dnld_ncbi_seqs
 from kakapo.tools.eutils import esearch
-from kakapo.tools.eutils import esummary as entrez_summary
-from kakapo.tools.seq import translate
-from kakapo.tools.seq import untranslate
-from kakapo.tools.transl_tables import TranslationTable
+from kakapo.tools.eutils import esummary
+from kakapo.tools.eutils import seqs as dnld_ncbi_seqs
+from kakapo.tools.seq import SEQ_TYPE_AA, SEQ_TYPE_DNA
 from kakapo.tools.vsearch import run_cluster_fast
 
 
@@ -75,7 +73,7 @@ def dnld_pfam_uniprot_seqs(ss, uniprot_acc, aa_uniprot_file, dir_cache_prj,
             # as Pfam may return "obsolete" accessions, which will not be
             # downloaded here.
             __ = fasta_by_accession_list(uniprot_acc)
-            __ = standardize_fasta_text(__)
+            __ = standardize_fasta_text(__, SEQ_TYPE_AA)
 
             with open(aa_uniprot_file, 'w') as f:
                 f.write(__)
@@ -101,9 +99,11 @@ def user_entrez_search(ss, queries, dir_cache_prj, ncbi_longevity,
                     dnld_needed = False
 
         if dnld_needed is True:
-            linfo(CONBLUE + 'Searching for protein sequences on NCBI [' + ss + ']')
+            linfo(CONBLUE +
+                  'Searching for protein sequences on NCBI [' + ss + ']')
             for q in queries:
-                accs = accs + accessions_ncbi(esearch(term=q, db='protein'))
+                esearch_results = esearch(db='protein', term=q)
+                accs = accs + accessions_ncbi(esearch_results)
             with open(time_stamp_file, 'wb') as f:
                 pickle.dump(datetime.datetime.now(), f,
                             protocol=PICKLE_PROTOCOL)
@@ -134,7 +134,7 @@ def user_protein_accessions(ss, prot_acc_user, dir_cache_prj, taxonomy,
         if acc_old == set(prot_acc_user):
             pa_info = pickled
         else:
-            pa_info = entrez_summary(prot_acc_user, 'protein')
+            pa_info = esummary('protein', prot_acc_user)
 
         prot_acc = []
         prot_info_to_print = []
@@ -177,23 +177,24 @@ def dnld_prot_seqs(ss, prot_acc_user, aa_prot_ncbi_file, linfo=print):
     if len(prot_acc_user) != 0:
         acc_old = set()
         if ope(aa_prot_ncbi_file):
-            _ = read_fasta(aa_prot_ncbi_file)
-            acc_old = set([x.split('|')[0] for x in tuple(_.keys())])
+            _ = read_fasta(aa_prot_ncbi_file, SEQ_TYPE_AA)
+            acc_old = set([x.definition.split('|')[0] for x in _])
 
         if acc_old == set(prot_acc_user):
             return prot_acc_user
         else:
             linfo(CONBLUE + 'Downloading protein sequences from NCBI [' + ss + ']')
-            _ = dnld_ncbi_seqs(prot_acc_user, 'protein')
+            _ = dnld_ncbi_seqs('protein', prot_acc_user)
             prot_acc_user_new = list()
             for rec in _:
-                accession = rec['accession']
-                version = rec['version']
-                defn = rec['definition']
-                organism = rec['organism']
+                accession = rec.accession
+                version = rec.version
+                defn = rec.definition
+                print(defn)
+                organism = rec.organism
 
                 if version is not None:
-                    new_acc = accession + '.' + version
+                    new_acc = accession + '.' + str(version)
                 else:
                     new_acc = accession
 
@@ -205,7 +206,10 @@ def dnld_prot_seqs(ss, prot_acc_user, aa_prot_ncbi_file, linfo=print):
                 defn_new = defn_new.replace(',', '')
                 defn_new = defn_new[0].upper() + defn_new[1:]
 
-                rec['definition'] = defn_new
+                defn_new = new_acc + '|' + defn_new + '|' + organism
+                defn_new = defn_new.replace(' ', '_').replace('-', '_')
+
+                rec.definition = defn_new
 
             prot_acc_user = prot_acc_user_new
             write_fasta(_, aa_prot_ncbi_file)
@@ -226,7 +230,7 @@ def user_aa_fasta(ss, user_queries, aa_prot_user_file, linfo=print):
                 _ = _ + f.read()
     if _ != '':
         with open(aa_prot_user_file, 'w') as f:
-            f.write(standardize_fasta_text(_))
+            write_fasta(standardize_fasta_text(_, SEQ_TYPE_AA), f)
 
 
 def combine_aa_fasta(ss, fasta_files, aa_queries_file, linfo=print):
@@ -244,31 +248,29 @@ def combine_aa_fasta(ss, fasta_files, aa_queries_file, linfo=print):
 def filter_queries(ss, aa_queries_file, min_query_length,
                    max_query_length, max_query_identity, vsearch,
                    prot_acc_user, overwrite, linfo=print):
-    _ = ''
-    with open(aa_queries_file, 'r') as f:
-        _ = f.read()
 
     linfo(CONBLUE + 'Filtering AA query sequences [' + ss + ']')
     linfo(CONGREE + 'min_query_length: ' + str(min_query_length))
     linfo(CONGREE + 'max_query_length: ' + str(max_query_length))
     linfo(CONGREE + 'max_query_identity: ' + str(max_query_identity))
 
-    _ = filter_fasta_text_by_length(_, min_query_length, max_query_length)
+    parsed_fasta_1 = filter_fasta_by_length(aa_queries_file, SEQ_TYPE_AA,
+                                            min_query_length,
+                                            max_query_length)
 
     tmp1 = aa_queries_file + '_temp1'
     tmp2 = aa_queries_file + '_temp2'
-    tt = TranslationTable(1)
-    parsed_fasta_1 = read_fasta(StringIO(_))
-    for dfn in parsed_fasta_1:
-        parsed_fasta_1[dfn] = untranslate(parsed_fasta_1[dfn], tt.table_inv)
+    for rec in parsed_fasta_1:
+        rec.seq.gc_code = 1
+        rec.seq = rec.seq.untranslate()
     write_fasta(parsed_fasta_1, tmp1)
     run_cluster_fast(vsearch, max_query_identity, tmp1, tmp2)
-    parsed_fasta_2 = read_fasta(tmp2)
+    parsed_fasta_2 = read_fasta(tmp2, SEQ_TYPE_DNA)
     prot_acc_user_new = list()
-    for dfn in parsed_fasta_2:
-        parsed_fasta_2[dfn] = translate(parsed_fasta_2[dfn], tt.table,
-                                        tt.start_codons)
-        acc = dfn.split('|')[0]
+    for rec in parsed_fasta_2:
+        rec.seq.gc_code = 1
+        rec.seq = rec.seq.translate()
+        acc = rec.accession
         if acc in prot_acc_user:
             prot_acc_user_new.append(acc)
 

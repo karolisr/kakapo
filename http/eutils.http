@@ -25,6 +25,15 @@ db=nuccore&id=1746590493&api_key={{api_key}}&email={{email}}&tool={{tool}}
 
 ###
 
+# esummary
+POST {{host}}/esummary.fcgi
+Content-Type: application/x-www-form-urlencoded
+Accept: application/xml
+
+db=protein&version=2.0&retmode=xml&id=PIN17166.1&email={{email}}&tool={{tool}}
+
+###
+
 # efetch
 POST {{host}}/efetch.fcgi
 Content-Type: application/x-www-form-urlencoded

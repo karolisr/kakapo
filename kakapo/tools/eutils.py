@@ -25,6 +25,7 @@ from requests.models import Response
 
 from kakapo.tools.parsers import eutils_loc_str
 from kakapo.tools.parsers import parse_efetch_sra_csv_text
+from kakapo.tools.parsers import parse_esummary_xml_text
 from kakapo.tools.parsers import seq_records_gb
 from kakapo.utils.http import post
 from kakapo.utils.logging import Log
@@ -137,13 +138,17 @@ def einfo(db: str) -> dict:
         return r.json()
 
 
-def esearch(db: str, term: str, usehistory: bool = False, web_env: str = None,
+def esearch(db: str, term: str, web_env: str = None,
             query_key: int = None, **kwargs) -> dict:
     r = eutil(util='esearch.fcgi', rettype='uilist', retmode='json', db=db,
-              term=term, usehistory=usehistory, web_env=web_env,
+              term=term, usehistory=True, web_env=web_env,
               query_key=query_key, **kwargs)
+
     if r is not None:
-        return r.json()
+        esearchresult = r.json()['esearchresult']
+        web_env = esearchresult['webenv']
+        query_key = int(esearchresult['querykey'])
+        return epost(db=db, web_env=web_env, query_key=query_key)
 
 
 def epost(db: str, ids: IterableT[str] = None, web_env: str = None,
@@ -165,11 +170,19 @@ def epost(db: str, ids: IterableT[str] = None, web_env: str = None,
     return {'db': db, 'query_keys': query_keys, 'web_env': web_env}
 
 
-def esummary(db: str, ids: IterableT[str] = None, **kwargs) -> dict:
+def esummary(db: str, ids: IterableT[str] = None, **kwargs) -> list:
+    return_list = []
+
     r = eutil(util='esummary.fcgi', db=db, ids=ids, version='2.0',
               retmode='json', **kwargs)
     if r is not None:
-        return r.json()
+        parsed = r.json()['result']
+        keys = parsed['uids']
+
+        for k in keys:
+            return_list.append(parsed[k])
+
+        return return_list
 
 
 def efetch(db: str, ids: IterableT[str] = None, rettype: str = None,
@@ -281,7 +294,8 @@ def cds_accs(ids_protein: IterableT[str]) -> dict:
 
 def seqs(db: str, ids: IterableT[str], rettype: str = 'gb',
          retmode: str = 'xml') -> list:
-    gb_txt = efetch(db=db, ids=ids, rettype=rettype, retmode=retmode)
+    gb_txt = efetch(db=db, ids=ids, rettype=rettype, retmode=retmode,
+                    usehistory=True)
     return seq_records_gb(gb_txt)
 
 

@@ -7,9 +7,11 @@ from functools import reduce
 from io import StringIO
 from math import ceil
 from operator import add
+from multipledispatch import dispatch
 from kakapo.tools.seq import Seq, SeqRecord
 from kakapo.tools.seq import SEQ_TYPES
 
+BIOIO_NS = dict()
 HANDLE_TYPES = (io.IOBase, StringIO)
 
 
@@ -86,6 +88,14 @@ def dict_to_fasta(d, max_line_len=None):
     return fasta
 
 
+def seq_records_to_fasta(records, max_line_len=None):
+    d = OrderedDict()
+    for rec in records:
+        if type(rec) == SeqRecord:
+            d[rec.definition] = rec.seq
+    return dict_to_fasta(d, max_line_len)
+
+
 def write_fasta(data, f, max_line_len=None):
     """Write FASTA file."""
 
@@ -99,32 +109,54 @@ def write_fasta(data, f, max_line_len=None):
         text = dict_to_fasta(data, max_line_len)
         f.write(text)
 
+    if type(data) in (list, tuple):
+        text = seq_records_to_fasta(data, max_line_len)
+        f.write(text)
+
     if handle is False:
         f.close()
 
 
+@dispatch(str, str, namespace=BIOIO_NS)
 def _no_spaces(name, sep='_'):
     return sep.join(re.findall(r'([^\s]+)', name))
 
 
-def standardize_fasta_text(text):
-    parsed_fasta = read_fasta(StringIO(text))
-    names = map(_no_spaces, parsed_fasta)
-    seqs = parsed_fasta.values()
-    fasta_dict = {k: v for (k, v) in zip(names, seqs)}
-    return dict_to_fasta(fasta_dict)
+@dispatch(SeqRecord, namespace=BIOIO_NS)
+def _no_spaces(seq_record, sep='_'):
+    return _no_spaces(seq_record.definition, sep)
 
 
-def trim_desc_to_first_space_in_fasta_text(text):
-    parsed_fasta = read_fasta(StringIO(text))
-    names = map(lambda x: x.split(' ')[0], parsed_fasta)
-    seqs = parsed_fasta.values()
-    fasta_dict = {k: v for (k, v) in zip(names, seqs)}
-    return dict_to_fasta(fasta_dict)
+def standardize_fasta(f, seq_type):
+    parsed_fasta = read_fasta(f, seq_type)
+    names = tuple(map(_no_spaces, parsed_fasta))
+    for i, rec in enumerate(parsed_fasta):
+        rec.definition = names[i]
+    return parsed_fasta
 
 
-def filter_fasta_text_by_length(text, min_len, max_len):
-    x = tuple(read_fasta(StringIO(text)).items())
-    seqs = filter(lambda y: min_len <= len(y[1]) <= max_len, x)
-    fasta_dict = {k: v for (k, v) in seqs}
-    return dict_to_fasta(fasta_dict)
+def standardize_fasta_text(text, seq_type):
+    return standardize_fasta(StringIO(text), seq_type)
+    # parsed_fasta = read_fasta(StringIO(text), seq_type)
+    # names = tuple(map(_no_spaces, parsed_fasta))
+    # for i, rec in enumerate(parsed_fasta):
+    #     rec.definition = names[i]
+    # return parsed_fasta
+
+
+def trim_desc_to_first_space_in_fasta_text(text, seq_type):
+    parsed_fasta = read_fasta(StringIO(text), seq_type, def_to_first_space=True)
+    return parsed_fasta
+
+
+def filter_fasta_by_length(f, seq_type, min_len, max_len):
+    parsed_fasta = read_fasta(f, seq_type)
+    recs = filter(lambda y: min_len <= y.length <= max_len, parsed_fasta)
+    return list(recs)
+
+
+def filter_fasta_text_by_length(text, seq_type, min_len, max_len):
+    return filter_fasta_by_length(StringIO(text), seq_type, min_len, max_len)
+    # x = read_fasta(StringIO(text), seq_type)
+    # recs = filter(lambda y: min_len <= y.length <= max_len, x)
+    # return list(recs)

@@ -81,7 +81,7 @@ def translate(seq, trans_table, start_codons):
 
 
 def untranslate(seq, trans_table_inv):
-    seq = seq.upper()
+    seq = str(seq).upper()
     tt = trans_table_inv
     tt['X'] = ('NNN',)
     unt = ''.join(tuple(map(lambda x: tt[x][0], seq)))
@@ -299,6 +299,11 @@ class AASeq(_Seq):
     def __repr__(self):
         return 'AASeq(\'' + self._seq + '\')'
 
+    def untranslate(self):
+        tt = self._transl_table
+        raw = untranslate(self._seq, tt.table_inv)
+        return NTSeq(raw)
+
 
 from typing import Union
 
@@ -339,6 +344,10 @@ class SeqRecord(object):
     @property
     def seq(self):
         return self._seq
+
+    @seq.setter
+    def seq(self, value):
+        self._seq = value
 
     @property
     def length(self):

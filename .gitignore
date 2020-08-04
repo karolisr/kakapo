@@ -202,7 +202,7 @@ Temporary Items
 # PyCharm
 .idea
 
-kakapo_test_data
+tests/kakapo_test_data
 
 # Sublime Text
 *.sublime-project

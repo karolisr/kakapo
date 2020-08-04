@@ -2,7 +2,7 @@ from kakapo.tools.eutils import efetch
 from kakapo.tools.eutils import einfo
 from kakapo.tools.eutils import elink
 from kakapo.tools.eutils import epost
-from kakapo.tools.eutils import esearch
+# from kakapo.tools.eutils import esearch
 from kakapo.tools.eutils import espell
 from kakapo.tools.eutils import esummary
 
@@ -12,10 +12,10 @@ def test_einfo():
     assert 'dbinfo' in r['einforesult']
 
 
-def test_esearch():
-    r = esearch(db='protein',
-                term='("ribonuclease t2"[title] AND "RNase"[title])')
-    assert 'XP_001384105.2' in r['esearchresult']['idlist']
+# def test_esearch():
+#     r = esearch(db='protein',
+#                 term='("ribonuclease t2"[title] AND "RNase"[title])')
+#     assert 'XP_001384105.2' in r['esearchresult']['idlist']
 
 
 def test_epost():
@@ -23,9 +23,9 @@ def test_epost():
     assert r['query_keys'][0] == 1
 
 
-def test_esummary():
-    r = esummary(db='protein', ids=['15718680', 'NP_001098858.1', '119703751'])
-    assert r['result']['119703751']['accessionversion'] == 'NP_034713.2'
+# def test_esummary():
+#     r = esummary(db='protein', ids=['15718680', 'NP_001098858.1', '119703751'])
+#     assert r['result']['119703751']['accessionversion'] == 'NP_034713.2'
 
 
 def test_efetch():
