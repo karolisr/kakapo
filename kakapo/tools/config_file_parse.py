@@ -293,10 +293,10 @@ def config_file_parse(file_path, taxonomy, linfo=print):
                 d_path = abspath(expanduser(dirname(val[1])))
                 pattern = re.escape(f_name).replace('\\*', '.')
                 try:
-                    files = list_of_files_at_path(d_path)
+                    files, err = list_of_files_at_path(d_path)
                 except Exception:
                     exit(1)
-                pe = [f for f in files if re.match(pattern, f) is not None]
+                pe = [f for f in files if re.match(pattern, basename(f)) is not None]
                 pe.sort()
                 pe = [join(d_path, f) for f in pe]
                 fq_pe.append([tax_ids[0], pe])
@@ -378,8 +378,8 @@ def config_file_parse(file_path, taxonomy, linfo=print):
 
     except NoOptionError as err:
         linfo('Missing required option "' + err.option +
-              '" under section "' + err.section + '" in configuration file: '
-              + file_path)
+              '" under section "' + err.section + '" in configuration file: ' +
+              file_path)
         exit(1)
 
     # ------------------------------------------------------------------------

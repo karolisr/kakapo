@@ -203,7 +203,7 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
 
         if not sra_dnld_needed:
             linfo(CONGREE + 'FASTQ reads for the SRA run ' + sample_base_name +
-                  ' are available loruny')
+                  ' are available locally')
 
         retry_count = 0
         while sra_dnld_needed:
