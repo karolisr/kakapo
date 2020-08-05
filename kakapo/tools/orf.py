@@ -3,7 +3,9 @@
 from functools import partial, reduce
 from itertools import accumulate, chain, compress, dropwhile, groupby, starmap
 from operator import add, contains, itemgetter, mul, ne, not_, sub
-from statistics import stdev, mean, harmonic_mean
+from statistics import stdev
+# from statistics import mean
+# from statistics import harmonic_mean
 
 from kakapo.utils.misc import overlap
 from kakapo.tools.seq import reverse_complement

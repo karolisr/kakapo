@@ -207,7 +207,6 @@ def splitext_gz(path):
     :returns: ('x', '.y', '.gz|.gzip')
     :rtype: tuple
     """
-
     ext = splitext(path)
     ext_gz = None
 

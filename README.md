@@ -8,7 +8,7 @@ Kakapo is a pipeline that allows users to extract and assemble a specified gene 
 
 Kakapo can be flexibly employed to extract arbitrary loci, such as those commonly used for phylogenetic inference in systematics.
 
-Brief overview of kakapo from the Botany 2020 conference: https://youtu.be/2D04DQlV6CA
+Brief overview of kakapo from the Botany 2020 conference: [https://youtu.be/2D04DQlV6CA](https://youtu.be/2D04DQlV6CA)
 
 ## Installation
 

@@ -5,7 +5,7 @@ from kakapo.utils.misc import make_dirs
 
 
 def prepare_output_directories(dir_out, prj_name):
-    # TODO: Lock cache files in case of parallel execution -------------------
+    # ToDo: Lock cache files in case of parallel execution -------------------
     dir_temp = opj(dir_out, '00-temp')
     make_dirs(dir_temp)
 

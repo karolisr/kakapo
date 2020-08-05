@@ -33,10 +33,10 @@ def gff_from_json(ss, assemblies, dir_prj_ips, dir_prj_transcripts_combined,
         assmbl_name = a['name']
         transcripts_nt_path = a['transcripts_nt_fasta_file__' + ss]
 
-        kakapo_json_path = opj(dir_prj_ips, assmbl_name + '_ann_kakapo__'
-                               + ss + '.json')
-        ips_json_path = opj(dir_prj_ips, assmbl_name + '_ann_ips__'
-                            + ss + '.json')
+        kakapo_json_path = opj(dir_prj_ips, assmbl_name + '_ann_kakapo__' +
+                               ss + '.json')
+        ips_json_path = opj(dir_prj_ips, assmbl_name + '_ann_ips__' +
+                            ss + '.json')
 
         gff_path = transcripts_nt_path.replace('.fasta', '.gff')
 

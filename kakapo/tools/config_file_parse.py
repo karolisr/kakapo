@@ -58,7 +58,7 @@ def _parse_pfam(pfam_entries, config_file_path):
     pfam_acc = list()
 
     for pf in pfam_entries:
-        pf_match = re.match('^\s*PF\d+$', pf, flags=re.IGNORECASE)
+        pf_match = re.match('^\\s*PF\\d+$', pf, flags=re.IGNORECASE)
         if pf_match is not None:
             pfam_acc.append(pf)
         else:

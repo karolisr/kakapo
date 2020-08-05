@@ -3,14 +3,13 @@
 import pickle
 import datetime
 
-from io import StringIO
 from os import remove as osremove
 from os.path import exists as ope
 from os.path import join as opj
 
 from kakapo.tools.bioio import filter_fasta_by_length
 from kakapo.tools.bioio import read_fasta
-from kakapo.tools.bioio import standardize_fasta, standardize_fasta_text
+from kakapo.tools.bioio import standardize_fasta_text
 from kakapo.tools.bioio import write_fasta
 from kakapo.tools.config import CONBLUE, CONGREE
 from kakapo.tools.config import PICKLE_PROTOCOL

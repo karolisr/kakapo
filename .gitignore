@@ -1,4 +1,3 @@
-# Created by .ignore support plugin (hsz.mobi)
 ### Linux template
 *~
 
@@ -207,11 +206,6 @@ tests/kakapo_test_data
 # Sublime Text
 *.sublime-project
 *.sublime-workspace
-
-/untracked
-/tests/database
-/tests/output
-/tests/temp
 
 # osxfuse
 ._*

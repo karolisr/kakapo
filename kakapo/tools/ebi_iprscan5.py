@@ -70,7 +70,7 @@ def _result(job_id, result_type):
         response_format = available_result_types[result_type]
     else:
         # raise Exception
-        # TODO: Just skips if, for some reason, the server
+        # ToDo: Just skips if, for some reason, the server
         #       did not report an error but also did not
         #       return anything.
 
@@ -87,7 +87,7 @@ def _result(job_id, result_type):
 
 def result_json(job_id):
     r = _result(job_id, result_type='json')
-    # TODO: Just skips if, for some reason, the server
+    # ToDo: Just skips if, for some reason, the server
     #       did not report an error but also did not
     #       return anything.
     if r is None:
@@ -98,7 +98,7 @@ def result_json(job_id):
 
 def result_sequence(job_id):
     r = _result(job_id, result_type='sequence')
-    # TODO: Just skips if, for some reason, the server
+    # ToDo: Just skips if, for some reason, the server
     #       did not report an error but also did not
     #       return anything.
     if r is None:
@@ -109,7 +109,7 @@ def result_sequence(job_id):
 
 def result_html(job_id, out_dir):
     r = _result(job_id, result_type='htmltarball')
-    # TODO: Just skips if, for some reason, the server
+    # ToDo: Just skips if, for some reason, the server
     #       did not report an error but also did not
     #       return anything.
     if r is None:
@@ -125,7 +125,7 @@ def result_html(job_id, out_dir):
 
 def result_gff(job_id, out_file=None):
     r = _result(job_id, result_type='gff')
-    # TODO: Just skips if, for some reason, the server
+    # ToDo: Just skips if, for some reason, the server
     #       did not report an error but also did not
     #       return anything.
     if r is None:
@@ -247,7 +247,7 @@ def job_runner(email, dir_cache, seqs=None, run_id='', parallel_run_count=1,
                                        'job_status': job_status}
                 titles_ab = split_seq_defn(title)
                 title_a = titles_ab[0]
-                # TODO: Refactor
+                # ToDo: Refactor
                 if job_status == 'RUNNING':
                     print(' ' * 10 + '- ' + title_a.ljust(max_title_a_len) +
                           run_id.ljust(max_run_id_len) + ' ' * 5 + job_id)

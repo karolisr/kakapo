@@ -5,7 +5,7 @@
 import requests
 
 from requests.adapters import HTTPAdapter
-from requests.exceptions import HTTPError
+# from requests.exceptions import HTTPError
 from urllib3.util import Retry
 
 # Possible values for the Accept request-header field:

@@ -3,7 +3,6 @@
 import json
 
 from functools import partial
-from io import StringIO
 from os.path import join as opj
 from sys import exit
 
@@ -13,7 +12,7 @@ from kakapo.tools.bioio import trim_desc_to_first_space_in_fasta_text
 from kakapo.tools.bioio import write_fasta
 from kakapo.tools.blast import collate_blast_results
 from kakapo.tools.orf import find_orf_for_blast_hit
-from kakapo.tools.seq import SEQ_TYPE_AA, SEQ_TYPE_DNA
+from kakapo.tools.seq import SEQ_TYPE_DNA
 from kakapo.tools.seq import reverse_complement, translate
 from kakapo.tools.seqtk import seqtk_extract_reads
 

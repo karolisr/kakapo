@@ -25,7 +25,6 @@ from requests.models import Response
 
 from kakapo.tools.parsers import eutils_loc_str
 from kakapo.tools.parsers import parse_efetch_sra_csv_text
-from kakapo.tools.parsers import parse_esummary_xml_text
 from kakapo.tools.parsers import seq_records_gb
 from kakapo.utils.http import post
 from kakapo.utils.logging import Log
@@ -343,4 +342,4 @@ def sra_run_info(ids_srr: IterableT[str]) -> list:
 
 # cds(['GER25982.1', 'NP_001098858'])
 
-sra_run_info(['SRR000060'])
+# sra_run_info(['SRR000060'])

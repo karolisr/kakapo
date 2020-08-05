@@ -38,7 +38,7 @@ from kakapo.utils.misc import time_stamp
 from kakapo.tools.config import CONYELL, CONSRED, CONGREE, CONBLUE, CONSDFL
 from kakapo.tools.config import DIR_CFG, DIR_DEP, DIR_TAX, DIR_KRK
 from kakapo.tools.config import SCRIPT_INFO
-from kakapo.tools.config import OS_ID, OS_STR, DIST_ID, DEBIAN_DISTS, REDHAT_DISTS, SUPPORTED_DISTS
+from kakapo.tools.config import OS_ID, DIST_ID, DEBIAN_DISTS, REDHAT_DISTS
 from kakapo.tools.config import THREADS, RAM
 from kakapo.tools.config_file_parse import config_file_parse
 from kakapo.tools.config_file_parse import ss_file_parse
@@ -258,8 +258,8 @@ def main():
                                               DEBIAN_DISTS, REDHAT_DISTS,
                                               FORCE_DEPS)
     makeblastdb, _, tblastn = deps.dep_check_blast(DIR_DEP, OS_ID, DIST_ID,
-                                              DEBIAN_DISTS, REDHAT_DISTS,
-                                              FORCE_DEPS)
+                                                   DEBIAN_DISTS, REDHAT_DISTS,
+                                                   FORCE_DEPS)
     vsearch = deps.dep_check_vsearch(DIR_DEP, FORCE_DEPS)
     spades = deps.dep_check_spades(DIR_DEP, OS_ID, FORCE_DEPS)
     bowtie2, bowtie2_build = deps.dep_check_bowtie2(DIR_DEP, OS_ID, FORCE_DEPS)

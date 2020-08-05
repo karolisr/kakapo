@@ -138,9 +138,7 @@ class Seq(object):
 
 
 class _Seq(object):
-    """
-    An abstract class.
-    """
+    """An abstract sequence class."""
 
     def __init__(self, seq):
         self._seq = seq

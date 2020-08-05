@@ -17,7 +17,6 @@ HANDLE_TYPES = (io.IOBase, StringIO)
 
 def read_fasta(f, seq_type, upper=True, def_to_first_space=False) -> list:
     """Read FASTA file."""
-
     assert seq_type.upper() in SEQ_TYPES
 
     if upper is False:
@@ -103,7 +102,6 @@ def seq_records_to_fasta(records, max_line_len=None):
 
 def write_fasta(data, f, max_line_len=None):
     """Write FASTA file."""
-
     handle = False
     if isinstance(f, HANDLE_TYPES):
         handle = True

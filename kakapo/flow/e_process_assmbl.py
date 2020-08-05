@@ -11,7 +11,7 @@ from sys import exit
 
 from kakapo.tools.bioio import read_fasta
 from kakapo.tools.blast import make_blast_db
-from kakapo.tools.config import CONSRED, CONBLUE, CONGREE, CONSDFL
+from kakapo.tools.config import CONSRED, CONBLUE, CONGREE
 from kakapo.utils.misc import combine_text_files
 from kakapo.utils.misc import make_dirs
 from kakapo.tools.spades import run_spades_se, run_spades_pe
@@ -153,7 +153,7 @@ def combine_assemblies(se_fastq_files, pe_fastq_files, user_assemblies, tax,
         a['gc_id'] = gc
         a['gc_tt'] = TranslationTable(gc)
 
-        # TODO: Refactor this with the code from __main__.py -----------------
+        # ToDo: Refactor this with the code from __main__.py -----------------
         gc_mito = None
         tt_mito = None
 
