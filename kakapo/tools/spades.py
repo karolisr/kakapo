@@ -1,6 +1,10 @@
 """SPAdes."""
 
 from kakapo.utils.subp import run
+from kakapo.utils.subp import which
+
+
+PY3 = which('python3')
 
 
 def run_spades_se(spades, out_dir, input_file, threads, memory, rna):
@@ -17,6 +21,8 @@ def run_spades_se(spades, out_dir, input_file, threads, memory, rna):
 
     if rna:
         cmd.append('--rna')
+
+    cmd = [PY3] + cmd
 
     run(cmd, do_not_raise=True)
 
@@ -38,5 +44,7 @@ def run_spades_pe(spades, out_dir, input_files, threads, memory, rna):
 
     if rna:
         cmd.append('--rna')
+
+    cmd = [PY3] + cmd
 
     run(cmd, do_not_raise=True)

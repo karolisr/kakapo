@@ -22,6 +22,11 @@ from kakapo.utils.subp import run_then_grep
 from kakapo.utils.subp import which
 
 
+PY3 = which('python3')
+
+# ----------------------------------------------------------------------------
+
+
 def dnld_kraken2_dbs():
     Log.inf('Checking for available Kraken2 databases.')
 
@@ -224,7 +229,10 @@ def dep_check_sra_toolkit(dir_dep, os_id, dist_id, debian_dists, redhat_dists,
                 Log.err('Could not download SRA Toolkit.')
                 return None
 
-    v = get_dep_version([fasterq_dump, '--version'], r':\s([\d\.]*)')
+    if os_id == 'mac':
+        v = get_dep_version([fasterq_dump, '--version'], r':\s([\d\.]*)')
+    elif os_id == 'linux':
+        v = get_dep_version([fasterq_dump, '--version'], r'version\s([\d\.]*)')
     Log.msg('fasterq-dump is available:', v + ' ' + fasterq_dump)
 
     return fasterq_dump
@@ -350,27 +358,38 @@ def dep_check_spades(dir_dep, os_id, force):
         if force is True:
             raise
         spades = which('spades.py')
-        run(spades)
+        run([PY3, spades])
     except Exception:
         try:
             dir_bin = opj(dir_dep, get_dep_dir(dir_dep, 'SPAdes'))
             spades = opj(dir_bin, 'bin', 'spades.py')
-            run(spades)
+            run([PY3, spades])
         except Exception:
             Log.wrn('SPAdes was not found on this system, trying to download.')
-            download_file(url, dnld_path)
-            tar_ref = tarfile.open(dnld_path, 'r:gz')
-            tar_ref.extractall(dir_dep)
-            tar_ref.close()
             try:
-                dir_bin = opj(dir_dep, get_dep_dir(dir_dep, 'SPAdes'))
-                spades = opj(dir_bin, 'bin', 'spades.py')
-                run(spades)
+                download_file(url, dnld_path)
+                tar_ref = tarfile.open(dnld_path, 'r:gz')
+                tar_ref.extractall(dir_dep)
+                tar_ref.close()
             except Exception:
                 Log.err('Could not download SPAdes.')
                 return None
+            try:
+                dir_bin = opj(dir_dep, get_dep_dir(dir_dep, 'SPAdes'))
+                spades = opj(dir_bin, 'bin', 'spades.py')
+                # replace_line_in_file(spades,
+                #                      '#!/usr/bin/env python',
+                #                      '#!/usr/bin/env python3')
+                if ope(spades):
+                    run([PY3, spades])
+                else:
+                    Log.err('Could not download SPAdes.')
+                    return None
+            except Exception:
+                Log.err('SPAdes was downloaded, but does not execute.')
+                return None
 
-    v = get_dep_version([spades, '--version'], r'^.*SPAdes.*v([\d\.]*)')
+    v = get_dep_version([PY3, spades, '--version'], r'^.*SPAdes.*v([\d\.]*)')
     Log.msg('SPAdes is available:', v + ' ' + spades)
 
     return spades
