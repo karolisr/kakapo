@@ -229,9 +229,8 @@ def dep_check_sra_toolkit(dir_dep, os_id, dist_id, debian_dists, redhat_dists,
                 Log.err('Could not download SRA Toolkit.')
                 return None
 
-    if os_id == 'mac':
-        v = get_dep_version([fasterq_dump, '--version'], r':\s([\d\.]*)')
-    elif os_id == 'linux':
+    v = get_dep_version([fasterq_dump, '--version'], r':\s([\d\.]*)')
+    if v == '?':
         v = get_dep_version([fasterq_dump, '--version'], r'version\s([\d\.]*)')
     Log.msg('fasterq-dump is available:', v + ' ' + fasterq_dump)
 
