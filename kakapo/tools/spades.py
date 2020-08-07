@@ -18,7 +18,7 @@ def run_spades_se(spades, out_dir, input_file, threads, memory, rna):
     if rna:
         cmd.append('--rna')
 
-    run(cmd)
+    run(cmd, do_not_raise=True)
 
 
 def run_spades_pe(spades, out_dir, input_files, threads, memory, rna):
@@ -39,4 +39,4 @@ def run_spades_pe(spades, out_dir, input_files, threads, memory, rna):
     if rna:
         cmd.append('--rna')
 
-    run(cmd)
+    run(cmd, do_not_raise=True)

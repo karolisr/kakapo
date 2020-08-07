@@ -66,6 +66,8 @@ def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,
         transcripts_nt_orf = {}
         transcripts_aa_orf = {}
 
+        transcripts_with_acceptable_orfs = set()
+
         ann_key = 'annotations__'
 
         a[ann_key + ss] = {}
@@ -236,6 +238,8 @@ def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,
 
                     transcripts_nt_orf[target_def_orf] = orf_seq
 
+                    transcripts_with_acceptable_orfs.add(target_name)
+
                     transl_seq = translate(orf_seq,
                                            gc_tt.table_ambiguous,
                                            start_codons)
@@ -304,7 +308,7 @@ def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,
             a['transcripts_nt_fasta_file__' + ss] = None
 
         linfo('Transcripts with acceptable ORFs: ' +
-              str(len(transcripts_nt_orf)))
+              str(len(transcripts_with_acceptable_orfs)))
 
         if len(transcripts_nt_orf) > 0:
             write_fasta(transcripts_nt_orf, transcripts_nt_orf_fasta_file)

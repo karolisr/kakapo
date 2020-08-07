@@ -229,8 +229,8 @@ def config_file_parse(file_path, taxonomy, linfo=print):
         prepend_assmbl = cfg.getboolean('General',
                                         'prepend_assembly_name_to_sequence_name')
         kraken_confidence = cfg.getfloat('General', 'kraken_2_confidence')
-        ncbi_longevity = cfg.getfloat('General', 'longevity_of_ncbi_results')
-        ncbi_longevity = datetime.timedelta(days=ncbi_longevity)
+        requery_after = cfg.getfloat('General', 'requery_after')
+        requery_after = datetime.timedelta(days=requery_after)
 
         # Target filters
         allow_non_aug = cfg.getboolean('Target filters',
@@ -404,7 +404,7 @@ def config_file_parse(file_path, taxonomy, linfo=print):
                 'blast_2_max_target_seqs': blast_2_max_target_seqs,
 
                 'email': email,
-                'ncbi_longevity': ncbi_longevity,
+                'requery_after': requery_after,
                 'fq_pe': fq_pe,
                 'fq_se': fq_se,
                 'should_run_rcorrector': should_run_rcorrector,

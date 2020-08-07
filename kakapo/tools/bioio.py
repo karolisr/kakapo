@@ -15,7 +15,8 @@ BIOIO_NS = dict()
 HANDLE_TYPES = (io.IOBase, StringIO)
 
 
-def read_fasta(f, seq_type, upper=True, def_to_first_space=False) -> list:
+def read_fasta(f, seq_type, upper=True, def_to_first_space=False,
+               parse_def=False) -> list:
     """Read FASTA file."""
     assert seq_type.upper() in SEQ_TYPES
 
@@ -59,6 +60,30 @@ def read_fasta(f, seq_type, upper=True, def_to_first_space=False) -> list:
     return_object = list()
     for rec in records:
         seq_record = SeqRecord(rec[0], Seq(rec[1], seq_type))
+        if parse_def is True:
+            defn = seq_record.definition
+            re_loc_pattern = '^(.*)(\\:)(c*\\d+\\-\\d+,*\\S*)(\\s)(.*$)'
+            defn_re_loc = re.findall(re_loc_pattern, defn)
+            if len(defn_re_loc) > 0 and len(defn_re_loc[0]) == 5:
+                defn = defn_re_loc[0][0] + ' ' + defn_re_loc[0][-1]
+            defn_split = defn.split(sep='|', maxsplit=1)
+            if len(defn_split) != 2:
+                defn_split = defn.split(sep=' ', maxsplit=1)
+            if len(defn_split) == 2:
+                acc_ver = defn_split[0]
+                acc_ver_split = acc_ver.split('.', maxsplit=1)
+
+                if len(acc_ver_split) == 1:
+                    seq_record.definition = defn_split[1]
+                    seq_record.accession = acc_ver_split[0]
+
+                if len(acc_ver_split) == 2:
+                    seq_record.definition = defn_split[1]
+                    seq_record.accession = acc_ver_split[0]
+                    seq_record.version = acc_ver_split[1]
+
+                # seq_record.definition = seq_record.accession_version + '|' + seq_record.definition
+
         return_object.append(seq_record)
 
     return return_object
@@ -87,20 +112,25 @@ def dict_to_fasta(d, max_line_len=None):
     return fasta
 
 
-def seq_records_to_dict(records):
+def seq_records_to_dict(records, prepend_acc=False):
     d = dict()
     for rec in records:
         if type(rec) == SeqRecord:
-            d[rec.definition] = str(rec.seq)
+            dfn = rec.definition
+            if prepend_acc is True:
+                acc_ver = rec.accession_version
+                if acc_ver is not None:
+                    dfn = rec.accession_version + ' ' + dfn
+            d[dfn] = str(rec.seq)
     return d
 
 
-def seq_records_to_fasta(records, max_line_len=None):
-    d = seq_records_to_dict(records)
+def seq_records_to_fasta(records, max_line_len=None, prepend_acc=False):
+    d = seq_records_to_dict(records, prepend_acc)
     return dict_to_fasta(d, max_line_len)
 
 
-def write_fasta(data, f, max_line_len=None):
+def write_fasta(data, f, max_line_len=None, prepend_acc=False):
     """Write FASTA file."""
     handle = False
     if isinstance(f, HANDLE_TYPES):
@@ -113,7 +143,7 @@ def write_fasta(data, f, max_line_len=None):
         f.write(text)
 
     if type(data) in (list, tuple):
-        text = seq_records_to_fasta(data, max_line_len)
+        text = seq_records_to_fasta(data, max_line_len, prepend_acc)
         f.write(text)
 
     if handle is False:

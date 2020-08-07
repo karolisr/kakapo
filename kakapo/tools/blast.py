@@ -22,7 +22,7 @@ def make_blast_db(exec_file, in_file, out_file, title, dbtype='nucl'):
            '-title', title,
            '-dbtype', dbtype]
 
-    run(cmd)
+    run(cmd, do_not_raise=True)
 
 
 def run_blast(exec_file, task, threads, db_path, queries_file, out_file,
@@ -52,7 +52,7 @@ def run_blast(exec_file, task, threads, db_path, queries_file, out_file,
            ]
 
     cmd = cmd + db_genetic_code
-    run(cmd)
+    run(cmd, do_not_raise=True)
 
 
 def _prs_blst_res(blast_results, col_names):

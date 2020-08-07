@@ -21,26 +21,28 @@ from shutil import rmtree
 from time import sleep
 
 from kakapo.tools.bioio import read_fasta
+from kakapo.tools.bioio import seq_records_to_dict
 from kakapo.tools.bioio import write_fasta
 from kakapo.tools.blast import make_blast_db
 from kakapo.tools.bowtie2 import build_bt2_index, run_bowtie2_se, run_bowtie2_pe
-from kakapo.tools.config import PICKLE_PROTOCOL
 from kakapo.tools.config import CONBLUE, CONGREE, CONSRED, CONSDFL
-from kakapo.tools.eutils import accs as accessions_ncbi
+from kakapo.tools.config import PICKLE_PROTOCOL
+from kakapo.tools.eutils import accs as accs_eutil
+from kakapo.tools.eutils import search as search_eutil
 from kakapo.tools.eutils import seqs as dnld_ncbi_seqs
-from kakapo.tools.eutils import esearch
 from kakapo.tools.eutils import sra_run_info
-from kakapo.utils.misc import make_dirs
-from kakapo.utils.misc import plain_or_gzip
-from kakapo.utils.misc import splitext_gz
-from kakapo.utils.misc import rename_fq_seqs
 from kakapo.tools.kraken import run_kraken_filters
 from kakapo.tools.rcorrector import filter_unc_se, filter_unc_pe
 from kakapo.tools.rcorrector import run_rcorrector_se, run_rcorrector_pe
+from kakapo.tools.seq import SEQ_TYPE_NT
 from kakapo.tools.seqtk import seqtk_fq_to_fa
-from kakapo.utils.subp import run
 from kakapo.tools.transl_tables import TranslationTable
 from kakapo.tools.trimmomatic import trimmomatic_se, trimmomatic_pe
+from kakapo.utils.misc import make_dirs
+from kakapo.utils.misc import plain_or_gzip
+from kakapo.utils.misc import rename_fq_seqs
+from kakapo.utils.misc import splitext_gz
+from kakapo.utils.subp import run
 
 
 MT = 'mitochondrion'
@@ -228,7 +230,7 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
                    '--outdir', dir_fq_data,
                    '--temp', dir_temp, sra]
 
-            run(cmd)
+            run(cmd, do_not_raise=True)
 
             if sra_lib_layout == 'single' or sra_lib_layout_k == 'single':
                 if not ope(se_file):
@@ -376,7 +378,7 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
 
         else:
             cmd = [vsearch, '--fastq_stats', x[1], '--log', x[2]]
-            run(cmd)
+            run(cmd, do_not_raise=True)
 
             with open(x[2]) as f:
                 stats = f.read()
@@ -669,7 +671,7 @@ def dnld_refseqs_for_taxid(taxid, filter_term, taxonomy, dir_cache_refseqs,
             tax_term = taxonomy.scientific_name_for_taxid(taxid)
         term = '"RefSeq"[Keyword] AND "{}"[Primary Organism] AND {}'.format(tax_term, ft)
         term = query + term
-        accs = set(accessions_ncbi(esearch(term=term, db=db)))
+        accs = set(accs_eutil(search_eutil(db, term)))
         if len(accs) > 0:
             plural = 'sequences'
             if len(accs) == 1:
@@ -689,12 +691,15 @@ def dnld_refseqs_for_taxid(taxid, filter_term, taxonomy, dir_cache_refseqs,
                      tax_term.replace(' ', '_') + '.fasta')
     parsed_fasta_cache = {}
     if ope(cache_path):
-        parsed_fasta_cache = read_fasta(cache_path, def_to_first_space=True)
+        parsed_fasta_cache = read_fasta(cache_path, seq_type=SEQ_TYPE_NT,
+                                        def_to_first_space=True)
+        parsed_fasta_cache = seq_records_to_dict(parsed_fasta_cache)
         for acc in parsed_fasta_cache:
             if acc in accs:
                 accs.remove(acc)
     if len(accs) > 0:
-        parsed_fasta = dnld_ncbi_seqs(db, list(accs), rettype='fasta')
+        parsed_fasta = dnld_ncbi_seqs(db, list(accs))
+        parsed_fasta = seq_records_to_dict(parsed_fasta, prepend_acc=True)
         parsed_fasta.update(parsed_fasta_cache)
         write_fasta(parsed_fasta, cache_path)
     # else:

@@ -70,10 +70,10 @@ def get(url, params=None, response_format='json'):
     with retry_session() as session:
         response = session.get(url=url, params=params, headers=headers)
 
-    try:
-        response.raise_for_status()
-    except Exception as e:
-        print(e)
+    # try:
+    #     response.raise_for_status()
+    # except Exception as e:
+    #     print(e)
     # except HTTPError as e:
     #     print(e)
 
@@ -89,10 +89,10 @@ def post(url, data, response_format):
     with retry_session() as session:
         response = session.post(url=url, data=data, headers=headers)
 
-    try:
-        response.raise_for_status()
-    except Exception as e:
-        print(e)
+    # try:
+    #     response.raise_for_status()
+    # except Exception as e:
+    #     print(e)
     # except HTTPError as e:
     #     print(e)
 

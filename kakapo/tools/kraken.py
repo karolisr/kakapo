@@ -41,7 +41,7 @@ def run_kraken_se(kraken, db, in_file, out_class_file, out_unclass_file,
     if ext is not None:
         cmd.insert(1, '--gzip-compressed')
 
-    run(cmd, cwd=dir_temp)
+    run(cmd, cwd=dir_temp, do_not_raise=True)
 
 
 def run_kraken_pe(kraken, db, in_file_1, in_file_2, out_class_file,
@@ -62,7 +62,7 @@ def run_kraken_pe(kraken, db, in_file_1, in_file_2, out_class_file,
     if ext is not None:
         cmd.insert(1, '--gzip-compressed')
 
-    run(cmd, cwd=dir_temp)
+    run(cmd, cwd=dir_temp, do_not_raise=True)
 
 
 def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,

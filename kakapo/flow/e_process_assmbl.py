@@ -10,12 +10,13 @@ from os.path import splitext
 from sys import exit
 
 from kakapo.tools.bioio import read_fasta
+from kakapo.tools.seq import SEQ_TYPE_NT
 from kakapo.tools.blast import make_blast_db
 from kakapo.tools.config import CONSRED, CONBLUE, CONGREE
-from kakapo.utils.misc import combine_text_files
-from kakapo.utils.misc import make_dirs
 from kakapo.tools.spades import run_spades_se, run_spades_pe
 from kakapo.tools.transl_tables import TranslationTable
+from kakapo.utils.misc import combine_text_files
+from kakapo.utils.misc import make_dirs
 
 
 def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
@@ -47,7 +48,7 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
 
         assmbl_path = opj(dir_results, 'transcripts.fasta')
         if ope(assmbl_path):
-            count = len(read_fasta(assmbl_path))
+            count = len(read_fasta(assmbl_path, SEQ_TYPE_NT))
             tr_str = ' transcripts'
             if count == 1:
                 tr_str = ' transcript'
@@ -91,7 +92,7 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
 
         assmbl_path = opj(dir_results, 'transcripts.fasta')
         if ope(assmbl_path):
-            count = len(read_fasta(assmbl_path))
+            count = len(read_fasta(assmbl_path, SEQ_TYPE_NT))
             tr_str = ' transcripts'
             if count == 1:
                 tr_str = ' transcript'

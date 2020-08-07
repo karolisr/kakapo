@@ -2,10 +2,8 @@
 
 import csv
 import re
-from io import StringIO
 from xml.etree import ElementTree
 
-from kakapo.tools.bioio import read_fasta
 from kakapo.tools.seq import MOL_TO_SEQ_TYPE_MAP
 from kakapo.tools.seq import Seq
 from kakapo.tools.seq import SeqRecord
@@ -26,7 +24,7 @@ def parse_esummary_xml_text(esummary_xml_text):
         record_dict['id'] = temp_id
 
         for itm in rec.findall('Item'):
-            record_dict[itm.attrib['Name']] = itm.text
+            record_dict[itm.attrib['Name'].lower()] = itm.text
 
         return_value.append(record_dict)
 
@@ -35,18 +33,6 @@ def parse_esummary_xml_text(esummary_xml_text):
 
 def parse_efetch_sra_csv_text(efetch_sra_csv_text):
     return list(csv.DictReader(efetch_sra_csv_text.splitlines()))
-
-
-def parse_efetch_fasta_results(efetch_results, seq_type):
-    ret_list = []
-    for x in efetch_results:
-        x = x.strip('>\n')
-        x = '>' + x
-        ret_list.append(x)
-    ret_list = sorted(list(set(ret_list)))
-    fasta_text = '\n'.join(ret_list)
-    parsed_fasta = read_fasta(StringIO(fasta_text), seq_type)
-    return parsed_fasta
 
 
 def parse_gb_location(s):

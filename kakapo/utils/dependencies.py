@@ -8,6 +8,7 @@ from os import linesep as lns
 from os import remove
 from os.path import exists as ope
 from os.path import join as opj
+from os.path import basename
 from shutil import move
 from shutil import rmtree
 from tempfile import NamedTemporaryFile
@@ -66,12 +67,12 @@ def dep_check_seqtk(dir_dep, force):
             raise
         seqtk = which('seqtk')
         cmd[0] = seqtk
-        run(cmd)
+        run(cmd, do_not_raise=True)
     except Exception:
         try:
             seqtk = opj(dir_bin, 'seqtk')
             cmd[0] = seqtk
-            run(cmd)
+            run(cmd, do_not_raise=True)
         except Exception:
             Log.wrn('Seqtk was not found on this system, trying to download.')
             download_file(url, dnld_path)
@@ -81,13 +82,13 @@ def dep_check_seqtk(dir_dep, force):
             try:
                 Log.wrn('Compiling Seqtk.')
                 run('make', cwd=dir_bin)
-                run(cmd)
+                run(cmd, do_not_raise=True)
             except Exception:
                 replace_line_in_file(opj(dir_bin, 'Makefile'),
                                      'CC=gcc', 'CC=cc')
                 try:
                     run('make', cwd=dir_bin)
-                    run(cmd)
+                    run(cmd, do_not_raise=True)
                 except Exception:
                     Log.err(
                         'Something went wrong while trying to compile Seqtk.')
@@ -722,5 +723,5 @@ def download_kraken2_dbs(dbs_path):
     # ------------------------------------------------------------------------
 
     dbs_available, e = list_of_dirs_at_path(dbs_path)
-    kraken2_dbs = {k: opj(dbs_path, k) for k in dbs_available}
+    kraken2_dbs = {basename(p): p for p in dbs_available}
     return kraken2_dbs

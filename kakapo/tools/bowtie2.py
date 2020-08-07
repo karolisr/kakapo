@@ -11,7 +11,7 @@ def build_bt2_index(bowtie2_build, input_files, output_path, threads):
     cmd = [bowtie2_build, '--threads', str(threads),
            ','.join(input_files), output_path]
 
-    run(cmd)
+    run(cmd, do_not_raise=True)
 
 
 def run_bowtie2_se(bowtie2, input_file,
@@ -28,7 +28,7 @@ def run_bowtie2_se(bowtie2, input_file,
            '--un', output_file_un,
            '-S', sam_output_file]
 
-    run(cmd, cwd=dir_temp)
+    run(cmd, cwd=dir_temp, do_not_raise=True)
 
 
 def run_bowtie2_pe(bowtie2, input_files, paired_out_pattern,
@@ -51,7 +51,7 @@ def run_bowtie2_pe(bowtie2, input_files, paired_out_pattern,
            '--un-conc', paired_out_pattern_un, '--un', temp_unpaired_file_un,
            '-S', sam_output_file]
 
-    run(cmd, cwd=dir_temp)
+    run(cmd, cwd=dir_temp, do_not_raise=True)
     split_mixed_fq(temp_unpaired_file, unpaired_out_1, unpaired_out_2)
     remove(temp_unpaired_file)
     split_mixed_fq(temp_unpaired_file_un, unpaired_out_1_un, unpaired_out_2_un)

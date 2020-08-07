@@ -13,7 +13,7 @@ def run_rcorrector_se(rcorrector, in_file, out_dir, threads, dir_temp):
            '-k', '23',
            '-od', out_dir]
 
-    run(cmd, cwd=dir_temp)
+    run(cmd, cwd=dir_temp, do_not_raise=True)
 
 
 def run_rcorrector_pe(rcorrector, in_file_1, in_file_2, out_dir, threads,
@@ -26,7 +26,7 @@ def run_rcorrector_pe(rcorrector, in_file_1, in_file_2, out_dir, threads,
            '-k', '23',
            '-od', out_dir]
 
-    run(cmd, cwd=dir_temp)
+    run(cmd, cwd=dir_temp, do_not_raise=True)
 
 
 # The code below is edited from "Transcriptome workshop at Botany 2018"

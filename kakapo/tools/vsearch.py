@@ -11,7 +11,7 @@ def run_cluster_fast(vsearch, ident, in_file, out_file):
            '--fasta_width', '0',
            '--id', str(ident)]
 
-    run(cmd)
+    run(cmd, do_not_raise=True)
 
 
 def run_vsearch(vsearch, ident, q_file, db_file, out_file, minlen):
@@ -33,4 +33,4 @@ def run_vsearch(vsearch, ident, q_file, db_file, out_file, minlen):
            '--target_cov', '0.33',
            '--id', str(ident)]
 
-    run(cmd)
+    run(cmd, do_not_raise=True)

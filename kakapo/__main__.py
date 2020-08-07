@@ -301,7 +301,7 @@ def main():
 
     dir_out = _['output_directory']
     email = _['email']
-    ncbi_longevity = _['ncbi_longevity']
+    requery_after = _['requery_after']
     fq_pe = _['fq_pe']
     fq_se = _['fq_se']
     should_run_rcorrector = _['should_run_rcorrector']
@@ -399,6 +399,7 @@ def main():
     for ss in sss:
         aa_uniprot_files[ss] = opj(dir_prj_queries, 'aa_uniprot__' + ss +
                                    '.fasta')
+        # ToDo: add support for the requery_after parameter.
         dnld_pfam_uniprot_seqs(ss, pfam_uniprot_acc[ss], aa_uniprot_files[ss],
                                dir_cache_prj, linfo)
 
@@ -408,7 +409,7 @@ def main():
         entrez_queries = sss[ss]['entrez_search_queries']
         prot_acc_user_from_query[ss] = user_entrez_search(ss, entrez_queries,
                                                           dir_cache_prj,
-                                                          ncbi_longevity,
+                                                          requery_after,
                                                           linfo)
 
     # User provided protein accessions ---------------------------------------
@@ -425,7 +426,8 @@ def main():
         aa_prot_ncbi_files[ss] = opj(dir_prj_queries, 'aa_prot_ncbi__' + ss +
                                      '.fasta')
         prot_acc_user[ss] = dnld_prot_seqs(ss, prot_acc_user[ss],
-                                           aa_prot_ncbi_files[ss], linfo)
+                                           aa_prot_ncbi_files[ss],
+                                           dir_cache_prj, linfo)
 
     # User provided protein sequences ----------------------------------------
     aa_prot_user_files = OrderedDict()

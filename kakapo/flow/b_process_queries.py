@@ -17,10 +17,10 @@ from kakapo.tools.ebi_domain_search import pfam_entry
 from kakapo.tools.ebi_domain_search import pfam_seqs
 from kakapo.tools.ebi_domain_search import prot_ids_for_tax_ids
 from kakapo.tools.ebi_proteins import fasta_by_accession_list
-from kakapo.tools.eutils import accs as accessions_ncbi
-from kakapo.tools.eutils import esearch
-from kakapo.tools.eutils import esummary
+from kakapo.tools.eutils import accs as accs_eutil
+from kakapo.tools.eutils import search as search_eutil
 from kakapo.tools.eutils import seqs as dnld_ncbi_seqs
+from kakapo.tools.eutils import summary as summary_eutil
 from kakapo.tools.seq import SEQ_TYPE_AA, SEQ_TYPE_DNA
 from kakapo.tools.vsearch import run_cluster_fast
 
@@ -81,7 +81,7 @@ def dnld_pfam_uniprot_seqs(ss, uniprot_acc, aa_uniprot_file, dir_cache_prj,
             osremove(aa_uniprot_file)
 
 
-def user_entrez_search(ss, queries, dir_cache_prj, ncbi_longevity,
+def user_entrez_search(ss, queries, dir_cache_prj, requery_after,
                        linfo=print):
     dnld_needed = True
     accs = []
@@ -94,20 +94,20 @@ def user_entrez_search(ss, queries, dir_cache_prj, ncbi_longevity,
             with open(time_stamp_file, 'rb') as f:
                 time_stamp = pickle.load(f)
                 time_diff = time_stamp_now - time_stamp
-                if time_diff < ncbi_longevity:
+                if time_diff < requery_after:
                     dnld_needed = False
 
         if dnld_needed is True:
             linfo(CONBLUE +
                   'Searching for protein sequences on NCBI [' + ss + ']')
             for q in queries:
-                esearch_results = esearch(db='protein', term=q)
-                accs = accs + accessions_ncbi(esearch_results)
+                esearch_results = search_eutil(db='protein', term=q)
+                accs = accs + accs_eutil(esearch_results)
             with open(time_stamp_file, 'wb') as f:
                 pickle.dump(datetime.datetime.now(), f,
                             protocol=PICKLE_PROTOCOL)
         else:
-            days = ncbi_longevity.total_seconds() / 60 / 60 / 24
+            days = requery_after.total_seconds() / 60 / 60 / 24
             days = '{:.2f}'.format(days)
             linfo(CONGREE + 'NCBI results are less than ' + days + ' day(s) old. Will not search again. [' + ss + ']')
             pickle_file = opj(dir_cache_prj, 'ncbi_prot_metadata_cache__' + ss)
@@ -133,7 +133,7 @@ def user_protein_accessions(ss, prot_acc_user, dir_cache_prj, taxonomy,
         if acc_old == set(prot_acc_user):
             pa_info = pickled
         else:
-            pa_info = esummary('protein', prot_acc_user)
+            pa_info = summary_eutil('protein', prot_acc_user)
 
         prot_acc = []
         prot_info_to_print = []
@@ -142,11 +142,15 @@ def user_protein_accessions(ss, prot_acc_user, dir_cache_prj, taxonomy,
             prot_acc.append(acc)
             title = pa['title']
             title_split = title.split('[')
-            if len(title_split) == 2:
-                organism = title_split[1].replace(']', '').strip().replace('_', ' ')
+            # if len(title_split) == 2:
+            #     organism = title_split[1].replace(']', '').strip().replace('_', ' ')
+            # else:
+            taxid = pa['taxid']
+            if 'organism' in pa:
+                organism = pa['organism']
             else:
-                taxid = pa['taxid']
                 organism = taxonomy.scientific_name_for_taxid(taxid)
+                pa['organism'] = organism
             title = title_split[0]
             title = title.lower().strip()
             title = title.replace('_', ' ').replace('-', ' ')
@@ -172,7 +176,8 @@ def user_protein_accessions(ss, prot_acc_user, dir_cache_prj, taxonomy,
         return prot_acc_user
 
 
-def dnld_prot_seqs(ss, prot_acc_user, aa_prot_ncbi_file, linfo=print):
+def dnld_prot_seqs(ss, prot_acc_user, aa_prot_ncbi_file, dir_cache_prj,
+                   linfo=print):
     if len(prot_acc_user) != 0:
         acc_old = set()
         if ope(aa_prot_ncbi_file):
@@ -182,21 +187,41 @@ def dnld_prot_seqs(ss, prot_acc_user, aa_prot_ncbi_file, linfo=print):
         if acc_old == set(prot_acc_user):
             return prot_acc_user
         else:
+
+            pickle_file = opj(dir_cache_prj, 'ncbi_prot_metadata_cache__' + ss)
+            if ope(pickle_file):
+                with open(pickle_file, 'rb') as f:
+                    pa_info = pickle.load(f)
+
             linfo(CONBLUE + 'Downloading protein sequences from NCBI [' + ss + ']')
-            _ = dnld_ncbi_seqs('protein', prot_acc_user)
+            _ = dnld_ncbi_seqs('protein', prot_acc_user, rettype='gb',
+                               retmode='xml')
             prot_acc_user_new = list()
             for rec in _:
-                accession = rec.accession
-                version = rec.version
+
+                print('*' * 80)
+                print(rec.definition, rec.accession, rec.version)
+                print('*' * 80)
+
+                # accession = rec.accession
+                # version = rec.version
+
+                acc_ver = rec.accession_version
+
+                # for pa in pa_info:
+                #     if pa['accessionversion'] == acc_ver:
+                #         rec.organism = pa['organism']
+                #         break
+
                 defn = rec.definition
                 organism = rec.organism
 
-                if version is not None:
-                    new_acc = accession + '.' + str(version)
-                else:
-                    new_acc = accession
+                # if version is not None:
+                #     new_acc = accession + '.' + str(version)
+                # else:
+                #     new_acc = accession
 
-                prot_acc_user_new.append(new_acc)
+                prot_acc_user_new.append(acc_ver)
 
                 defn_new = defn.split('[' + organism + ']')[0]
                 defn_new = defn_new.lower().strip()
@@ -204,7 +229,7 @@ def dnld_prot_seqs(ss, prot_acc_user, aa_prot_ncbi_file, linfo=print):
                 defn_new = defn_new.replace(',', '')
                 defn_new = defn_new[0].upper() + defn_new[1:]
 
-                defn_new = new_acc + '|' + defn_new + '|' + organism
+                defn_new = acc_ver + '|' + defn_new + '|' + organism
                 defn_new = defn_new.replace(' ', '_').replace('-', '_')
 
                 rec.definition = defn_new
@@ -256,6 +281,11 @@ def filter_queries(ss, aa_queries_file, min_query_length,
                                             min_query_length,
                                             max_query_length)
 
+    # print('*' * 80)
+    # print(parsed_fasta_1)
+    # print('*' * 80)
+    # print()
+
     tmp1 = aa_queries_file + '_temp1'
     tmp2 = aa_queries_file + '_temp2'
     for rec in parsed_fasta_1:
@@ -263,17 +293,21 @@ def filter_queries(ss, aa_queries_file, min_query_length,
         rec.seq = rec.seq.untranslate()
     write_fasta(parsed_fasta_1, tmp1)
     run_cluster_fast(vsearch, max_query_identity, tmp1, tmp2)
-    parsed_fasta_2 = read_fasta(tmp2, SEQ_TYPE_DNA)
+    parsed_fasta_2 = read_fasta(tmp2, SEQ_TYPE_DNA, parse_def=True)
     prot_acc_user_new = list()
     for rec in parsed_fasta_2:
         rec.seq.gc_code = 1
         rec.seq = rec.seq.translate()
-        acc = rec.accession
+        acc = rec.accession_version
+        # print(acc, rec)
         if acc in prot_acc_user:
             prot_acc_user_new.append(acc)
 
+    # print('*' * 80)
+    # print()
+
     if overwrite is True:
-        write_fasta(parsed_fasta_2, aa_queries_file)
+        write_fasta(parsed_fasta_2, aa_queries_file, prepend_acc=True)
 
     osremove(tmp1)
     osremove(tmp2)

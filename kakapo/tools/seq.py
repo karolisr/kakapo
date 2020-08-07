@@ -387,11 +387,12 @@ class SeqRecord(object):
 
     @property
     def version(self):
-        return int(self._version)
+        return self._version
 
     @version.setter
     def version(self, value):
-        self._version = value
+        if value is not None:
+            self._version = int(value)
 
     @property
     def accession_version(self):
@@ -399,7 +400,7 @@ class SeqRecord(object):
         if self._accession is None:
             return None
         if self._version is not None:
-            version = '.' + self._version
+            version = '.' + str(self._version)
         return self._accession + version
 
     @property
