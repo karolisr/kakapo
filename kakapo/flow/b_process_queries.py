@@ -142,9 +142,6 @@ def user_protein_accessions(ss, prot_acc_user, dir_cache_prj, taxonomy,
             prot_acc.append(acc)
             title = pa['title']
             title_split = title.split('[')
-            # if len(title_split) == 2:
-            #     organism = title_split[1].replace(']', '').strip().replace('_', ' ')
-            # else:
             taxid = pa['taxid']
             if 'organism' in pa:
                 organism = pa['organism']
@@ -198,28 +195,9 @@ def dnld_prot_seqs(ss, prot_acc_user, aa_prot_ncbi_file, dir_cache_prj,
                                retmode='xml')
             prot_acc_user_new = list()
             for rec in _:
-
-                print('*' * 80)
-                print(rec.definition, rec.accession, rec.version)
-                print('*' * 80)
-
-                # accession = rec.accession
-                # version = rec.version
-
                 acc_ver = rec.accession_version
-
-                # for pa in pa_info:
-                #     if pa['accessionversion'] == acc_ver:
-                #         rec.organism = pa['organism']
-                #         break
-
                 defn = rec.definition
                 organism = rec.organism
-
-                # if version is not None:
-                #     new_acc = accession + '.' + str(version)
-                # else:
-                #     new_acc = accession
 
                 prot_acc_user_new.append(acc_ver)
 
@@ -280,12 +258,6 @@ def filter_queries(ss, aa_queries_file, min_query_length,
     parsed_fasta_1 = filter_fasta_by_length(aa_queries_file, SEQ_TYPE_AA,
                                             min_query_length,
                                             max_query_length)
-
-    # print('*' * 80)
-    # print(parsed_fasta_1)
-    # print('*' * 80)
-    # print()
-
     tmp1 = aa_queries_file + '_temp1'
     tmp2 = aa_queries_file + '_temp2'
     for rec in parsed_fasta_1:
@@ -299,12 +271,8 @@ def filter_queries(ss, aa_queries_file, min_query_length,
         rec.seq.gc_code = 1
         rec.seq = rec.seq.translate()
         acc = rec.accession_version
-        # print(acc, rec)
         if acc in prot_acc_user:
             prot_acc_user_new.append(acc)
-
-    # print('*' * 80)
-    # print()
 
     if overwrite is True:
         write_fasta(parsed_fasta_2, aa_queries_file, prepend_acc=True)

@@ -359,19 +359,6 @@ def taxids(data: dict) -> dict:
     return taxids(data['db'], ids)
 
 
-# @dispatch(Iterable, namespace=EUTILS_NS)
-# def cds_accs(ids_protein: IterableT[str]) -> dict:
-#     dbfrom = 'protein'
-#     db = 'nuccore'
-#     ids_from, ids_to = _elink_runner(db=db, dbfrom=dbfrom, ids=ids_protein)
-#     return dict(zip(ids_from, ids_to))
-# @dispatch(dict, namespace=EUTILS_NS)
-# def cds_accs(data_protein: dict) -> dict:
-#     assert data_protein['db'] == 'protein'
-#     ids_protein = accs(data_protein)
-#     return cds_accs(ids_protein)
-
-
 def _process_downloaded_seq_data(efetch_txt: str, db: str, rettype: str,
                                  retmode: str):
     rec_list = list()
@@ -417,10 +404,6 @@ def cds(ids_protein: IterableT[str]) -> list:
             cds_loc_str = eutils_loc_str(prot_rec.coded_by)
             cds_acc = prot_rec.coded_by['external_ref']
 
-            # cds_gb = efetch(db='nuccore', ids=[cds_acc], location=cds_loc_str,
-            #                 rettype='gb', retmode='xml')
-            # cds_rec = seq_records_gb(cds_gb)[0]
-
             cds_rec = seqs('nuccore', [cds_acc], rettype='fasta',
                            retmode='text', location=cds_loc_str)[0]
 
@@ -460,38 +443,3 @@ def sra_run_info(ids_srr: IterableT[str]) -> list:
 @dispatch(str, namespace=EUTILS_NS)
 def sra_run_info(id_srr: str) -> list:
     return sra_run_info([id_srr])
-
-
-# test_data = epost(db='protein', ids=['GER25982.1', 'NP_001098858'])
-# search_data = search('protein', 'GER25982 OR NP_001098858')
-
-# accs('protein', ['GER25982.1', 'NP_001098858'])
-# accs(test_data)
-# accs(search_data)
-
-# taxids('protein', ['GER25982.1', 'NP_001098858'])
-# taxids(test_data)
-# taxids(search_data)
-
-# cds_accs(['GER25982.1', 'NP_001098858'])
-# cds_accs(test_data)
-# cds_accs(search_data)
-
-# gb_txt = efetch(db='protein', ids=['NP_001098858'],
-#                 rettype='gb', retmode='xml')
-
-# gb_txt = efetch(db='nuccore', ids=['NM_001105388.1'],
-#                 rettype='gb', retmode='xml')
-
-# seqs('nuccore', ['KF764990.1'])
-# seqs('protein', ['GER25982.1', 'NP_001098858'])
-# seqs(test_data)
-# seqs(search_data)
-
-# cds(['GER25982.1', 'NP_001098858'])
-# cds(test_data)
-# cds(search_data)
-
-# sra_run_info(['SRR000060', 'SRR7905872'])
-# sra_run_info('SRR000060')
-# sra_run_info('SRR6830993')

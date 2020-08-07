@@ -14,8 +14,6 @@ from kakapo.tools.seq_annotations import merge_kakapo_and_ips_annotations
 
 def gff_from_json(ss, assemblies, dir_prj_ips, dir_prj_transcripts_combined,
                   prj_name, linfo=print):
-    # if len(assemblies) > 0:
-    #     linfo('Producing GFF3 files [' + ss + ']')
 
     all_fas_paths = []
     all_gff_paths = []

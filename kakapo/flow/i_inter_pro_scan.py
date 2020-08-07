@@ -25,9 +25,6 @@ def run_inter_pro_scan(ss, assemblies, email, dir_prj_ips, dir_cache_prj,
 
     delay = 0.25
 
-    # if len(assemblies)  0:
-    #     linfo('Running InterProScan on translated transcripts [' + ss + ']')
-
     for a in assemblies:
 
         if 'transcripts_aa_orf_fasta_file__' + ss not in a:
@@ -123,8 +120,6 @@ def run_inter_pro_scan(ss, assemblies, email, dir_prj_ips, dir_cache_prj,
             job_no_def = job.split(' ')[0]
 
             all_ips_results[job_no_def] = ips_json
-
-        # print()
 
         with open(json_dump_file_path, 'w') as f:
             json.dump(all_ips_results, f, sort_keys=True, indent=4)

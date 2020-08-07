@@ -4,8 +4,6 @@ from functools import partial, reduce
 from itertools import accumulate, chain, compress, dropwhile, groupby, starmap
 from operator import add, contains, itemgetter, mul, ne, not_, sub
 from statistics import stdev
-# from statistics import mean
-# from statistics import harmonic_mean
 
 from kakapo.utils.misc import overlap
 from kakapo.tools.seq import reverse_complement
@@ -256,89 +254,3 @@ def find_orf_for_blast_hit(seq, frame, hit_start, hit_end, start_codons,
         log_str += '\n'
 
     return good_orfs, bad_orfs, log_str
-
-# ----------------------------------------------------------------------------
-
-# from kakapo.data.start_codon_context import contexts
-
-# context_l = contexts['71240_L']
-# context_r = contexts['71240_R']
-
-# print()
-
-# cntx = (('GGGGCGTCGTATGCTCCGGCGGC'),  # min
-#         ('AAAAAAAAAAATGGCTACTACTT'),  # max
-#         ('AAGTAGCATAATGAAGTTGGTAA'),
-#         ('CATCACCACCATGGGAATGTCTT'),
-#         ('CAAGAAAAATATGATTATCATTA'),
-#         ('AGAGAGATTCATGGCTTCCTTCA'),
-#         ('GTGTCTGATGATGAAATTCTTCA'),
-#         ('ATCAAAGAGTATGGAGCAGTTAA'),
-#         ('GTTTTTAATCATGGATTCGACCC'),
-#         ('ATGTATGTTTATGTGTGTGATGA'),
-#         ('NNNNNNNNNNATGNNNNNNNNNN'))
-
-# idx = 10
-# scores = map(lambda x:
-#              (x, start_codon_score(x, idx, context_l, context_r)), cntx)
-# scores_sorted = sorted(scores, key=itemgetter(1), reverse=True)
-# for row in scores_sorted:
-#     print(row[0][0:idx], row[0][idx:idx + 3], row[0][idx + 3:], row[1])
-
-# # Output for Dicot context tables
-# # AAAAAAAAAA ATG GCTACTACTT 0.9873978242424901
-# # GTTTTTAATC ATG GATTCGACCC 0.773632539225221
-# # CATCACCACC ATG GGAATGTCTT 0.728750526701568
-# # AGAGAGATTC ATG GCTTCCTTCA 0.7252860244056911
-# # ATCAAAGAGT ATG GAGCAGTTAA 0.7224272426679093
-# # CAAGAAAAAT ATG ATTATCATTA 0.6563008719425
-# # AAGTAGCATA ATG AAGTTGGTAA 0.6198800275759498
-# # GTGTCTGATG ATG AAATTCTTCA 0.5417082975187391
-# # ATGTATGTTT ATG TGTGTGATGA 0.47114422524821586
-# # GGGGCGTCGT ATG CTCCGGCGGC 0.28096710993186846
-
-# cntx_good = (('AAAAGGAAAAATGGGGCACATAA'),
-#              ('AAGTAGCATAATGAAGTTGGTAA'),
-#              ('AATTTTTGGAATGCAGTTAACTC'),
-#              ('AGAGAGATTCATGGCTTCCTTCA'),
-#              ('AGAGAGATTCATGGCTTTCTTCA'),
-#              ('AGGCAGCAAAATGAAGTTGCAGC'),
-#              ('AGGTAGCAGTATGAAATTGGTAG'),
-#              ('ATCAAAGAGTATGGAGCAGTTAA'),
-#              ('ATGTATGTTTATGTGTGTGATGA'),
-#              ('CAAGAAAAATATGATTATCATTA'),
-#              ('CAAGTTCTACATGCATGGCCTTT'),
-#              ('CATCACCACCATGGGAATGTCTT'),
-#              ('CTAAGTCTTTATGGAGAAGTTCA'),
-#              ('GTGTCTGATGATGAAATTCTTCA'),
-#              ('TAAATTCTACATGCATGGACTTT'),
-#              ('TGCAAGAAAAATGATTATCATTC'),
-#              ('TTCTACATGCATGGACTTTGGCC'),
-#              ('TTGGAGAAGCATGAACAACATTA'),
-#              ('TTTATTTGACATGCAGCTAAGTC'))
-
-# cntx_bad = (('AACTTACTGTATGAGTGATGAAA'),
-#             ('AATGAACAAGATGTGGTTGATAG'),
-#             ('AGCACCACAAATGAACAAGATGT'),
-#             ('ATGCTTTATAATGTTATGCTTTG'),
-#             ('ATGTATGTTTATGTGTCTGATGA'),
-#             ('CACCATGGGAATGTCTTCTCAGG'),
-#             ('CATTATCTTTATGTGCCTTGCTG'),
-#             ('CCACAACAGCATGATTGGCATTC'),
-#             ('CGGGTCTTTGATGCTGGTACTTC'),
-#             ('CTTCTTCTCTATGAAGCTCTACT'),
-#             ('CTTTTTGCTTATGTGTCCAGGTT'),
-#             ('GAAGTTGGTAATGCCCCTTCTTT'),
-#             ('GTTTTTAATCATGGATTCGACCC'),
-#             ('TATGTGTCTGATGATGAAATTCT'),
-#             ('TATGTGTGTGATGATAAAATTCT'),
-#             ('TTTCTTATGTATGTTTATGTGTC'),
-#             ('TTTCTTATGTATGTTTATGTGTG'))
-
-# idx = 10
-# scores = map(lambda x:
-#              (x, start_codon_score(x, idx, context_l, context_r)),
-#              cntx_good)
-# scores_sorted = sorted(scores, key=itemgetter(1), reverse=True)
-# for row in scores_sorted:
-#     print(row[0][0:idx], row[0][idx:idx + 3], row[0][idx + 3:], row[1])

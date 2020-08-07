@@ -33,8 +33,6 @@ def run_rcorrector_pe(rcorrector, in_file_1, in_file_2, out_dir, threads,
 # Ya Yang and Stephen A. Smith, which was modified from the code in:
 # FilterUncorrectabledPEfastq.py file by Adam H. Freedman:
 # https://github.com/harvardinformatics/TranscriptomeAssemblyTools
-
-
 def filter_unc_se(in_file, out_file, log_file=None):
 
     r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(in_file)
