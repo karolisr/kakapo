@@ -9,6 +9,7 @@ from os import remove
 from os.path import exists as ope
 from os.path import join as opj
 from os.path import basename
+from os.path import dirname
 from shutil import move
 from shutil import rmtree
 from tempfile import NamedTemporaryFile
@@ -188,18 +189,33 @@ def dep_check_trimmomatic(dir_dep):
 
 
 # SRA Toolkit
+def _ensure_vdb_cfg(dir_bin):
+    """
+    Ensure that the required configuration files are created without user
+    interaction 'vdb-config --interactive'.
+
+    Solves this problem:
+        This sra toolkit installation has not been configured.
+        Before continuing, please run: vdb-config --interactive
+        For more information, see https://www.ncbi.nlm.nih.gov/sra/docs/sra-cloud/
+
+    """
+    vdb_config = opj(dir_bin, 'bin', 'vdb-config')
+    run([vdb_config, '--interactive'], in_txt='x', do_not_raise=True)
+
+
 def dep_check_sra_toolkit(dir_dep, os_id, dist_id, debian_dists, redhat_dists,
                           force):
     if os_id == 'mac':
-        url = ('https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.9.6/'
-               'sratoolkit.2.9.6-mac64.tar.gz')
+        url = ('https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.10.8/'
+               'sratoolkit.2.10.8-mac64.tar.gz')
     elif os_id == 'linux':
         if dist_id in debian_dists:
-            url = ('https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.10.2/'
-                   'sratoolkit.2.10.2-ubuntu64.tar.gz')
+            url = ('https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.10.8/'
+                   'sratoolkit.2.10.8-ubuntu64.tar.gz')
         elif dist_id in redhat_dists:
-            url = ('https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.10.2/'
-                   'sratoolkit.2.10.2-centos_linux64.tar.gz')
+            url = ('https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.10.8/'
+                   'sratoolkit.2.10.8-centos_linux64.tar.gz')
 
     dnld_path = opj(dir_dep, 'sra-toolkit.tar.gz')
 
@@ -208,10 +224,13 @@ def dep_check_sra_toolkit(dir_dep, os_id, dist_id, debian_dists, redhat_dists,
         if force is True:
             raise
         fasterq_dump = which('fasterq-dump')
+        dir_bin = dirname(fasterq_dump).strip('bin')
+        _ensure_vdb_cfg(dir_bin)
         run(fasterq_dump)
     except Exception:
         try:
             dir_bin = opj(dir_dep, get_dep_dir(dir_dep, 'sratoolkit'))
+            _ensure_vdb_cfg(dir_bin)
             fasterq_dump = opj(dir_bin, 'bin', 'fasterq-dump')
             run(fasterq_dump)
         except Exception:
@@ -224,6 +243,8 @@ def dep_check_sra_toolkit(dir_dep, os_id, dist_id, debian_dists, redhat_dists,
 
             dir_bin = opj(dir_dep, get_dep_dir(dir_dep, 'sratoolkit'))
             fasterq_dump = opj(dir_bin, 'bin', 'fasterq-dump')
+
+            _ensure_vdb_cfg(dir_bin)
 
             if not ope(fasterq_dump):
                 Log.err('Could not download SRA Toolkit.')
@@ -241,15 +262,15 @@ def dep_check_sra_toolkit(dir_dep, os_id, dist_id, debian_dists, redhat_dists,
 def dep_check_blast(dir_dep, os_id, dist_id, debian_dists, redhat_dists,
                     force):
     if os_id == 'mac':
-        url = ('https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.10.0/'
-               'ncbi-blast-2.10.0+-x64-macosx.tar.gz')
+        url = ('https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.10.1/'
+               'ncbi-blast-2.10.1+-x64-macosx.tar.gz')
     elif os_id == 'linux':
         if dist_id in debian_dists:
             url = ('https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/'
-                   '2.10.0/ncbi-blast-2.10.0+-x64-linux.tar.gz')
+                   '2.10.1/ncbi-blast-2.10.1+-x64-linux.tar.gz')
         elif dist_id in redhat_dists:
             url = ('https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/'
-                   '2.10.0/ncbi-blast-2.10.0+-x64-linux.tar.gz')
+                   '2.10.1/ncbi-blast-2.10.1+-x64-linux.tar.gz')
 
     dnld_path = opj(dir_dep, 'ncbi-blast.tar.gz')
 
@@ -301,10 +322,20 @@ def dep_check_blast(dir_dep, os_id, dist_id, debian_dists, redhat_dists,
 
 
 # VSEARCH
-def dep_check_vsearch(dir_dep, force):
-    url = 'https://github.com/torognes/vsearch/archive/master.tar.gz'
+def dep_check_vsearch(dir_dep, os_id, dist_id, debian_dists, redhat_dists,
+                      force):
+    if os_id == 'mac':
+        url = ('https://github.com/torognes/vsearch/releases/download/v2.15.0/'
+               'vsearch-2.15.0-macos-x86_64.tar.gz')
+    elif os_id == 'linux':
+        if dist_id in debian_dists:
+            url = ('https://github.com/torognes/vsearch/releases/download/'
+                   'v2.15.0/vsearch-2.15.0-linux-x86_64.tar.gz')
+        elif dist_id in redhat_dists:
+            url = ('https://github.com/torognes/vsearch/releases/download/'
+                   'v2.15.0/vsearch-2.15.0-linux-x86_64.tar.gz')
+
     dnld_path = opj(dir_dep, 'vsearch.tar.gz')
-    dir_bin = opj(dir_dep, 'vsearch-master')
 
     try:
         if force is True:
@@ -313,6 +344,7 @@ def dep_check_vsearch(dir_dep, force):
         run(vsearch)
     except Exception:
         try:
+            dir_bin = opj(dir_dep, get_dep_dir(dir_dep, 'vsearch'))
             vsearch = opj(dir_bin, 'bin', 'vsearch')
             run(vsearch)
         except Exception:
@@ -323,15 +355,15 @@ def dep_check_vsearch(dir_dep, force):
             tar_ref.extractall(dir_dep)
             tar_ref.close()
             try:
-                Log.wrn('Compiling Vsearch.')
-                run('./autogen.sh', cwd=dir_bin)
-                run('./configure', cwd=dir_bin)
-                run('make', cwd=dir_bin)
+                dir_bin = opj(dir_dep, get_dep_dir(dir_dep, 'vsearch'))
                 vsearch = opj(dir_bin, 'bin', 'vsearch')
-                run(vsearch)
+                if not ope(vsearch):
+                    Log.err('Could not download Vsearch.')
+                    return None
+                else:
+                    run(vsearch)
             except Exception:
-                Log.err(
-                    'Something went wrong while trying to compile Vsearch.')
+                Log.err('Vsearch was downloaded, but does not execute.')
                 Log.msg('Try downloading and installing it manually from: '
                         'https://github.com/torognes/vsearch')
                 return None
