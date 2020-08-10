@@ -1,6 +1,7 @@
 """Differences between operating systems."""
 
 import sys
+from platform import mac_ver
 
 import distro
 
@@ -8,6 +9,8 @@ import distro
 def check_os():
     """Determine current operating system and distribution."""
     dist_id = None
+    release_id = None
+    release_name = ''
 
     os_id = None
     os_str = None
@@ -15,6 +18,24 @@ def check_os():
     if sys.platform == 'darwin':
         os_id = 'mac'
         os_str = 'macOS'
+        release_id = mac_ver()[0]
+        mv = release_id.split('.')
+        if len(mv) == 3:
+            if mv[0] == '10':
+                if mv[1] == '15':
+                    release_name = 'Catalina'
+                elif mv[1] == '14':
+                    release_name = 'Mojave'
+                elif mv[1] == '13':
+                    release_name = 'High Sierra'
+                elif mv[1] == '12':
+                    release_name = 'Sierra'
+                elif mv[1] == '11':
+                    release_name = 'El Capitan'
+                elif mv[1] == '1':
+                    release_name = 'Yosemite'
+                else:
+                    release_name = ''
 
     elif sys.platform == 'win32':
         os_id = 'windows'
@@ -35,6 +56,8 @@ def check_os():
     return {'os_id': os_id,
             'os_str': os_str,
             'dist_id': dist_id,
+            'release_id': release_id,
+            'release_name': release_name,
             'debian_dists': debian_dists,
             'redhat_dists': redhat_dists,
             'supported_dists': supported_dists}
