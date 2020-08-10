@@ -15,10 +15,18 @@ DEBUG_PROCESSES = False
 _ = check_os()
 OS_ID = _['os_id']
 OS_STR = _['os_str']
+RELEASE_ID = _['release_id']
+RELEASE_NAME = _['release_name']
 DIST_ID = _['dist_id']
 DEBIAN_DISTS = _['debian_dists']
 REDHAT_DISTS = _['redhat_dists']
 SUPPORTED_DISTS = _['supported_dists']
+OS_INFO = OS_STR
+
+if OS_ID == 'mac':
+    OS_INFO += ' ' + RELEASE_ID
+    if RELEASE_NAME != '':
+        OS_INFO += ' (' + RELEASE_NAME + ')'
 
 _, PY_V_STR = python_version()
 THREADS = cpu_count()
@@ -45,6 +53,6 @@ SCRIPT_INFO = ('\n' +
                '{s} version: {v}\n'.format(s=__script_name__.title(),
                                            v=__version__) +
                'Python version: {pv}\n'.format(pv=PY_V_STR) +
-               'Operating system: {os}\n'.format(os=OS_STR) +
+               'Operating system: {os}\n'.format(os=OS_INFO) +
                'System info: {cpus} CPUs, {ram} GB RAM\n'.format(
                    cpus=THREADS, ram='{0:.2f}'.format(RAM)))
