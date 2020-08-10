@@ -3,6 +3,7 @@
 import fileinput
 import gzip
 import hashlib
+import re
 import sys
 from collections import defaultdict
 from collections import OrderedDict
@@ -117,10 +118,12 @@ def download_file(url, local_path, protocol='http'):
 
 
 def replace_line_in_file(file_path, line_str, replace_str):
+    line_str = re.escape(line_str.strip())
+    replace_str = replace_str.strip()
     for line in fileinput.input(file_path, inplace=1):
-        line_strip = line.strip()
-        if line_strip == line_str:
-            print(replace_str)
+        r = re.findall('^(\\s*)(' + line_str + ')(\\s*)$', line)
+        if len(r) != 0 and len(r[0]) == 3:
+            print(r[0][0] + replace_str)
         else:
             print(line.rstrip())
 
