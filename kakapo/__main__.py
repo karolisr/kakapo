@@ -39,6 +39,7 @@ from kakapo.tools.config import CONYELL, CONSRED, CONGREE, CONBLUE, CONSDFL
 from kakapo.tools.config import DIR_CFG, DIR_DEP, DIR_TAX, DIR_KRK
 from kakapo.tools.config import SCRIPT_INFO
 from kakapo.tools.config import OS_ID, DIST_ID, DEBIAN_DISTS, REDHAT_DISTS
+from kakapo.tools.config import RELEASE_NAME
 from kakapo.tools.config import THREADS, RAM
 from kakapo.tools.config_file_parse import config_file_parse
 from kakapo.tools.config_file_parse import ss_file_parse
@@ -265,7 +266,8 @@ def main():
     spades = deps.dep_check_spades(DIR_DEP, OS_ID, FORCE_DEPS)
     bowtie2, bowtie2_build = deps.dep_check_bowtie2(DIR_DEP, OS_ID, FORCE_DEPS)
     rcorrector = deps.dep_check_rcorrector(DIR_DEP, FORCE_DEPS)
-    kraken2, kraken2_build = deps.dep_check_kraken2(DIR_DEP, FORCE_DEPS)
+    kraken2, kraken2_build = deps.dep_check_kraken2(DIR_DEP, OS_ID,
+                                                    RELEASE_NAME, FORCE_DEPS)
 
     linfo(CONBLUE + 'Checking for available Kraken2 databases')
     kraken2_dbs = deps.download_kraken2_dbs(DIR_KRK)

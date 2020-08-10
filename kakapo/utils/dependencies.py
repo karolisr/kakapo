@@ -14,6 +14,7 @@ from shutil import move
 from shutil import rmtree
 from tempfile import NamedTemporaryFile
 
+from kakapo.utils.homebrew import brew_get
 from kakapo.utils.logging import Log
 from kakapo.utils.misc import download_file
 from kakapo.utils.misc import list_of_dirs_at_path
@@ -534,8 +535,7 @@ def dep_check_rcorrector(dir_dep, force):
         except Exception:
             if ope(dnld_path):
                 remove(dnld_path)
-            dir_no_rc = opj(dir_dep, '')
-            if dir_bin != dir_no_rc:
+            if dir_bin != opj(dir_dep, ''):
                 rmtree(dir_bin)
             download_file(url, dnld_path)
             tar_ref = tarfile.open(dnld_path, 'r:gz')
@@ -565,7 +565,7 @@ def dep_check_rcorrector(dir_dep, force):
 
 
 # Kraken2
-def dep_check_kraken2(dir_dep, force):
+def dep_check_kraken2(dir_dep, os_id, release_name, force):
     url = 'https://github.com/karolisr/kraken2/archive/master.tar.gz'
 
     dnld_path = opj(dir_dep, 'kraken2.tar.gz')
@@ -598,23 +598,59 @@ def dep_check_kraken2(dir_dep, force):
 
             makefile = opj(dir_bin, 'src', 'Makefile')
             replace_line_in_file(makefile,
-                                 '\tcp $(PROGS) $(KRAKEN2_DIR)/',
-                                 '\tcp $(PROGS) "$(KRAKEN2_DIR)"/')
+                                 'cp $(PROGS) $(KRAKEN2_DIR)/',
+                                 'cp $(PROGS) "$(KRAKEN2_DIR)"/')
             try:
-                Log.wrn('Compiling Kraken2')
+                Log.wrn('Compiling Kraken2 Attempt 1')
                 run(['./install_kraken2.sh', 'bin'], cwd=dir_bin)
+                run([kraken2, '--help'])
+                run([kraken2_build, '--help'])
+
             except Exception:
                 try:
+                    Log.wrn('Compiling Kraken2 Attempt 2')
+
+                    dir_libomp = opj(dir_dep, 'libomp')
+
+                    if ope(dir_libomp):
+                        rmtree(dir_libomp)
+
+                    libomp_fp, v = brew_get('libomp', os_id, release_name,
+                                            dir_dep)
+                    tar_ref = tarfile.open(libomp_fp, 'r:gz')
+                    tar_ref.extractall(dir_dep)
+                    tar_ref.close()
+
+                    dir_libomp_l = opj(dir_libomp, v, 'lib')
+                    dir_libomp_i = opj(dir_libomp, v, 'include')
+
+                    cxx_flags = ('CXXFLAGS = -L{} -I{} -Xpreprocessor -fopenmp'
+                                 ' -lomp -Wall -std=c++11 -O3')
+
+                    cxx_flags = cxx_flags.format(dir_libomp_l, dir_libomp_i)
+
                     makefile = opj(dir_bin, 'src', 'Makefile')
+
                     replace_line_in_file(makefile,
                                          'CXXFLAGS = -fopenmp -Wall -std=c++11'
-                                         '-O3',
-                                         'CXXFLAGS = -Wall -std=c++11 -O3')
+                                         ' -O3',
+                                         cxx_flags)
+
                     run(['./install_kraken2.sh', 'bin'], cwd=dir_bin)
                     run([kraken2, '--help'])
                     run([kraken2_build, '--help'])
+
                 except Exception:
-                    pass
+                    try:
+                        Log.wrn('Compiling Kraken2 Attempt 3')
+                        makefile = opj(dir_bin, 'src', 'Makefile')
+                        replace_line_in_file(makefile, cxx_flags,
+                                             'CXXFLAGS = -Wall -std=c++11 -O3')
+                        run(['./install_kraken2.sh', 'bin'], cwd=dir_bin)
+                        run([kraken2, '--help'])
+                        run([kraken2_build, '--help'])
+                    except Exception:
+                        pass
 
             if not ope(kraken2):
                 Log.err('Something went wrong while trying to compile '
