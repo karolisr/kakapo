@@ -56,8 +56,8 @@ def check_os():
         release_id = dist_version
         if dist_id == 'ubuntu' and dist_name == '':
             dist_name = dist_id.capitalize()
-        os_str = '{dist_name} ({dist_version})'.format(dist_name=dist_name,
-                                                       dist_version=dist_version)
+        os_str = '{dist_name} {dist_version}'.format(dist_name=dist_name,
+                                                     dist_version=dist_version)
 
     debian_dists = ['debian', 'ubuntu']
     redhat_dists = ['centos', 'fedora', 'rhel', 'scientific']
