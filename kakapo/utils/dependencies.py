@@ -550,6 +550,8 @@ def dep_check_rcorrector(dir_dep, force):
                 chmod(rcorrector, stat.S_IRWXU | stat.S_IRGRP |
                       stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
                 run([rcorrector, '-version'])
+                if not ope(jellyfish):
+                    jellyfish = which('jellyfish')
                 run([jellyfish, '--version'])
             except Exception:
                 Log.err('Something went wrong while trying to compile '
