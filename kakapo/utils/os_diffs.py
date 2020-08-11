@@ -36,6 +36,11 @@ def check_os():
                     release_name = 'Yosemite'
                 else:
                     release_name = ''
+            elif mv[0] == '11':
+                if mv[1] == '0':
+                    release_name = 'Big Sur'
+                else:
+                    release_name = ''
 
     elif sys.platform == 'win32':
         os_id = 'windows'

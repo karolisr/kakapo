@@ -14,7 +14,9 @@ def brew_get(package, os, platform, dnld_dir):
     url_linux = 'https://formulae.brew.sh/api/formula-linux/{}.json'
 
     if os == 'mac':
-        if platform == 'Catalina':
+        if platform == 'Big Sur':
+            platform = 'big_sur'
+        elif platform == 'Catalina':
             platform = 'catalina'
         elif platform == 'Mojave':
             platform = 'mojave'
