@@ -50,9 +50,14 @@ def check_os():
         os_id = 'linux'
         dist_id = distro.id()
         dist_name = distro.distro_release_attr('name')
+        dist = distro.linux_distribution()
+        dist_name = dist[0]
+        dist_version = dist[1]
+        release_id = dist_version
         if dist_id == 'ubuntu' and dist_name == '':
             dist_name = dist_id.capitalize()
-        os_str = 'Linux ({dist_name})'.format(dist_name=dist_name)
+        os_str = '{dist_name} ({dist_version})'.format(dist_name=dist_name,
+                                                       dist_version=dist_version)
 
     debian_dists = ['debian', 'ubuntu']
     redhat_dists = ['centos', 'fedora', 'rhel', 'scientific']
