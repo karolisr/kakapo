@@ -26,18 +26,13 @@ from kakapo.utils.subp import which
 
 PY3 = which('python3')
 
-# ----------------------------------------------------------------------------
 
-
-def dnld_kraken2_dbs():
+def dnld_kraken2_dbs(dbs_path):
     Log.inf('Checking for available Kraken2 databases.')
-
-    kraken2_dbs = download_kraken2_dbs()
+    kraken2_dbs = download_kraken2_dbs(dbs_path)
     for db in sorted(kraken2_dbs.keys()):
         Log.msg('Found Kraken2 database:', db)
-
-
-# ----------------------------------------------------------------------------
+    return kraken2_dbs
 
 
 def get_dep_version(cmd, regexp, do_not_raise=True):
@@ -577,6 +572,13 @@ def dep_check_kraken2(dir_dep, os_id, release_name, force):
             raise
         kraken2 = which('kraken2')
         kraken2_build = which('kraken2-build')
+
+        dir_bin = dirname(kraken2)
+        classify_bin = opj(dir_bin, 'classify')
+        _ = run([classify_bin], do_not_raise=True)
+        if not _.stderr.startswith('classify: mandatory filename'):
+            raise
+
         run([kraken2, '--help'])
         run([kraken2_build, '--help'])
     except Exception:
@@ -584,17 +586,28 @@ def dep_check_kraken2(dir_dep, os_id, release_name, force):
             dir_bin = opj(dir_dep, get_dep_dir(dir_dep, 'kraken2'))
             kraken2 = opj(dir_bin, 'bin', 'kraken2')
             kraken2_build = opj(dir_bin, 'bin', 'kraken2-build')
+
+            classify_bin = opj(dir_bin, 'bin', 'classify')
+            _ = run([classify_bin], do_not_raise=True)
+            if not _.stderr.startswith('classify: mandatory filename'):
+                raise
+
             run([kraken2, '--help'])
             run([kraken2_build, '--help'])
         except Exception:
             Log.wrn('Kraken2 was not found on this system, trying to '
                     'download.')
+
+            if ope(dir_bin):
+                rmtree(dir_bin)
+
             download_file(url, dnld_path)
             tar_ref = tarfile.open(dnld_path, 'r:gz')
             tar_ref.extractall(dir_dep)
             tar_ref.close()
 
             dir_bin = opj(dir_dep, get_dep_dir(dir_dep, 'kraken2'))
+            classify_bin = opj(dir_bin, 'bin', 'classify')
             kraken2 = opj(dir_bin, 'bin', 'kraken2')
             kraken2_build = opj(dir_bin, 'bin', 'kraken2-build')
 
@@ -605,6 +618,11 @@ def dep_check_kraken2(dir_dep, os_id, release_name, force):
             try:
                 Log.wrn('Compiling Kraken2 Attempt 1')
                 run(['./install_kraken2.sh', 'bin'], cwd=dir_bin)
+
+                _ = run([classify_bin], do_not_raise=True)
+                if not _.stderr.startswith('classify: mandatory filename'):
+                    raise
+
                 run([kraken2, '--help'])
                 run([kraken2_build, '--help'])
 
@@ -626,6 +644,19 @@ def dep_check_kraken2(dir_dep, os_id, release_name, force):
                     dir_libomp_l = opj(dir_libomp, v, 'lib')
                     dir_libomp_i = opj(dir_libomp, v, 'include')
 
+                    # FixMe: Add similar commands for Linux
+                    if os_id == 'mac':
+                        # Changes the shared library identification name of a
+                        # dynamic shared library.
+                        dylib_f = opj(dir_libomp_l, 'libomp.dylib')
+
+                        chmod(dylib_f, stat.S_IRWXU | stat.S_IRUSR |
+                              stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP |
+                              stat.S_IROTH | stat.S_IWOTH)
+
+                        cmd = ['install_name_tool', '-id', dylib_f, dylib_f]
+                        run(cmd)
+
                     cxx_flags = ('CXXFLAGS = -L{} -I{} -Xpreprocessor -fopenmp'
                                  ' -lomp -Wall -std=c++11 -O3')
 
@@ -639,6 +670,11 @@ def dep_check_kraken2(dir_dep, os_id, release_name, force):
                                          cxx_flags)
 
                     run(['./install_kraken2.sh', 'bin'], cwd=dir_bin)
+
+                    _ = run([classify_bin], do_not_raise=True)
+                    if not _.stderr.startswith('classify: mandatory filename'):
+                        raise
+
                     run([kraken2, '--help'])
                     run([kraken2_build, '--help'])
 
@@ -649,6 +685,11 @@ def dep_check_kraken2(dir_dep, os_id, release_name, force):
                         replace_line_in_file(makefile, cxx_flags,
                                              'CXXFLAGS = -Wall -std=c++11 -O3')
                         run(['./install_kraken2.sh', 'bin'], cwd=dir_bin)
+
+                        _ = run([classify_bin], do_not_raise=True)
+                        if not _.stderr.startswith('classify: mandatory filename'):
+                            raise
+
                         run([kraken2, '--help'])
                         run([kraken2_build, '--help'])
                     except Exception:
