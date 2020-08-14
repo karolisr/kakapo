@@ -11,7 +11,6 @@ from kakapo.tools.bioio import filter_fasta_by_length
 from kakapo.tools.bioio import read_fasta
 from kakapo.tools.bioio import standardize_fasta_text
 from kakapo.tools.bioio import write_fasta
-from kakapo.tools.config import CONBLUE, CONGREE
 from kakapo.tools.config import PICKLE_PROTOCOL
 from kakapo.tools.ebi_domain_search import pfam_entry
 from kakapo.tools.ebi_domain_search import pfam_seqs
@@ -24,18 +23,19 @@ from kakapo.tools.eutils import summary as summary_eutil
 from kakapo.tools.seq import SEQ_TYPE_AA, SEQ_TYPE_DNA
 from kakapo.tools.vsearch import run_cluster_fast
 
+from kakapo.utils.logging import Log
 
-def pfam_uniprot_accessions(ss, pfam_acc, tax_ids, dir_cache_pfam_acc,
-                            linfo=print):
+
+def pfam_uniprot_accessions(ss, pfam_acc, tax_ids, dir_cache_pfam_acc):
     if len(pfam_acc) > 0:
-        linfo(CONBLUE + 'Downloading UniProt accessions for Pfam accessions [' + ss + ']')
+        Log.msg_inf('Downloading UniProt accessions for Pfam accessions:', ss)
     pfam_seqs_list = []
     for pa in pfam_acc:
         pfam_id = pfam_entry(pa)[0]['id']
-        linfo(pa + ': ' + pfam_id)
-        __ = opj(dir_cache_pfam_acc, pa + '__' + ss)
-        if ope(__):
-            with open(__, 'rb') as f:
+        Log.msg(pa + ':', pfam_id)
+        _ = opj(dir_cache_pfam_acc, pa + '__' + ss)
+        if ope(_):
+            with open(_, 'rb') as f:
                 acc = pickle.load(f)
             pfam_seqs_list = pfam_seqs_list + acc
         else:
@@ -44,45 +44,43 @@ def pfam_uniprot_accessions(ss, pfam_acc, tax_ids, dir_cache_pfam_acc,
             # downloaded sequences from UniProt.
             acc = pfam_seqs(query=pa)
             pfam_seqs_list = pfam_seqs_list + acc
-            with open(__, 'wb') as f:
+            with open(_, 'wb') as f:
                 pickle.dump(acc, f, protocol=PICKLE_PROTOCOL)
 
     pfam_uniprot_acc = prot_ids_for_tax_ids(pfam_seqs_list, tax_ids)
     return pfam_uniprot_acc
 
 
-def dnld_pfam_uniprot_seqs(ss, uniprot_acc, aa_uniprot_file, dir_cache_prj,
-                           linfo=print):
+def dnld_pfam_uniprot_seqs(ss, uniprot_acc, aa_uniprot_file, dir_cache_prj):
     if len(uniprot_acc) != 0:
-        __ = opj(dir_cache_prj, 'aa_uniprot_acc_cache__' + ss)
+        _ = opj(dir_cache_prj, 'aa_uniprot_acc_cache__' + ss)
         prev_uniprot_acc = []
-        if ope(__):
-            with open(__, 'rb') as f:
+        if ope(_):
+            with open(_, 'rb') as f:
                 prev_uniprot_acc = pickle.load(f)
 
-        with open(__, 'wb') as f:
+        with open(_, 'wb') as f:
             pickle.dump(uniprot_acc, f, protocol=PICKLE_PROTOCOL)
 
         if (set(uniprot_acc) != set(prev_uniprot_acc)) or \
            (not ope(aa_uniprot_file)):
 
-            linfo(CONBLUE + 'Downloading Pfam protein sequences from UniProt [' + ss + ']')
+            Log.msg_inf('Downloading Pfam protein sequences from UniProt:', ss)
             # Note: the number of sequences downloaded from UniProt may
             # be less than the total number of accessions. This is normal
             # as Pfam may return "obsolete" accessions, which will not be
             # downloaded here.
-            __ = fasta_by_accession_list(uniprot_acc)
-            __ = standardize_fasta_text(__, SEQ_TYPE_AA)
+            _ = fasta_by_accession_list(uniprot_acc)
+            _ = standardize_fasta_text(_, SEQ_TYPE_AA, pfam=True)
 
-            with open(aa_uniprot_file, 'w') as f:
-                f.write(__)
+            write_fasta(_, aa_uniprot_file)
+
     else:
         if ope(aa_uniprot_file):
             osremove(aa_uniprot_file)
 
 
-def user_entrez_search(ss, queries, dir_cache_prj, requery_after,
-                       linfo=print):
+def user_entrez_search(ss, queries, dir_cache_prj, requery_after):
     dnld_needed = True
     accs = []
     if len(queries) != 0:
@@ -98,8 +96,7 @@ def user_entrez_search(ss, queries, dir_cache_prj, requery_after,
                     dnld_needed = False
 
         if dnld_needed is True:
-            linfo(CONBLUE +
-                  'Searching for protein sequences on NCBI [' + ss + ']')
+            Log.msg_inf('Searching for protein sequences on NCBI:', ss)
             for q in queries:
                 esearch_results = search_eutil(db='protein', term=q)
                 accs = accs + accs_eutil(esearch_results)
@@ -109,7 +106,7 @@ def user_entrez_search(ss, queries, dir_cache_prj, requery_after,
         else:
             days = requery_after.total_seconds() / 60 / 60 / 24
             days = '{:.2f}'.format(days)
-            linfo(CONGREE + 'NCBI results are less than ' + days + ' day(s) old. Will not search again. [' + ss + ']')
+            Log.msg_inf('NCBI results are less than ' + days + ' day(s) old. Will not search again.', ss)
             pickle_file = opj(dir_cache_prj, 'ncbi_prot_metadata_cache__' + ss)
             if ope(pickle_file):
                 with open(pickle_file, 'rb') as f:
@@ -119,10 +116,9 @@ def user_entrez_search(ss, queries, dir_cache_prj, requery_after,
     return accs
 
 
-def user_protein_accessions(ss, prot_acc_user, dir_cache_prj, taxonomy,
-                            linfo=print):
+def user_protein_accessions(ss, prot_acc_user, dir_cache_prj, taxonomy):
     if len(prot_acc_user) > 0:
-        linfo(CONBLUE + 'Reading user provided protein accessions [' + ss + ']')
+        Log.msg_inf('Reading user provided protein accessions:', ss)
         pickle_file = opj(dir_cache_prj, 'ncbi_prot_metadata_cache__' + ss)
         acc_old = set()
         if ope(pickle_file):
@@ -161,7 +157,7 @@ def user_protein_accessions(ss, prot_acc_user, dir_cache_prj, taxonomy,
             acc = pi[1]
             if len(title) > 80:
                 title = title[:77] + '...'
-            linfo(acc + ': ' + title)
+            Log.msg(acc + ':', title)
 
         with open(pickle_file, 'wb') as f:
             pickle.dump(pa_info, f, protocol=PICKLE_PROTOCOL)
@@ -173,8 +169,7 @@ def user_protein_accessions(ss, prot_acc_user, dir_cache_prj, taxonomy,
         return prot_acc_user
 
 
-def dnld_prot_seqs(ss, prot_acc_user, aa_prot_ncbi_file, dir_cache_prj,
-                   linfo=print):
+def dnld_prot_seqs(ss, prot_acc_user, aa_prot_ncbi_file, dir_cache_prj):
     if len(prot_acc_user) != 0:
         acc_old = set()
         if ope(aa_prot_ncbi_file):
@@ -190,7 +185,8 @@ def dnld_prot_seqs(ss, prot_acc_user, aa_prot_ncbi_file, dir_cache_prj,
                 with open(pickle_file, 'rb') as f:
                     pa_info = pickle.load(f)
 
-            linfo(CONBLUE + 'Downloading protein sequences from NCBI [' + ss + ']')
+            print()
+            Log.msg_inf('Downloading protein sequences from NCBI:', ss)
             _ = dnld_ncbi_seqs('protein', prot_acc_user, rettype='gb',
                                retmode='xml')
             prot_acc_user_new = list()
@@ -221,12 +217,13 @@ def dnld_prot_seqs(ss, prot_acc_user, aa_prot_ncbi_file, dir_cache_prj,
     return prot_acc_user
 
 
-def user_aa_fasta(ss, user_queries, aa_prot_user_file, linfo=print):
+def user_aa_fasta(ss, user_queries, aa_prot_user_file):
     _ = ''
     if len(user_queries) > 0:
-        linfo(CONBLUE + 'Reading user provided AA sequences [' + ss + ']')
+        print()
+        Log.msg_inf('Reading user provided AA sequences:', ss)
         for ap in user_queries:
-            linfo(ap)
+            Log.msg(ap)
             with open(ap, 'r') as f:
                 _ = _ + f.read()
     if _ != '':
@@ -234,8 +231,8 @@ def user_aa_fasta(ss, user_queries, aa_prot_user_file, linfo=print):
             write_fasta(standardize_fasta_text(_, SEQ_TYPE_AA), f)
 
 
-def combine_aa_fasta(ss, fasta_files, aa_queries_file, linfo=print):
-    linfo(CONBLUE + 'Combining all AA query sequences [' + ss + ']')
+def combine_aa_fasta(ss, fasta_files, aa_queries_file):
+    Log.msg_inf('Combining all AA query sequences:', ss)
     _ = ''
     for fasta_file in fasta_files:
         if ope(fasta_file):
@@ -248,12 +245,14 @@ def combine_aa_fasta(ss, fasta_files, aa_queries_file, linfo=print):
 
 def filter_queries(ss, aa_queries_file, min_query_length,
                    max_query_length, max_query_identity, vsearch,
-                   prot_acc_user, overwrite, linfo=print):
+                   prot_acc_user, overwrite, logging=True):
 
-    linfo(CONBLUE + 'Filtering AA query sequences [' + ss + ']')
-    linfo(CONGREE + 'min_query_length: ' + str(min_query_length))
-    linfo(CONGREE + 'max_query_length: ' + str(max_query_length))
-    linfo(CONGREE + 'max_query_identity: ' + str(max_query_identity))
+    if logging is True:
+        print()
+        Log.msg_inf('Filtering AA query sequences:', ss)
+        Log.msg('min_query_length:', str(min_query_length))
+        Log.msg('max_query_length:', str(max_query_length))
+        Log.msg('max_query_identity:', str(max_query_identity))
 
     parsed_fasta_1 = filter_fasta_by_length(aa_queries_file, SEQ_TYPE_AA,
                                             min_query_length,

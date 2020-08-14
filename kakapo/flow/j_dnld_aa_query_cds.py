@@ -9,10 +9,11 @@ from kakapo.tools.config import PICKLE_PROTOCOL
 from kakapo.tools.eutils import cds as cds_for_prot
 from kakapo.tools.bioio import seq_records_to_dict
 from kakapo.tools.bioio import write_fasta
+from kakapo.utils.logging import Log
 
 
 def dnld_cds_for_ncbi_prot_acc(ss, prot_acc_user, prot_cds_ncbi_file, tax,
-                               dir_cache_prj, linfo=print):
+                               dir_cache_prj):
 
     pickle_file = opj(dir_cache_prj, 'ncbi_prot_cds_cache__' + ss)
     acc_old = set()
@@ -23,12 +24,12 @@ def dnld_cds_for_ncbi_prot_acc(ss, prot_acc_user, prot_cds_ncbi_file, tax,
 
     if acc_old == set(prot_acc_user):
         cds_rec_dict = pickled[1]
-        linfo('The CDS for the dereplicated set of the user-provided '
-              'NCBI protein accessions [' + ss + '] have already been '
-              'downloaded')
+        Log.msg_inf('The CDS for the dereplicated set of the user-provided '
+                    'NCBI protein accessions have already been '
+                    'downloaded:', ss)
     else:
-        linfo('Downloading CDS for the dereplicated set of the user-provided '
-              'NCBI protein accessions [' + ss + ']')
+        Log.msg_inf('Downloading CDS for the dereplicated set of the user-provided '
+                    'NCBI protein accessions:', ss)
         cds_rec_dict = seq_records_to_dict(cds_for_prot(prot_acc_user),
                                            prepend_acc=True)
         with open(pickle_file, 'wb') as f:

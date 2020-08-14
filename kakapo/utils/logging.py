@@ -1,61 +1,33 @@
 """Kakapo logging class."""
 
-import logging
-import sys
+import io
+
 from datetime import datetime
+from io import StringIO
+from os.path import abspath
+from os.path import expanduser
 
 from click import echo
 from click import style
 
 
-from kakapo.tools.config import CONYELL, CONSDFL
-
-
-def prepare_logger(console=True, stream=None, file=None):
-
-    handlers = logging.getLogger().handlers
-
-    for h in handlers:
-        logging.getLogger().removeHandler(h)
-
-    format_console = CONYELL + '%(asctime)s' + CONSDFL + ' %(message)s'
-    format_file = '%(asctime)s - %(message)s'
-    date_time_format = '%Y/%m/%d %H:%M:%S'
-
-    formatter_console = logging.Formatter(fmt=format_console,
-                                          datefmt=date_time_format)
-
-    formatter_file = logging.Formatter(fmt=format_file,
-                                       datefmt=date_time_format)
-
-    console_log_handler = None
-    stream_log_handler = None
-    file_log_handler = None
-
-    if console is True:
-        console_log_handler = logging.StreamHandler(sys.stdout)
-        console_log_handler.setFormatter(formatter_console)
-        logging.getLogger().addHandler(console_log_handler)
-
-    if stream is not None:
-        stream_log_handler = logging.StreamHandler(stream)
-        stream_log_handler.setFormatter(formatter_file)
-        logging.getLogger().addHandler(stream_log_handler)
-
-    if file is not None:
-        file_log_handler = logging.FileHandler(file)
-        file_log_handler.setFormatter(formatter_file)
-        logging.getLogger().addHandler(file_log_handler)
-
-    logging.getLogger().setLevel(logging.INFO)
-
-    return logging, stream_log_handler
+HANDLE_TYPES = (io.IOBase, StringIO)
 
 
 class Log:
     _console = True
     _write = False
     _file = None
+    _colors = False
+
+    @classmethod
+    def colors(cls):
+        return cls._colors
+
+    @classmethod
+    def set_colors(cls, value):
+        assert type(value) == bool
+        cls._colors = value
 
     @classmethod
     def console(cls):
@@ -81,8 +53,10 @@ class Log:
 
     @classmethod
     def set_file(cls, value):
-        assert type(value) == str
-        cls._file = value
+        if type(value) == str:
+            cls._file = abspath(expanduser(value))
+        elif isinstance(value, HANDLE_TYPES):
+            cls._file = value
 
     @staticmethod
     def time_stamp():
@@ -90,10 +64,12 @@ class Log:
         return now.strftime('%Y-%m-%d %H:%M:%S')
 
     @classmethod
-    def log(cls, msg='', wrn='', err='', s=''):
+    def log(cls, msg_inf='', msg='', wrn='', err='', s=''):
 
         ts = cls.time_stamp()
 
+        if msg_inf != '':
+            msg_inf = str(msg_inf)
         if msg != '':
             msg = str(msg)
         if wrn != '':
@@ -103,26 +79,57 @@ class Log:
         if s != '':
             s = str(s)
 
-        ts_style = style(ts, fg='magenta', bold=False)
+        ts_color = 'reset'
+        inf_color = 'reset'
+        msg_inf_color = inf_color
+        msg_color = 'reset'
+        wrn_color = 'reset'
+        err_color = 'reset'
 
-        s_style = s
-        txt = '{ts} {msg}{wrn}{err} {s}'
-        if msg + wrn + err == '':
-            s_style = style(s, fg='blue', bold=True, underline=False)
-            txt = '{ts} {msg}{wrn}{err}{s}'
+        if cls.colors() is True:
+            ts_color = 'bright_yellow'
+            inf_color = 'bright_blue'
+            msg_inf_color = inf_color
+            msg_color = 'green'
+            wrn_color = 'yellow'
+            err_color = 'red'
 
-        msg_style = style(msg, fg='green', bold=False)
-        wrn_style = style(wrn, fg='yellow', bold=False)
-        err_style = style(err, fg='red', bold=False)
+        ts_style = style(ts, fg=ts_color, bold=False)
 
-        msg_c = txt.format(ts=ts_style, msg=msg_style, wrn=wrn_style,
-                           err=err_style, s=s_style)
+        s_style = style(s, bold=False, underline=False)
+        txt = '{ts} {msg_inf}{msg}{wrn}{err} {s}'
+        if msg_inf + msg + wrn + err == '':
+            s_style = style(s, fg=inf_color, bold=False, underline=False)
+            txt = '{ts} {msg_inf}{msg}{wrn}{err}{s}'
 
-        msg_f = txt.format(ts=ts, msg=msg, wrn=wrn, err=err, s=s) + '\n'
+        msg_inf_style = style(msg_inf, fg=msg_inf_color, bold=False)
+        msg_style = style(msg, fg=msg_color, bold=False)
+        wrn_style = style(wrn, fg=wrn_color, bold=False)
+        err_style = style(err, fg=err_color, bold=False)
+
+        msg_c = txt.format(ts=ts_style, msg_inf=msg_inf_style, msg=msg_style,
+                           wrn=wrn_style, err=err_style, s=s_style)
+
+        msg_c = msg_c.replace('\n', '\n' + ' ' * (len(ts) + 1))
+
+        msg_f = txt.format(ts=ts, msg_inf=msg_inf, msg=msg, wrn=wrn, err=err,
+                           s=s)
+
+        msg_f = msg_f.replace('\n', '\n' + ' ' * (len(ts) + 1)) + '\n'
 
         if cls._file is not None and cls._write is True:
-            with open(cls._file, 'a+') as f:
-                f.write(msg_f)
+
+            handle = False
+            if isinstance(cls._file, HANDLE_TYPES):
+                handle = True
+                f = cls._file
+            if handle is False:
+                f = open(cls._file, 'a+')
+
+            f.write(msg_f)
+
+            if handle is False:
+                f.close()
 
         if cls._console is True:
             echo(msg_c)
@@ -132,6 +139,10 @@ class Log:
     @classmethod
     def inf(cls, s=''):
         return cls.log(s=s)
+
+    @classmethod
+    def msg_inf(cls, m, s=''):
+        return cls.log(msg_inf=m, s=s)
 
     @classmethod
     def msg(cls, m, s=''):
@@ -144,18 +155,3 @@ class Log:
     @classmethod
     def err(cls, e, s=''):
         return cls.log(err=e, s=s)
-
-
-if __name__ == '__main__':
-
-    Log.file = 'log.txt'
-    Log.write = False
-    Log.console = True
-
-    print(Log.inf('Log.inf'), end='')
-    print(Log.msg('Log.msg', 'str'), end='')
-    print(Log.msg('Log.msg'), end='')
-    print(Log.wrn('Log.wrn', 'str'), end='')
-    print(Log.wrn('Log.wrn'), end='')
-    print(Log.err('Log.err', 'str'), end='')
-    print(Log.err('Log.err'), end='')

@@ -3,6 +3,7 @@
 import pickle
 
 from os import remove as osremove
+from os.path import basename
 from os.path import exists as ope
 from os.path import join as opj
 from shutil import copyfile
@@ -15,6 +16,7 @@ from kakapo.tools.config import PICKLE_PROTOCOL
 from kakapo.tools.seq import SEQ_TYPE_AA
 from kakapo.tools.seqtk import seqtk_fq_to_fa, seqtk_extract_reads
 from kakapo.tools.vsearch import run_cluster_fast, run_vsearch
+from kakapo.utils.logging import Log
 from kakapo.utils.misc import combine_text_files
 from kakapo.utils.misc import keep_unique_lines_in_file
 from kakapo.utils.misc import make_dirs
@@ -25,25 +27,23 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                          blast_1_qcov_hsp_perc, blast_1_best_hit_overhang,
                          blast_1_best_hit_score_edge, blast_1_max_target_seqs,
                          dir_blast_results_fa_trim, fpatt, ss, threads,
-                         seqtk, vsearch, dir_cache_prj, linfo=print):
+                         seqtk, vsearch, dir_cache_prj):
 
     changed_blast_1 = False
 
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
-        linfo('Running BLAST on reads [' + ss + ']')
+        print()
+        Log.msg_inf('Running BLAST on reads:', ss)
         if tblastn is None:
-            linfo('tblastn is not available. ' +
-                  'Cannot continue. Exiting.')
+            Log.err('tblastn is not available. Cannot continue. Exiting.')
             exit(0)
 
         if vsearch is None:
-            linfo('vsearch is not available. ' +
-                  'Cannot continue. Exiting.')
+            Log.err('vsearch is not available. Cannot continue. Exiting.')
             exit(0)
 
         if seqtk is None:
-            linfo('seqtk is not available. ' +
-                  'Cannot continue. Exiting.')
+            Log.err('seqtk is not available. Cannot continue. Exiting.')
             exit(0)
 
     cache_file = opj(dir_cache_prj, 'blast_1_settings_cache__' + ss)
@@ -58,13 +58,15 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                 'queries': seq_records_to_dict(
                     read_fasta(aa_queries_file, SEQ_TYPE_AA))}
 
-    linfo('evalue: ' + str(blast_1_evalue))
-    linfo('max_hsps: ' + str(blast_1_max_hsps))
-    linfo('qcov_hsp_perc: ' + str(blast_1_qcov_hsp_perc))
-    linfo('best_hit_overhang: ' + str(blast_1_best_hit_overhang))
-    linfo('best_hit_score_edge: ' + str(blast_1_best_hit_score_edge))
-    linfo('max_target_seqs: ' + str(blast_1_max_target_seqs))
+    Log.msg('evalue:', str(blast_1_evalue))
+    Log.msg('max_hsps:', str(blast_1_max_hsps))
+    Log.msg('qcov_hsp_perc:', str(blast_1_qcov_hsp_perc))
+    Log.msg('best_hit_overhang:', str(blast_1_best_hit_overhang))
+    Log.msg('best_hit_score_edge:', str(blast_1_best_hit_score_edge))
+    Log.msg('max_target_seqs:', str(blast_1_max_target_seqs))
+    print()
 
+    # FixMe: Expose in configuration files?
     ident = 0.85
 
     for se in se_fastq_files:
@@ -82,14 +84,14 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                 pickled = pickle.load(f)
 
         if ope(out_f_fasta) and pickled == settings:
-            linfo('The provided BLAST settings and query sequences did not ' +
-                  'change since the previous run. BLAST results for ' +
-                  'sample "' + se + '" already exist [' + ss + ']')
+            Log.msg('The provided BLAST settings and query sequences did ' +
+                    'not change since the previous run.\n\tBLAST results for ' +
+                    'sample "' + se + '" already exist:', ss)
 
         else:
             changed_blast_1 = True
             make_dirs(dir_results)
-            linfo('Running tblastn on: ' + blast_db_path + ' [' + ss + ']')
+            Log.msg('Running tblastn on: ' + basename(blast_db_path), ss)
             run_blast(exec_file=tblastn,
                       task='tblastn',
                       threads=threads,
@@ -105,7 +107,7 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                       db_genetic_code=genetic_code,
                       out_cols=BLST_RES_COLS_1)
 
-            linfo('Extracting unique BLAST hits using Seqtk [' + ss + ']')
+            Log.msg_inf('Extracting unique BLAST hits using Seqtk:', ss)
 
             keep_unique_lines_in_file(out_f)
 
@@ -138,9 +140,9 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                 pickled = pickle.load(f)
 
         if ope(out_f_fasta) and pickled == settings:
-            linfo('The provided BLAST settings and query sequences did not ' +
-                  'change since the previous run. BLAST results for ' +
-                  'sample "' + pe + '" already exist [' + ss + ']')
+            Log.msg('The provided BLAST settings and query sequences did ' +
+                    'not change since the previous run.\n\tBLAST results for ' +
+                    'sample "' + pe + '" already exist:', ss)
 
         else:
             changed_blast_1 = True
@@ -148,7 +150,7 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
             pe_trim_files = zip(blast_db_paths, out_fs, fq_paths, out_fs_fastq,
                                 out_fs_fasta)
             for x in pe_trim_files:
-                linfo('Running tblastn on: ' + x[0] + ' [' + ss + ']')
+                Log.msg('Running tblastn on: ' + basename(x[0]), ss)
                 run_blast(exec_file=tblastn,
                           task='tblastn',
                           threads=threads,
@@ -164,7 +166,7 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                           db_genetic_code=genetic_code,
                           out_cols=BLST_RES_COLS_1)
 
-                linfo('Extracting unique BLAST hits using Seqtk [' + ss + ']')
+                Log.msg('Extracting unique BLAST hits using Seqtk:', ss)
 
                 keep_unique_lines_in_file(x[1])
 
@@ -191,19 +193,17 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
 
 
 def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
-                         dir_vsearch_results_fa_trim, fpatt, ss, seqtk,
-                         linfo=print):
+                         dir_vsearch_results_fa_trim, fpatt, ss, seqtk):
 
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
         if vsearch is None:
-            linfo('vsearch is not available. ' +
-                  'Cannot continue. Exiting.')
+            Log.err('vsearch is not available. Cannot continue. Exiting.')
             exit(0)
         if seqtk is None:
-            linfo('seqtk is not available. ' +
-                  'Cannot continue. Exiting.')
+            Log.err('seqtk is not available. Cannot continue. Exiting.')
             exit(0)
 
+    # FixMe: Expose in configuration files?
     ident = 0.85
 
     for se in se_fastq_files:
@@ -216,10 +216,10 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
         se_fastq_files[se]['vsearch_results_path' + '__' + ss] = out_f_fastq
 
         if ope(out_f_fastq):
-            linfo('Vsearch results for sample ' + se + ' already exists [' + ss + ']')
+            Log.msg('Vsearch results for sample ' + se + ' already exists:', ss)
         else:
             make_dirs(dir_results)
-            linfo('Running vsearch on: ' + fq_path + ' [' + ss + ']')
+            Log.msg('Running vsearch on: ' + basename(fq_path), ss)
             run_vsearch(vsearch,
                         ident=ident,
                         q_file=blast_results_fa_path,
@@ -227,7 +227,7 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
                         out_file=out_f,
                         minlen=min_acc_len)
 
-            linfo('Extracting unique vsearch hits using Seqtk [' + ss + ']')
+            Log.msg('Extracting unique vsearch hits using Seqtk:', ss)
             keep_unique_lines_in_file(out_f)
             seqtk_extract_reads(seqtk, fq_path, out_f_fastq, out_f)
             osremove(out_f)
@@ -245,12 +245,12 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
 
         if ope(out_fs_fastq[0]) and ope(out_fs_fastq[1]) and \
            ope(out_fs_fastq[2]) and ope(out_fs_fastq[3]):
-            linfo('Vsearch results for sample ' + pe + ' already exist [' + ss + ']')
+            Log.msg('Vsearch results for sample ' + pe + ' already exist:', ss)
         else:
             make_dirs(dir_results)
             pe_trim_files = zip(fq_paths, out_fs, out_fs_fastq)
             for x in pe_trim_files:
-                linfo('Running vsearch on: ' + x[0] + ' [' + ss + ']')
+                Log.msg('Running vsearch on: ' + basename(x[0]), ss)
                 run_vsearch(vsearch,
                             ident=ident,
                             q_file=blast_results_fa_path,
@@ -258,8 +258,8 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
                             out_file=x[1],
                             minlen=min_acc_len)
 
-            linfo('Extracting unique vsearch hits from paired files '
-                  'using Seqtk [' + ss + ']')
+            Log.msg('Extracting unique vsearch hits from paired files '
+                    'using Seqtk:', ss)
 
             p1txt = out_fs[0]
             p2txt = out_fs[1]
@@ -282,8 +282,8 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
             osremove(p2txt)
             osremove(p12txt_temp)
 
-            linfo('Extracting unique vsearch hits from unpaired files '
-                  'using Seqtk [' + ss + ']')
+            Log.msg('Extracting unique vsearch hits from unpaired files '
+                    'using Seqtk:', ss)
 
             u1txt = out_fs[2]
             u2txt = out_fs[3]

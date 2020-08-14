@@ -215,6 +215,7 @@ def find_orf_for_blast_hit(seq, frame, hit_start, hit_end, start_codons,
                     context.rjust(10) + ' ' +
                     orf_seq[0:3] + ' ' +
                     orf_seq[3:13] + ' ' +
+                    '...' + ' ' +
                     orf_seq[-33:] + ' ' +
                     stop_codon.ljust(3))
 

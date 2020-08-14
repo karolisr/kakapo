@@ -19,9 +19,11 @@ from time import sleep
 from xml.etree import ElementTree
 
 from kakapo.tools.config import PICKLE_PROTOCOL
-from kakapo.utils.misc import split_seq_defn_for_printing as split_seq_defn
 from kakapo.utils.http import get
 from kakapo.utils.http import post
+from kakapo.utils.logging import Log
+from kakapo.utils.misc import split_seq_defn_for_printing as split_seq_defn
+
 
 IPS_URL = 'https://www.ebi.ac.uk/Tools/services/rest/iprscan5'
 
@@ -224,7 +226,7 @@ def job_runner(email, dir_cache, seqs=None, run_id='', parallel_run_count=1,
                        run_id.ljust(max_run_id_len) +
                        ' ' * 5 + job_id)
 
-                print(msg)
+                Log.msg(msg)
 
         if len(running) < max_jobs and len(queue) > 0:
             submit_message = False
@@ -249,15 +251,16 @@ def job_runner(email, dir_cache, seqs=None, run_id='', parallel_run_count=1,
                 title_a = titles_ab[0]
                 # ToDo: Refactor
                 if job_status == 'RUNNING':
-                    print(' ' * 10 + '- ' + title_a.ljust(max_title_a_len) +
-                          run_id.ljust(max_run_id_len) + ' ' * 5 + job_id)
+                    Log.msg(' ' * 10 + '- ' + title_a.ljust(max_title_a_len) +
+                            run_id.ljust(max_run_id_len) + ' ' * 5 + job_id)
                 else:
-                    print(' ' * 10 + '+ ' + title_a.ljust(max_title_a_len) +
-                          run_id.ljust(max_run_id_len) + ' ' * 5 + job_id)
+                    Log.msg(' ' * 10 + '+ ' + title_a.ljust(max_title_a_len) +
+                            run_id.ljust(max_run_id_len) + ' ' * 5 + job_id)
                     finished_jobs = True
 
             if finished_jobs is True:
-                print()
+                # print()
+                pass
             else:
                 continue
 
@@ -311,7 +314,7 @@ def job_runner(email, dir_cache, seqs=None, run_id='', parallel_run_count=1,
                            run_id.ljust(max_run_id_len) +
                            progress_str.rjust(4) + ' ' + job_id)
 
-                    print(msg)
+                    Log.msg(msg)
 
         if len(running) == 0 and len(queue) == 0:
             busy = False

@@ -54,6 +54,7 @@ def check_os():
         dist_name = dist[0]
         dist_version = dist[1]
         release_id = dist_version
+        release_name = os_id
         if dist_id == 'ubuntu' and dist_name == '':
             dist_name = dist_id.capitalize()
         os_str = '{dist_name} {dist_version}'.format(dist_name=dist_name,
