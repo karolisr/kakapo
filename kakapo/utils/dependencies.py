@@ -598,8 +598,8 @@ def dep_check_kraken2(dir_dep, os_id, release_name, force):
             Log.wrn('Kraken2 was not found on this system, trying to '
                     'download.')
 
-            if ope(dir_bin):
-                rmtree(dir_bin)
+            if ope(dnld_path):
+                remove(dnld_path)
 
             download_file(url, dnld_path)
             tar_ref = tarfile.open(dnld_path, 'r:gz')
@@ -637,6 +637,7 @@ def dep_check_kraken2(dir_dep, os_id, release_name, force):
 
                     libomp_fp, v = brew_get('libomp', os_id, release_name,
                                             dir_dep)
+
                     tar_ref = tarfile.open(libomp_fp, 'r:gz')
                     tar_ref.extractall(dir_dep)
                     tar_ref.close()
@@ -644,7 +645,6 @@ def dep_check_kraken2(dir_dep, os_id, release_name, force):
                     dir_libomp_l = opj(dir_libomp, v, 'lib')
                     dir_libomp_i = opj(dir_libomp, v, 'include')
 
-                    # FixMe: Add similar commands for Linux
                     if os_id == 'mac':
                         # Changes the shared library identification name of a
                         # dynamic shared library.
@@ -657,8 +657,12 @@ def dep_check_kraken2(dir_dep, os_id, release_name, force):
                         cmd = ['install_name_tool', '-id', dylib_f, dylib_f]
                         run(cmd)
 
-                    cxx_flags = ('CXXFLAGS = -L{} -I{} -Xpreprocessor -fopenmp'
-                                 ' -lomp -Wall -std=c++11 -O3')
+                        cxx_flags = ('CXXFLAGS = -L{} -I{} -Xpreprocessor '
+                                     '-fopenmp -lomp -Wall -std=c++11 -O3')
+
+                    elif os_id == 'linux':
+                        cxx_flags = ('CXXFLAGS = -L{} -I{} -fopenmp -lomp '
+                                     '-static -Wall -std=c++11 -O3')
 
                     cxx_flags = cxx_flags.format(dir_libomp_l, dir_libomp_i)
 
@@ -666,8 +670,7 @@ def dep_check_kraken2(dir_dep, os_id, release_name, force):
 
                     replace_line_in_file(makefile,
                                          'CXXFLAGS = -fopenmp -Wall -std=c++11'
-                                         ' -O3',
-                                         cxx_flags)
+                                         ' -O3', cxx_flags)
 
                     run(['./install_kraken2.sh', 'bin'], cwd=dir_bin)
 
