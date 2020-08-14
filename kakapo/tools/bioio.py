@@ -17,7 +17,7 @@ HANDLE_TYPES = (io.IOBase, StringIO)
 
 def read_fasta(f, seq_type, upper=True, def_to_first_space=False,
                parse_def=False) -> list:
-    """Read FASTA file."""
+    """Read a FASTA file."""
     assert seq_type.upper() in SEQ_TYPES
 
     if upper is False:
@@ -82,8 +82,6 @@ def read_fasta(f, seq_type, upper=True, def_to_first_space=False,
                     seq_record.accession = acc_ver_split[0]
                     seq_record.version = acc_ver_split[1]
 
-                # seq_record.definition = seq_record.accession_version + '|' + seq_record.definition
-
         return_object.append(seq_record)
 
     return return_object
@@ -131,7 +129,7 @@ def seq_records_to_fasta(records, max_line_len=None, prepend_acc=False):
 
 
 def write_fasta(data, f, max_line_len=None, prepend_acc=False):
-    """Write FASTA file."""
+    """Write a FASTA file."""
     handle = False
     if isinstance(f, HANDLE_TYPES):
         handle = True
@@ -160,21 +158,18 @@ def _no_spaces(seq_record, sep='_'):
     return _no_spaces(seq_record.definition, sep)
 
 
-def standardize_fasta(f, seq_type):
+def standardize_fasta(f, seq_type, pfam=False):
     parsed_fasta = read_fasta(f, seq_type)
     names = tuple(map(_no_spaces, parsed_fasta))
+    if pfam is True:
+        names = tuple(['|'.join(x.split('|')[1:]) for x in names])
     for i, rec in enumerate(parsed_fasta):
         rec.definition = names[i]
     return parsed_fasta
 
 
-def standardize_fasta_text(text, seq_type):
-    return standardize_fasta(StringIO(text), seq_type)
-    # parsed_fasta = read_fasta(StringIO(text), seq_type)
-    # names = tuple(map(_no_spaces, parsed_fasta))
-    # for i, rec in enumerate(parsed_fasta):
-    #     rec.definition = names[i]
-    # return parsed_fasta
+def standardize_fasta_text(text, seq_type, pfam=False):
+    return standardize_fasta(StringIO(text), seq_type, pfam)
 
 
 def trim_desc_to_first_space_in_fasta_text(text, seq_type):
@@ -190,6 +185,3 @@ def filter_fasta_by_length(f, seq_type, min_len, max_len):
 
 def filter_fasta_text_by_length(text, seq_type, min_len, max_len):
     return filter_fasta_by_length(StringIO(text), seq_type, min_len, max_len)
-    # x = read_fasta(StringIO(text), seq_type)
-    # recs = filter(lambda y: min_len <= y.length <= max_len, x)
-    # return list(recs)
