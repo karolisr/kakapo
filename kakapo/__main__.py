@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """Kakapo main file."""
 
@@ -27,22 +26,30 @@ from sys import exit
 
 from joblib import Parallel, delayed
 
-from ncbi_taxonomy_local import taxonomy
+from ncbi_taxonomy_local import Taxonomy
 
 from kakapo import __version__, __script_name__
-from kakapo import dependencies as deps
 
-from kakapo.bioio import read_fasta
-from kakapo.config import CONYELL, CONSRED, CONGREE, CONBLUE, CONSDFL
-from kakapo.config import DIR_CFG, DIR_DEP, DIR_TAX, DIR_KRK
-from kakapo.config import SCRIPT_INFO
-from kakapo.config import THREADS, RAM
-from kakapo.config_file_parse import config_file_parse
-from kakapo.config_file_parse import ss_file_parse
-from kakapo.helpers import make_dir
-from kakapo.helpers import time_stamp
-from kakapo.logging_k import prepare_logger
-from kakapo.translation_tables import TranslationTable
+from kakapo.utils import dependencies as deps
+from kakapo.utils.logging import Log
+from kakapo.utils.misc import make_dirs
+from kakapo.utils.misc import time_stamp
+
+from kakapo.tools.config import CONSRED, CONSDFL, CONBLUE
+from kakapo.tools.config import DIR_CFG, DIR_DEP, DIR_TAX, DIR_KRK
+from kakapo.tools.config import OS_ID, DIST_ID, DEBIAN_DISTS, REDHAT_DISTS
+from kakapo.tools.config import RELEASE_NAME
+from kakapo.tools.config import SCRIPT_INFO
+from kakapo.tools.config import THREADS, RAM
+from kakapo.tools.config_file_parse import config_file_parse
+from kakapo.tools.config_file_parse import ss_file_parse
+from kakapo.tools.config_file_parse import use_colors
+
+from kakapo.tools.seq import SEQ_TYPE_AA
+
+from kakapo.tools.bioio import read_fasta
+from kakapo.tools.bioio import seq_records_to_dict
+from kakapo.tools.transl_tables import TranslationTable
 
 from kakapo.flow.a_prepare import prepare_output_directories
 
@@ -84,8 +91,8 @@ from kakapo.flow.j_dnld_aa_query_cds import dnld_cds_for_ncbi_prot_acc
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 # Command line arguments -----------------------------------------------------
-USAGE = '{} --cfg path/to/config_file ' \
-        '--ss path/to/search_strategies_file'.format(__script_name__)
+USAGE = CONBLUE + '{} --cfg path/to/config_file ' \
+        '--ss path/to/search_strategies_file'.format(__script_name__) + CONSDFL
 
 PARSER = argparse.ArgumentParser(
     prog=__script_name__,
@@ -189,24 +196,22 @@ if PRINT_VERSION is True:
     exit(0)
 
 if CLEAN_CONFIG_DIR is True and ope(DIR_CFG):
-    print('Removing configuration directory: ' + DIR_CFG)
+    print(CONSRED + 'Removing configuration directory: ' + CONSDFL + DIR_CFG)
     rmtree(DIR_CFG)
     exit(0)
 elif CLEAN_CONFIG_DIR is True:
-    print('Configuration directory does not exist. Nothing to do.')
+    print(CONSRED + 'Configuration directory does not exist. Nothing to do.' + CONSDFL)
     exit(0)
 
 if CLEAN_CONFIG_DIR is False and CONFIG_FILE_PATH is not None:
     if not ope(CONFIG_FILE_PATH):
-        print('Configuration file ' + CONFIG_FILE_PATH + ' does not exist.')
+        print(CONSRED + 'Configuration file ' + CONFIG_FILE_PATH + ' does not exist.' + CONSDFL)
         exit(0)
 elif INSTALL_DEPS is True or DNLD_KRAKEN_DBS is True:
     pass
 else:
     print(SCRIPT_INFO)
-    print(CONYELL +
-          'Configuration file was not provided. Nothing to do.' +
-          CONSDFL)
+    print(CONSRED + 'Configuration file was not provided. Nothing to do.' + CONSDFL)
     print()
     print('-' * 80)
     PARSER.print_help()
@@ -216,7 +221,7 @@ else:
 
 if CLEAN_CONFIG_DIR is False and SS_FILE_PATH is not None:
     if not ope(SS_FILE_PATH):
-        print('Search strategies file ' + SS_FILE_PATH + ' does not exist.')
+        print(CONSRED + 'Search strategies file ' + SS_FILE_PATH + ' does not exist.' + CONSDFL)
         exit(0)
 elif INSTALL_DEPS is True or DNLD_KRAKEN_DBS is True or SS_FILE_PATH is None:
     pass
@@ -224,6 +229,10 @@ else:
     pass
 
 print(SCRIPT_INFO)
+
+COLORS = False
+if CONFIG_FILE_PATH is not None:
+    COLORS = use_colors(CONFIG_FILE_PATH)
 
 # ----------------------------------------------------------------------------
 
@@ -233,44 +242,58 @@ def main():
     # Prepare initial logger (before we know the log file path) --------------
     prj_log_file_suffix = time_stamp() + '.log'
     log_stream = StringIO()
-    log, _ = prepare_logger(console=True, stream=log_stream)
-    linfo = log.info
+
+    Log.set_colors(COLORS)
+    Log.set_file(log_stream)
+    Log.set_write(True)
 
     # Prepare configuration directory ----------------------------------------
     if ope(DIR_CFG):
-        linfo(CONGREE + 'Found configuration directory: ' + DIR_CFG)
+        Log.msg_inf('Found configuration directory:', DIR_CFG)
     else:
-        linfo(CONBLUE + 'Creating configuration directory: ' + DIR_CFG)
-        make_dir(DIR_CFG)
+        Log.wrn('Creating configuration directory:', DIR_CFG)
+        make_dirs(DIR_CFG)
+
+    print()
 
     # Check for dependencies -------------------------------------------------
-    linfo(CONBLUE + 'Checking for dependencies')
-    make_dir(DIR_DEP)
-    make_dir(DIR_KRK)
-    seqtk = deps.dep_check_seqtk(FORCE_DEPS, linfo)
-    trimmomatic, adapters = deps.dep_check_trimmomatic(linfo)
-    fasterq_dump = deps.dep_check_sra_toolkit(FORCE_DEPS, linfo)
-    makeblastdb, _, tblastn = deps.dep_check_blast(FORCE_DEPS, linfo)
-    vsearch = deps.dep_check_vsearch(FORCE_DEPS, linfo)
-    spades = deps.dep_check_spades(FORCE_DEPS, linfo)
-    bowtie2, bowtie2_build = deps.dep_check_bowtie2(FORCE_DEPS, linfo)
-    rcorrector = deps.dep_check_rcorrector(FORCE_DEPS, linfo)
-    kraken2, kraken2_build = deps.dep_check_kraken2(FORCE_DEPS, linfo)
+    Log.inf('Checking for dependencies.')
+    make_dirs(DIR_DEP)
+    make_dirs(DIR_KRK)
+    seqtk = deps.dep_check_seqtk(DIR_DEP, FORCE_DEPS)
+    trimmomatic, adapters = deps.dep_check_trimmomatic(DIR_DEP)
+    fasterq_dump = deps.dep_check_sra_toolkit(DIR_DEP, OS_ID, DIST_ID,
+                                              DEBIAN_DISTS, REDHAT_DISTS,
+                                              FORCE_DEPS)
+    makeblastdb, _, tblastn = deps.dep_check_blast(DIR_DEP, OS_ID, DIST_ID,
+                                                   DEBIAN_DISTS, REDHAT_DISTS,
+                                                   FORCE_DEPS)
+    vsearch = deps.dep_check_vsearch(DIR_DEP, OS_ID, DIST_ID, DEBIAN_DISTS,
+                                     REDHAT_DISTS, FORCE_DEPS)
+    spades = deps.dep_check_spades(DIR_DEP, OS_ID, FORCE_DEPS)
+    bowtie2, bowtie2_build = deps.dep_check_bowtie2(DIR_DEP, OS_ID, FORCE_DEPS)
+    rcorrector = deps.dep_check_rcorrector(DIR_DEP, FORCE_DEPS)
+    kraken2, kraken2_build = deps.dep_check_kraken2(DIR_DEP, OS_ID,
+                                                    RELEASE_NAME, FORCE_DEPS)
 
-    linfo(CONBLUE + 'Checking for available Kraken2 databases')
-    kraken2_dbs = deps.download_kraken2_dbs(DIR_KRK, DNLD_KRAKEN_DBS)
-    for db in sorted(kraken2_dbs.keys()):
-        linfo('Found Kraken2 database: ' + db)
+    print()
+
+    kraken2_dbs = deps.dnld_kraken2_dbs(DIR_KRK)
 
     if INSTALL_DEPS is True or DNLD_KRAKEN_DBS is True:
         exit(0)
 
+    print()
+
     # Initialize NCBI taxonomy database --------------------------------------
-    tax = taxonomy(data_dir_path=DIR_TAX, linfo=linfo)
+    tax = Taxonomy()
+    if tax.is_initialized() is False:
+        tax.init(data_dir_path=DIR_TAX, logger=Log)
+        print()
 
     # Parse configuration file -----------------------------------------------
-    linfo(CONBLUE + 'Reading configuration file: ' + CONFIG_FILE_PATH)
-    _ = config_file_parse(CONFIG_FILE_PATH, tax, linfo)
+    Log.msg_inf('Reading configuration file:', CONFIG_FILE_PATH)
+    _ = config_file_parse(CONFIG_FILE_PATH, tax)
 
     allow_no_stop_cod = _['allow_no_stop_cod']
     allow_no_strt_cod = _['allow_no_strt_cod']
@@ -292,7 +315,7 @@ def main():
 
     dir_out = _['output_directory']
     email = _['email']
-    ncbi_longevity = _['ncbi_longevity']
+    requery_after = _['requery_after']
     fq_pe = _['fq_pe']
     fq_se = _['fq_se']
     should_run_rcorrector = _['should_run_rcorrector']
@@ -308,22 +331,28 @@ def main():
     tax_ids_user = _['tax_ids']
     user_assemblies = _['assmbl']
 
+    print()
+
     # Parse search strategies file -------------------------------------------
     if SS_FILE_PATH is not None:
-        linfo(CONBLUE + 'Reading search strategies file: ' + SS_FILE_PATH)
-        sss = ss_file_parse(SS_FILE_PATH, linfo)
+        Log.msg_inf('Reading search strategies file:', SS_FILE_PATH)
+        sss = ss_file_parse(SS_FILE_PATH)
     else:
-        linfo(CONSRED + 'Search strategies file was not provided. ' +
-              'Will process reads, assemblies and then stop.' + CONSDFL)
+        Log.wrn('Search strategies file was not provided.\n' +
+                'Will process reads, assemblies and then stop.')
         sss = dict()
+
+    print()
 
     # Create output directory ------------------------------------------------
     if dir_out is not None:
         if ope(dir_out):
-            linfo(CONGREE + 'Found output directory: ' + dir_out)
+            Log.msg_inf('Found output directory:', dir_out)
         else:
-            linfo(CONBLUE + 'Creating output directory: ' + dir_out)
-            make_dir(dir_out)
+            Log.wrn('Creating output directory:', dir_out)
+            make_dirs(dir_out)
+
+    print()
 
     # Write Kakapo version information to the output directory ---------------
     version_file = opj(dir_out, 'kakapo_version.txt')
@@ -331,13 +360,14 @@ def main():
         with open(version_file, 'r') as f:
             version_prev = f.read().strip()
             if __version__ != version_prev:
-                linfo(CONSRED + 'The output directory contains data produced by a ' +
-                      'different version of Kakapo: ' + version_prev +
-                      '. The currently running version is: ' + __version__ + '. ' +
-                      'Delete "kakapo_version.txt" file located in the ' +
-                      'output directory if you would like to continue.' +
-                      CONSDFL)
+                Log.wrn('The output directory contains data produced by a ' +
+                        'different version of Kakapo: ' + version_prev +
+                        '.\nThe currently running version is: ' + __version__ +
+                        '.\n' +
+                        'Delete "kakapo_version.txt" file located in the ' +
+                        'output directory if you would like to continue.')
                 exit(0)
+
     with open(version_file, 'w') as f:
         f.write(__version__)
 
@@ -371,8 +401,12 @@ def main():
     prj_log_file = opj(dir_prj_logs, prj_name + '_' + prj_log_file_suffix)
     with open(prj_log_file, 'w') as f:
         f.write(SCRIPT_INFO.strip() + '\n\n' + log_stream.getvalue())
-    log, _ = prepare_logger(console=True, stream=None, file=prj_log_file)
-    linfo = log.info
+
+    Log.set_colors(COLORS)
+    Log.set_file(prj_log_file)
+    Log.set_write(True)
+
+    log_stream.close()
 
     # Resolve descending taxonomy nodes --------------------------------------
     tax_ids = tax.all_descending_taxids_for_taxids([tax_group])
@@ -382,16 +416,16 @@ def main():
     for ss in sss:
         pfam_acc = sss[ss]['pfam_families']
         pfam_uniprot_acc[ss] = pfam_uniprot_accessions(ss, pfam_acc, tax_ids,
-                                                       dir_cache_pfam_acc,
-                                                       linfo)
+                                                       dir_cache_pfam_acc)
 
     # Download Pfam uniprot sequences if needed ------------------------------
     aa_uniprot_files = OrderedDict()
     for ss in sss:
         aa_uniprot_files[ss] = opj(dir_prj_queries, 'aa_uniprot__' + ss +
                                    '.fasta')
+        # ToDo: add support for the requery_after parameter.
         dnld_pfam_uniprot_seqs(ss, pfam_uniprot_acc[ss], aa_uniprot_files[ss],
-                               dir_cache_prj, linfo)
+                               dir_cache_prj)
 
     # User provided entrez query ---------------------------------------------
     prot_acc_user_from_query = OrderedDict()
@@ -399,16 +433,16 @@ def main():
         entrez_queries = sss[ss]['entrez_search_queries']
         prot_acc_user_from_query[ss] = user_entrez_search(ss, entrez_queries,
                                                           dir_cache_prj,
-                                                          ncbi_longevity,
-                                                          linfo)
+                                                          requery_after)
 
     # User provided protein accessions ---------------------------------------
     prot_acc_user = OrderedDict()
     for ss in sss:
+        print()
         prot_acc_all = sorted(set(sss[ss]['ncbi_accessions_aa'] +
                                   prot_acc_user_from_query[ss]))
         prot_acc_user[ss] = user_protein_accessions(ss, prot_acc_all,
-                                                    dir_cache_prj, tax, linfo)
+                                                    dir_cache_prj, tax)
 
     # Download from NCBI if needed -------------------------------------------
     aa_prot_ncbi_files = OrderedDict()
@@ -416,7 +450,8 @@ def main():
         aa_prot_ncbi_files[ss] = opj(dir_prj_queries, 'aa_prot_ncbi__' + ss +
                                      '.fasta')
         prot_acc_user[ss] = dnld_prot_seqs(ss, prot_acc_user[ss],
-                                           aa_prot_ncbi_files[ss], linfo)
+                                           aa_prot_ncbi_files[ss],
+                                           dir_cache_prj)
 
     # User provided protein sequences ----------------------------------------
     aa_prot_user_files = OrderedDict()
@@ -424,15 +459,15 @@ def main():
         user_queries = sss[ss]['fasta_files_aa']
         aa_prot_user_files[ss] = opj(dir_prj_queries, 'aa_prot_user__' + ss +
                                      '.fasta')
-        user_aa_fasta(ss, user_queries, aa_prot_user_files[ss], linfo)
+        user_aa_fasta(ss, user_queries, aa_prot_user_files[ss])
 
     # Combine all AA queries -------------------------------------------------
+    print()
     aa_queries_files = OrderedDict()
     for ss in sss:
         aa_queries_files[ss] = opj(dir_prj_queries, 'aa_all__' + ss + '.fasta')
         combine_aa_fasta(ss, [aa_uniprot_files[ss], aa_prot_ncbi_files[ss],
-                              aa_prot_user_files[ss]], aa_queries_files[ss],
-                         linfo)
+                              aa_prot_user_files[ss]], aa_queries_files[ss])
 
     # Filter AA queries ------------------------------------------------------
     prot_acc_user_filtered = OrderedDict()
@@ -444,7 +479,7 @@ def main():
         # Dereplicate all queries
         filter_queries(ss, aa_queries_files[ss], min_query_length,
                        max_query_length, max_query_identity,
-                       vsearch, prot_acc_user[ss], overwrite=True, linfo=linfo)
+                       vsearch, prot_acc_user[ss], overwrite=True)
 
         # Dereplicate only NCBI queries. CDS for these will be downloaded
         # later for reference.
@@ -452,22 +487,21 @@ def main():
             prot_acc_user_filtered[ss] = filter_queries(
                 ss, aa_prot_ncbi_files[ss], min_query_length, max_query_length,
                 max_query_identity, vsearch, prot_acc_user[ss],
-                overwrite=False, linfo=lambda x: x)
+                overwrite=False, logging=False)
 
     # Download SRA run metadata if needed ------------------------------------
-    sra_runs_info, sras_acceptable = dnld_sra_info(sras, dir_cache_prj, linfo)
+    sra_runs_info, sras_acceptable = dnld_sra_info(sras, dir_cache_prj)
 
     # Download SRA run FASTQ files if needed ---------------------------------
     x, y, z = dnld_sra_fastq_files(sras_acceptable, sra_runs_info, dir_fq_data,
-                                   fasterq_dump, THREADS, dir_temp, linfo)
+                                   fasterq_dump, THREADS, dir_temp)
 
     se_fastq_files_sra = x
     pe_fastq_files_sra = y
     sra_runs_info = z
 
     # User provided FASTQ files ----------------------------------------------
-    se_fastq_files_usr, pe_fastq_files_usr = user_fastq_files(fq_se, fq_pe,
-                                                              linfo)
+    se_fastq_files_usr, pe_fastq_files_usr = user_fastq_files(fq_se, fq_pe)
 
     # Collate FASTQ file info ------------------------------------------------
     se_fastq_files = se_fastq_files_sra.copy()
@@ -513,11 +547,11 @@ def main():
 
     # Minimum acceptable read length -----------------------------------------
     min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
-                        dir_cache_fq_minlen, vsearch, linfo)
+                        dir_cache_fq_minlen, vsearch)
 
     # Run Rcorrector ---------------------------------------------------------
     run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
-                   THREADS, dir_temp, should_run_rcorrector, linfo)
+                   THREADS, dir_temp, should_run_rcorrector)
 
     # File name patterns -----------------------------------------------------
     a, b, c, d, e = file_name_patterns()
@@ -530,19 +564,17 @@ def main():
 
     # Run Trimmomatic --------------------------------------------------------
     run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
-                    trimmomatic, adapters, pe_trim_fq_file_patterns, THREADS,
-                    linfo)
+                    trimmomatic, adapters, pe_trim_fq_file_patterns, THREADS)
 
     # Run Bowtie 2 -----------------------------------------------------------
     run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_bt2_data,
                bowtie2, bowtie2_build, THREADS, dir_temp, bt2_order,
-               pe_trim_fq_file_patterns, tax, dir_cache_refseqs,
-               linfo)
+               pe_trim_fq_file_patterns, tax, dir_cache_refseqs)
 
     # Run Kraken2 ------------------------------------------------------------
     run_kraken2(krkn_order, kraken2_dbs, se_fastq_files, pe_fastq_files,
                 dir_fq_filter_krkn2_data, kraken_confidence, kraken2, THREADS,
-                dir_temp, pe_trim_fq_file_patterns, linfo)
+                dir_temp, pe_trim_fq_file_patterns)
 
     se_fastq_files = OrderedDict(se_fastq_files)
     pe_fastq_files = OrderedDict(pe_fastq_files)
@@ -555,18 +587,16 @@ def main():
 
     # Stop After Filter ------------------------------------------------------
     if STOP_AFTER_FILTER is True:
-        linfo(CONSRED +
-              'Stopping after Kraken2/Bowtie2 filtering step as requested.' +
-              CONSDFL)
+        Log.wrn('Stopping after Kraken2/Bowtie2 filtering step as requested.')
         exit(0)
 
     # Convert filtered FASTQ files to FASTA ----------------------------------
     filtered_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
-                      pe_trim_fa_file_patterns, linfo)
+                      pe_trim_fa_file_patterns)
 
     # Run makeblastdb on reads -----------------------------------------------
     makeblastdb_fq(se_fastq_files, pe_fastq_files, dir_blast_fa_trim,
-                   makeblastdb, pe_blast_db_file_patterns, linfo)
+                   makeblastdb, pe_blast_db_file_patterns)
 
     # Check if there are any query sequences.
     any_queries = False
@@ -586,7 +616,7 @@ def main():
             blast_1_best_hit_overhang, blast_1_best_hit_score_edge,
             blast_1_max_target_seqs, dir_prj_blast_results_fa_trim,
             pe_blast_results_file_patterns, ss, THREADS, seqtk, vsearch,
-            dir_cache_prj, linfo)
+            dir_cache_prj)
 
         if changed_blast_1 is True:
             if ope(dir_prj_vsearch_results_fa_trim):
@@ -605,15 +635,38 @@ def main():
     prepare_output_directories(dir_out, prj_name)
 
     # Run vsearch on reads ---------------------------------------------------
+    should_run_vsearch = False
+    for ss in sss:
+        if stat(aa_queries_files[ss]).st_size == 0:
+            continue
+        else:
+            should_run_vsearch = True
+            break
+
+    if should_run_vsearch is True:
+        print()
+        Log.inf('Checking if Vsearch should be run.')
+
     for ss in sss:
         if stat(aa_queries_files[ss]).st_size == 0:
             continue
         run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
                              dir_prj_vsearch_results_fa_trim,
-                             pe_vsearch_results_file_patterns, ss, seqtk,
-                             linfo)
+                             pe_vsearch_results_file_patterns, ss, seqtk)
 
     # Run SPAdes -------------------------------------------------------------
+    should_run_spades = False
+    for ss in sss:
+        if stat(aa_queries_files[ss]).st_size == 0:
+            continue
+        else:
+            should_run_spades = True
+            break
+
+    if should_run_spades is True:
+        print()
+        Log.inf('Checking if SPAdes should be run.')
+
     for ss in sss:
         if stat(aa_queries_files[ss]).st_size == 0:
             for se in se_fastq_files:
@@ -622,23 +675,39 @@ def main():
                 pe_fastq_files[pe]['spades_assembly' + '__' + ss] = None
             continue
         run_spades(se_fastq_files, pe_fastq_files, dir_prj_spades_assemblies,
-                   spades, dir_temp, ss, THREADS, RAM, linfo)
+                   spades, dir_temp, ss, THREADS, RAM)
 
     # Combine SPAdes and user provided assemblies ----------------------------
     assemblies = combine_assemblies(se_fastq_files, pe_fastq_files,
                                     user_assemblies, tax, sss)
 
     # Run makeblastdb on assemblies  -----------------------------------------
-    makeblastdb_assemblies(assemblies, dir_prj_blast_assmbl, makeblastdb,
-                           linfo)
+    makeblastdb_assemblies(assemblies, dir_prj_blast_assmbl, makeblastdb)
 
     if any_queries is False:
-        linfo(CONSRED + 'No query sequences were provided' + CONSDFL)
+        Log.wrn('No query sequences were provided.')
 
     # Run tblastn on assemblies ----------------------------------------------
     for ss in sss:
 
         if stat(aa_queries_files[ss]).st_size == 0:
+            continue
+
+        should_run_tblastn = False
+        for a in assemblies:
+            assmbl_src = a['src']
+            assmbl_name = a['name']
+            if assmbl_src != 'user_fasta':
+                if assmbl_name.endswith('__' + ss):
+                    should_run_tblastn = True
+                    break
+            else:
+                should_run_tblastn = True
+                break
+
+        if should_run_tblastn is False:
+            print()
+            Log.msg_inf('Will not run BLAST. No transcripts exist:', ss)
             continue
 
         blast_2_evalue_ss = sss[ss]['blast_2_evalue']
@@ -668,7 +737,7 @@ def main():
                                   blast_2_best_hit_overhang_ss,
                                   blast_2_best_hit_score_edge_ss,
                                   blast_2_max_target_seqs_ss, THREADS,
-                                  dir_cache_prj, dir_prj_ips, linfo)
+                                  dir_cache_prj, dir_prj_ips)
 
     # Prepare BLAST hits for analysis: find ORFs, translate ------------------
     for ss in sss:
@@ -690,18 +759,19 @@ def main():
                             max_target_orf_len_ss, allow_non_aug,
                             allow_no_strt_cod,
                             allow_no_stop_cod, tax, tax_group, tax_ids_user,
-                            blast_2_qcov_hsp_perc_ss, organelle, linfo)
+                            blast_2_qcov_hsp_perc_ss, organelle)
 
     # GFF3 files from kakapo results JSON files ------------------------------
+    print()
     for ss in sss:
         if stat(aa_queries_files[ss]).st_size == 0:
             continue
         gff_from_json(ss, assemblies, dir_prj_ips,
-                      dir_prj_transcripts_combined, prj_name, linfo)
+                      dir_prj_transcripts_combined, prj_name)
 
     # Run InterProScan 5 -----------------------------------------------------
     if should_run_ipr is True:
-
+        print()
         ss_names = tuple(sss.keys())
 
         # Determine the length of printed strings, for better spacing --------
@@ -721,7 +791,7 @@ def main():
                 run_id = ss + '_' + assmbl_name
                 max_run_id_len = max(len(run_id), max_run_id_len)
 
-                seqs = read_fasta(aa_file)
+                seqs = seq_records_to_dict(read_fasta(aa_file, SEQ_TYPE_AA))
 
                 # Filter all ORFs except the first one.
                 for seq_def in tuple(seqs.keys()):
@@ -734,45 +804,28 @@ def main():
         max_run_id_len += 2
         # --------------------------------------------------------------------
 
-        # Parallel version BEGIN ---------------------------------------------
         parallel_run_count = min(THREADS, len(ss_names))
 
         def run_inter_pro_scan_parallel(ss):
-
             if stat(aa_queries_files[ss]).st_size == 0:
                 return
 
             run_inter_pro_scan(ss, assemblies, email, dir_prj_ips,
                                dir_cache_prj, parallel_run_count,
-                               max_title_a_len, max_run_id_len, linfo)
+                               max_title_a_len, max_run_id_len)
 
             # GFF3 files from kakapo and InterProScan 5 results JSON files
             gff_from_json(ss, assemblies, dir_prj_ips,
-                          dir_prj_transcripts_combined, prj_name, linfo)
+                          dir_prj_transcripts_combined, prj_name)
 
         Parallel(n_jobs=parallel_run_count, verbose=0, require='sharedmem')(
             delayed(run_inter_pro_scan_parallel)(ss) for ss in ss_names)
-        # Parallel version END -----------------------------------------------
-
-        # Sequential version BEGIN -------------------------------------------
-        # for ss in sss:
-        #     if stat(aa_queries_files[ss]).st_size == 0:
-        #         continue
-        #     run_inter_pro_scan(ss, assemblies, email, dir_prj_ips,
-        #                        dir_cache_prj, 1, max_title_a_len,
-        #                        max_run_id_len, linfo)
-        #     # GFF3 files from kakapo and InterProScan 5 results JSON files
-        #     gff_from_json(ss, assemblies, dir_prj_ips,
-        #                   dir_prj_transcripts_combined, prj_name, linfo)
-        # Sequential version END ---------------------------------------------
 
     # Download CDS for NCBI protein queries ----------------------------------
-
+    print()
     prot_cds_ncbi_files = OrderedDict()
 
-    # Parallel version BEGIN -------------------------------------------------
     def dnld_cds_for_ncbi_prot_acc_parallel(ss):
-
         if stat(aa_queries_files[ss]).st_size == 0:
             return
 
@@ -785,31 +838,15 @@ def main():
         if len(prot_acc_user_filtered[ss]) > 0:
             dnld_cds_for_ncbi_prot_acc(ss, prot_acc_user_filtered[ss],
                                        prot_cds_ncbi_files[ss], tax,
-                                       dir_cache_prj, linfo)
+                                       dir_cache_prj)
 
     ss_names = tuple(sss.keys())
     Parallel(n_jobs=2, verbose=0, require='sharedmem')(
         delayed(dnld_cds_for_ncbi_prot_acc_parallel)(ss) for ss in ss_names)
-    # Parallel version END ---------------------------------------------------
-
-    # Sequential version BEGIN -----------------------------------------------
-    # for ss in sss:
-    #     if stat(aa_queries_files[ss]).st_size == 0:
-    #         continue
-    #     if ss not in prot_acc_user_filtered:
-    #         continue
-    #     prot_cds_ncbi_files[ss] = opj(dir_prj_transcripts_combined, prj_name +
-    #                                   '_ncbi_query_cds__' + ss + '.fasta')
-    #     if len(prot_acc_user_filtered[ss]) > 0:
-    #         dnld_cds_for_ncbi_prot_acc(ss, prot_acc_user_filtered[ss],
-    #                                    prot_cds_ncbi_files[ss], tax,
-    #                                    dir_cache_prj, linfo)
-    # Sequential version END -------------------------------------------------
 
     # ------------------------------------------------------------------------
 
     rmtree(dir_temp)
-    log, _ = prepare_logger(console=False)
 
     # ------------------------------------------------------------------------
 

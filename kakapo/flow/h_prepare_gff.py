@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Kakapo workflow: Produce GFF3 files."""
 
 # import json
@@ -8,16 +6,15 @@
 from os.path import exists as ope
 from os.path import join as opj
 
-from kakapo.gff3 import gff_from_json_dict
-from kakapo.helpers import combine_text_files
-from kakapo.seq_annotations import parse_kakapo_json_file
-from kakapo.seq_annotations import merge_kakapo_and_ips_annotations
+from kakapo.tools.gff3 import gff_from_json_dict
+from kakapo.utils.misc import combine_text_files
+from kakapo.tools.seq_annotations import parse_kakapo_json_file
+from kakapo.tools.seq_annotations import merge_kakapo_and_ips_annotations
+from kakapo.utils.logging import Log
 
 
 def gff_from_json(ss, assemblies, dir_prj_ips, dir_prj_transcripts_combined,
-                  prj_name, linfo=print):
-    # if len(assemblies) > 0:
-    #     linfo('Producing GFF3 files [' + ss + ']')
+                  prj_name):
 
     all_fas_paths = []
     all_gff_paths = []
@@ -35,10 +32,10 @@ def gff_from_json(ss, assemblies, dir_prj_ips, dir_prj_transcripts_combined,
         assmbl_name = a['name']
         transcripts_nt_path = a['transcripts_nt_fasta_file__' + ss]
 
-        kakapo_json_path = opj(dir_prj_ips, assmbl_name + '_ann_kakapo__'
-                               + ss + '.json')
-        ips_json_path = opj(dir_prj_ips, assmbl_name + '_ann_ips__'
-                            + ss + '.json')
+        kakapo_json_path = opj(dir_prj_ips, assmbl_name + '_ann_kakapo__' +
+                               ss + '.json')
+        ips_json_path = opj(dir_prj_ips, assmbl_name + '_ann_ips__' +
+                            ss + '.json')
 
         gff_path = transcripts_nt_path.replace('.fasta', '.gff')
 
@@ -51,7 +48,7 @@ def gff_from_json(ss, assemblies, dir_prj_ips, dir_prj_transcripts_combined,
         elif ope(kakapo_json_path):
             json_dict = parse_kakapo_json_file(kakapo_json_path)
 
-        linfo('Producing GFF3 files for ' + ss + ' in ' + assmbl_name + '.')
+        Log.inf('Producing GFF3 files for ' + ss + ' in ' + assmbl_name + '.')
         gff_from_json_dict(json_dict, gff_path)
 
         all_gff_paths.append(gff_path)

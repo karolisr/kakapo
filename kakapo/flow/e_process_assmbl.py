@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Kakapo workflow: Assemble Reads."""
 
 from operator import itemgetter
@@ -11,22 +9,22 @@ from os.path import join as opj
 from os.path import splitext
 from sys import exit
 
-from kakapo.bioio import read_fasta
-from kakapo.blast import make_blast_db
-from kakapo.config import CONSRED, CONBLUE, CONGREE, CONSDFL
-from kakapo.helpers import combine_text_files
-from kakapo.helpers import make_dir
-from kakapo.spades import run_spades_se, run_spades_pe
-from kakapo.translation_tables import TranslationTable
+from kakapo.tools.bioio import read_fasta
+from kakapo.tools.seq import SEQ_TYPE_NT
+from kakapo.tools.blast import make_blast_db
+from kakapo.tools.spades import run_spades_se, run_spades_pe
+from kakapo.tools.transl_tables import TranslationTable
+from kakapo.utils.logging import Log
+from kakapo.utils.misc import combine_text_files
+from kakapo.utils.misc import make_dirs
 
 
 def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
-               spades, dir_temp, ss, threads, ram, linfo=print):
+               spades, dir_temp, ss, threads, ram):
 
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
         if spades is None:
-            linfo(CONSRED + 'spades is not available. ' +
-                  'Cannot continue. Exiting.')
+            Log.err('SPAdes is not available. Cannot continue. Exiting.')
             exit(0)
 
     for se in se_fastq_files:
@@ -35,11 +33,11 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
         se_fastq_files[se]['spades_assembly' + '__' + ss] = None
 
         if ope(dir_results):
-            linfo(CONGREE + 'SPAdes assembly for sample ' + se +
-                  ' already exists [' + ss + ']')
+            Log.msg('SPAdes assembly for sample ' + se +
+                    ' already exists:', ss)
         else:
-            make_dir(dir_results)
-            linfo(CONBLUE + 'Running SPAdes on: ' + se + ' [' + ss + ']')
+            make_dirs(dir_results)
+            Log.msg('Running SPAdes on: ' + se, ss)
             run_spades_se(spades,
                           out_dir=dir_results,
                           input_file=fq_path,
@@ -49,14 +47,14 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
 
         assmbl_path = opj(dir_results, 'transcripts.fasta')
         if ope(assmbl_path):
-            count = len(read_fasta(assmbl_path))
+            count = len(read_fasta(assmbl_path, SEQ_TYPE_NT))
             tr_str = ' transcripts'
             if count == 1:
                 tr_str = ' transcript'
-            linfo('SPAdes produced ' + str(count) + tr_str + ' [' + ss + ']')
+            Log.msg('SPAdes produced ' + str(count) + tr_str + ':', ss)
             se_fastq_files[se]['spades_assembly' + '__' + ss] = assmbl_path
         else:
-            linfo(CONSRED + 'SPAdes produced no transcripts [' + ss + ']')
+            Log.wrn('SPAdes produced no transcripts:', ss)
 
     for pe in pe_fastq_files:
         dir_results = opj(dir_spades_assemblies, pe + '__' + ss)
@@ -64,11 +62,11 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
         pe_fastq_files[pe]['spades_assembly' + '__' + ss] = None
 
         if ope(dir_results):
-            linfo(CONGREE + 'SPAdes assembly for sample ' + pe +
-                  ' already exists [' + ss + ']')
+            Log.msg('SPAdes assembly for sample ' + pe + ' already exists:',
+                    ss)
         else:
-            make_dir(dir_results)
-            linfo(CONBLUE + 'Running SPAdes on: ' + pe + ' [' + ss + ']')
+            make_dirs(dir_results)
+            Log.msg('Running SPAdes on: ' + pe, ss)
 
             if osstat(fq_paths[0]).st_size > 0 and \
                osstat(fq_paths[1]).st_size > 0:
@@ -93,14 +91,14 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
 
         assmbl_path = opj(dir_results, 'transcripts.fasta')
         if ope(assmbl_path):
-            count = len(read_fasta(assmbl_path))
+            count = len(read_fasta(assmbl_path, SEQ_TYPE_NT))
             tr_str = ' transcripts'
             if count == 1:
                 tr_str = ' transcript'
-            linfo('SPAdes produced ' + str(count) + tr_str + ' [' + ss + ']')
+            Log.msg('SPAdes produced ' + str(count) + tr_str + ':', ss)
             pe_fastq_files[pe]['spades_assembly' + '__' + ss] = assmbl_path
         else:
-            linfo(CONSRED + 'SPAdes produced no transcripts [' + ss + ']')
+            Log.wrn('SPAdes produced no transcripts:', ss)
 
 
 def combine_assemblies(se_fastq_files, pe_fastq_files, user_assemblies, tax,
@@ -155,7 +153,7 @@ def combine_assemblies(se_fastq_files, pe_fastq_files, user_assemblies, tax,
         a['gc_id'] = gc
         a['gc_tt'] = TranslationTable(gc)
 
-        # TODO: Refactor this with the code from __main__.py -----------------
+        # ToDo: Refactor this with the code from __main__.py -----------------
         gc_mito = None
         tt_mito = None
 
@@ -185,13 +183,12 @@ def combine_assemblies(se_fastq_files, pe_fastq_files, user_assemblies, tax,
     return assemblies
 
 
-def makeblastdb_assemblies(assemblies, dir_prj_blast_assmbl, makeblastdb,
-                           linfo=print):
+def makeblastdb_assemblies(assemblies, dir_prj_blast_assmbl, makeblastdb):
     if len(assemblies) > 0:
-        linfo(CONBLUE + 'Building BLAST databases for assemblies')
+        print()
+        Log.inf('Building BLAST databases for assemblies.')
         if makeblastdb is None:
-            linfo(CONSRED + 'makeblastdb is not available. ' +
-                  'Cannot continue. Exiting.')
+            Log.err('makeblastdb is not available. Cannot continue. Exiting.')
             exit(0)
     for a in assemblies:
         assmbl_name = a['name']
@@ -202,11 +199,10 @@ def makeblastdb_assemblies(assemblies, dir_prj_blast_assmbl, makeblastdb,
         a['blast_db_path'] = assmbl_blast_db_file
 
         if ope(assmbl_blast_db_dir):
-            linfo(CONGREE + 'BLAST database for ' + assmbl_name +
-                  ' already exists')
+            Log.msg('BLAST database already exists:', assmbl_name)
         else:
-            linfo(assmbl_name)
-            make_dir(assmbl_blast_db_dir)
+            Log.msg(assmbl_name)
+            make_dirs(assmbl_blast_db_dir)
             make_blast_db(exec_file=makeblastdb,
                           in_file=a['path'],
                           out_file=assmbl_blast_db_file,

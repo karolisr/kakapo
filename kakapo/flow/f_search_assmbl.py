@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Kakapo workflow: Search Assemblies."""
 
 import pickle
@@ -8,11 +6,14 @@ from os import remove as osremove
 from os.path import exists as ope
 from os.path import join as opj
 
-from kakapo.bioio import read_fasta
-from kakapo.blast import BLST_RES_COLS_2
-from kakapo.blast import parse_blast_results_file
-from kakapo.blast import run_blast
-from kakapo.config import PICKLE_PROTOCOL
+from kakapo.tools.bioio import read_fasta
+from kakapo.tools.bioio import seq_records_to_dict
+from kakapo.tools.blast import BLST_RES_COLS_2
+from kakapo.tools.blast import parse_blast_results_file
+from kakapo.tools.blast import run_blast
+from kakapo.tools.config import PICKLE_PROTOCOL
+from kakapo.tools.seq import SEQ_TYPE_AA
+from kakapo.utils.logging import Log
 
 
 def run_tblastn_on_assemblies(ss, assemblies, aa_queries_file, tblastn,
@@ -21,16 +22,16 @@ def run_tblastn_on_assemblies(ss, assemblies, aa_queries_file, tblastn,
                               blast_2_best_hit_overhang,
                               blast_2_best_hit_score_edge,
                               blast_2_max_target_seqs, threads, dir_cache_prj,
-                              dir_prj_ips, linfo=print):
+                              dir_prj_ips):
 
     if len(assemblies) > 0:
-        linfo('Running BLAST on assemblies [' + ss + ']')
+        print()
+        Log.msg_inf('Running BLAST on assemblies:', ss)
         if tblastn is None:
-            linfo('tblastn is not available. ' +
-                  'Cannot continue. Exiting.')
+            Log.err('tblastn is not available. Cannot continue. Exiting.')
             exit(0)
     else:
-        linfo('There are no assemblies. Nothing to do, stopping.')
+        Log.wrn('There are no assemblies. Nothing to do, stopping.')
         exit(0)
 
     cache_file = opj(dir_cache_prj, 'blast_2_settings_cache__' + ss)
@@ -42,16 +43,19 @@ def run_tblastn_on_assemblies(ss, assemblies, aa_queries_file, tblastn,
                 'blast_2_best_hit_overhang': blast_2_best_hit_overhang,
                 'blast_2_best_hit_score_edge': blast_2_best_hit_score_edge,
                 'blast_2_max_target_seqs': blast_2_max_target_seqs,
-                'queries': read_fasta(aa_queries_file)}
+                'queries': seq_records_to_dict(
+                    read_fasta(aa_queries_file, SEQ_TYPE_AA))}
 
-    linfo('evalue: ' + str(blast_2_evalue))
-    linfo('max_hsps: ' + str(blast_2_max_hsps))
-    linfo('qcov_hsp_perc: ' + str(blast_2_qcov_hsp_perc))
-    linfo('best_hit_overhang: ' + str(blast_2_best_hit_overhang))
-    linfo('best_hit_score_edge: ' + str(blast_2_best_hit_score_edge))
-    linfo('max_target_seqs: ' + str(blast_2_max_target_seqs))
+    Log.msg('evalue:', str(blast_2_evalue))
+    Log.msg('max_hsps:', str(blast_2_max_hsps))
+    Log.msg('qcov_hsp_perc:', str(blast_2_qcov_hsp_perc))
+    Log.msg('best_hit_overhang:', str(blast_2_best_hit_overhang))
+    Log.msg('best_hit_score_edge:', str(blast_2_best_hit_score_edge))
+    Log.msg('max_target_seqs:', str(blast_2_max_target_seqs))
+    print()
 
     for a in assemblies:
+
         assmbl_src = a['src']
         assmbl_name = a['name']
 
@@ -74,12 +78,12 @@ def run_tblastn_on_assemblies(ss, assemblies, aa_queries_file, tblastn,
                 pickled = pickle.load(f)
 
         if ope(_) and pickled == settings:
-            linfo('The provided BLAST settings and query sequences did not ' +
-                  'change since the previous run. BLAST results for the ' +
-                  'assembly "' + assmbl_name + '" already exist')
+            Log.msg('The provided BLAST settings and query sequences did ' +
+                    'not change since the previous run.\n\tBLAST results for ' +
+                    'the assembly "' + assmbl_name + '" already exist:', ss)
 
         else:
-            linfo('Running tblastn on: ' + assmbl_name + ' [' + ss + ']')
+            Log.msg('Running tblastn on: ' + assmbl_name, ss)
 
             if ope(ips_json_dump_path):
                 osremove(ips_json_dump_path)

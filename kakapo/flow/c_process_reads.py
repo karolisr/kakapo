@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Kakapo workflow: Process Reads."""
 
 import fileinput
@@ -22,40 +20,43 @@ from shutil import move
 from shutil import rmtree
 from time import sleep
 
-from kakapo.bioio import read_fasta
-from kakapo.bioio import write_fasta
-from kakapo.blast import make_blast_db
-from kakapo.bowtie2 import build_bt2_index, run_bowtie2_se, run_bowtie2_pe
-from kakapo.config import PICKLE_PROTOCOL
-from kakapo.config import CONBLUE, CONGREE, CONSRED, CONSDFL
-from kakapo.entrez import accessions as accessions_ncbi
-from kakapo.entrez import dnld_seqs_fasta_format
-from kakapo.entrez import esearch
-from kakapo.entrez import sra_run_info
-from kakapo.helpers import make_dir
-from kakapo.helpers import plain_or_gzip
-from kakapo.helpers import splitext_gz
-from kakapo.helpers import rename_fq_seqs
-from kakapo.kraken import run_kraken_filters
-from kakapo.rcorrector import filter_unc_se, filter_unc_pe
-from kakapo.rcorrector import run_rcorrector_se, run_rcorrector_pe
-from kakapo.seqtk import seqtk_fq_to_fa
-from kakapo.shell import call
-from kakapo.translation_tables import TranslationTable
-from kakapo.trimmomatic import trimmomatic_se, trimmomatic_pe
+from kakapo.tools.bioio import read_fasta
+from kakapo.tools.bioio import seq_records_to_dict
+from kakapo.tools.bioio import write_fasta
+from kakapo.tools.blast import make_blast_db
+from kakapo.tools.bowtie2 import build_bt2_index, run_bowtie2_se, run_bowtie2_pe
+from kakapo.tools.config import PICKLE_PROTOCOL
+from kakapo.tools.eutils import accs as accs_eutil
+from kakapo.tools.eutils import search as search_eutil
+from kakapo.tools.eutils import seqs as dnld_ncbi_seqs
+from kakapo.tools.eutils import sra_run_info
+from kakapo.tools.kraken import run_kraken_filters
+from kakapo.tools.rcorrector import filter_unc_se, filter_unc_pe
+from kakapo.tools.rcorrector import run_rcorrector_se, run_rcorrector_pe
+from kakapo.tools.seq import SEQ_TYPE_NT
+from kakapo.tools.seqtk import seqtk_fq_to_fa
+from kakapo.tools.transl_tables import TranslationTable
+from kakapo.tools.trimmomatic import trimmomatic_se, trimmomatic_pe
+from kakapo.utils.logging import Log
+from kakapo.utils.misc import make_dirs
+from kakapo.utils.misc import plain_or_gzip
+from kakapo.utils.misc import rename_fq_seqs
+from kakapo.utils.misc import splitext_gz
+from kakapo.utils.subp import run
 
 
 MT = 'mitochondrion'
 PT = 'plastid'
 
 
-def dnld_sra_info(sras, dir_cache_prj, linfo=print):
+def dnld_sra_info(sras, dir_cache_prj):
 
     sra_runs_info = {}
     sras_acceptable = []
 
     if len(sras) > 0:
-        linfo(CONBLUE + 'Downloading SRA run information')
+        print()
+        Log.inf('Downloading SRA run information.')
     else:
         return sra_runs_info, sras_acceptable
 
@@ -100,24 +101,26 @@ def dnld_sra_info(sras, dir_cache_prj, linfo=print):
                     'rna' in src_check or
                     'rna' in strategy_check):
 
-                sra_info_str = (CONSRED +
-                                '{sra}: the SRA library source type "{ltype}" '
+                sra_info_str = ('{sra}: the SRA library source type "{ltype}" '
                                 'or library strategy "{strategy}" '
-                                'is not supported').format(
+                                'is not supported.').format(
                                     sra=sra, ltype=sra_lib_source,
                                     strategy=sra_lib_strategy)
 
+                Log.err(sra_info_str, 'Skipping.')
+
             elif sra_seq_platform != 'Illumina':
-                sra_info_str = (CONSRED +
-                                '{sra}: the SRA library sequencing platform '
+                sra_info_str = ('{sra}: the SRA library sequencing platform '
                                 '"{plat}" is not supported').format(
                                     sra=sra, plat=sra_seq_platform)
 
+                Log.err(sra_info_str, 'Skipping.')
+
             else:
-                sra_info_str = (CONGREE + 'SRA run {sra} {strategy} ({source}) '
-                                '{layout}-end library. '
+                sra_info_str = ('SRA run {sra} {strategy} ({source}) '
+                                '{layout}-end library.\n'
                                 'Sourced from {species} '
-                                '(TaxID: {txid}). '
+                                '(TaxID: {txid}).\n'
                                 'Sequenced using {platform} platform on '
                                 '{model}.').format(
                                     sra=sra,
@@ -135,7 +138,7 @@ def dnld_sra_info(sras, dir_cache_prj, linfo=print):
                 if sra_lib_layout == 'paired' and sra_spots_with_mates == 0:
                     sra_runs_info[sra]['KakapoLibraryLayout'] = 'SINGLE'
                     sra_info_str = (
-                        sra_info_str + ' Listed as containing '
+                        sra_info_str + '\nListed as containing '
                         'paired-end reads, but only a single set of reads '
                         'is available. Treating as single-ended.')
 
@@ -143,12 +146,12 @@ def dnld_sra_info(sras, dir_cache_prj, linfo=print):
                       sra_spots != sra_spots_with_mates):
                     sra_runs_info[sra]['KakapoLibraryLayout'] = 'PAIRED_UNP'
                     sra_info_str = (
-                        sra_info_str + ' Listed as containing '
+                        sra_info_str + '\nListed as containing '
                         'paired-end reads, but not all reads are paired.')
 
                 sras_acceptable.append(sra)
 
-            linfo(sra_info_str)
+                Log.msg(sra_info_str)
 
     with open(__, 'wb') as f:
         pickle.dump(sra_runs_info, f, protocol=PICKLE_PROTOCOL)
@@ -157,13 +160,16 @@ def dnld_sra_info(sras, dir_cache_prj, linfo=print):
 
 
 def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
-                         threads, dir_temp, linfo=print):
+                         threads, dir_temp):
 
     if len(sras) > 0:
         if fasterq_dump is None:
-            linfo(CONSRED + 'fasterq-dump from SRA Toolkit is not available. ' +
-                  'Cannot continue. Exiting.')
+            Log.err('fasterq-dump from SRA Toolkit is not available. ' +
+                    'Cannot continue. Exiting.')
             exit(0)
+
+        print()
+        Log.inf('Downloading SRA read data.')
 
     se_fastq_files = {}
     pe_fastq_files = {}
@@ -204,33 +210,32 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
                 sra_dnld_needed = True
 
         if not sra_dnld_needed:
-            linfo(CONGREE + 'FASTQ reads for the SRA run ' + sample_base_name +
-                  ' are available locally')
+            Log.msg('FASTQ reads are available locally:', sample_base_name)
 
         retry_count = 0
         while sra_dnld_needed:
 
             if retry_count > 50:
-                linfo(CONSRED + 'Download failed. Exiting.')
+                Log.err('Download failed. Exiting.')
                 rmtree(dir_temp)
                 exit(1)
 
             elif retry_count > 0:
-                linfo(CONSRED + 'Download failed. Retrying.')
+                Log.wrn('Download failed. Retrying.')
                 sleep(2)
 
             retry_count += 1
 
-            linfo(CONBLUE + 'Downloading FASTQ reads for ' + sample_base_name)
+            Log.msg('Downloading FASTQ reads for:', sample_base_name)
 
             cmd = [fasterq_dump,
-                   '--threads', str(threads * 4),
+                   '--threads', str(threads * 2),
                    '--split-3',
                    '--bufsize', '819200',
                    '--outdir', dir_fq_data,
                    '--temp', dir_temp, sra]
 
-            call(cmd)
+            run(cmd, do_not_raise=True)
 
             if sra_lib_layout == 'single' or sra_lib_layout_k == 'single':
                 if not ope(se_file):
@@ -254,27 +259,29 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
 
             if sra_lib_layout == 'single' or sra_lib_layout_k == 'single':
                 if ope(se_file):
-                    linfo('Renaming FASTQ reads in: ' + se_file)
+                    Log.msg('Renaming FASTQ reads in:', se_file)
                     rename_fq_seqs(se_file, sra, '1:N:0')
 
             elif sra_lib_layout == 'paired':
                 if ope(pe_file_1_renamed):
-                    linfo('Renaming FASTQ reads in: ' + pe_file_1_renamed)
+                    Log.msg('Renaming FASTQ reads in:', pe_file_1_renamed)
                     rename_fq_seqs(pe_file_1_renamed, sra, '1:N:0')
                 if ope(pe_file_2_renamed):
-                    linfo('Renaming FASTQ reads in: ' + pe_file_2_renamed)
+                    Log.msg('Renaming FASTQ reads in:', pe_file_2_renamed)
                     rename_fq_seqs(pe_file_2_renamed, sra, '2:N:0')
                 if sra_lib_layout_k == 'paired_unp':
                     if ope(pe_file_3_renamed):
-                        linfo('Renaming FASTQ reads in: ' + pe_file_3_renamed)
-                        rename_fq_seqs(pe_file_3_renamed, sra + '_unpaired', '1:N:0')
+                        Log.msg('Renaming FASTQ reads in:', pe_file_3_renamed)
+                        rename_fq_seqs(pe_file_3_renamed, sra + '_unpaired',
+                                       '1:N:0')
 
     return se_fastq_files, pe_fastq_files, sra_runs_info
 
 
-def user_fastq_files(fq_se, fq_pe, linfo=print):
+def user_fastq_files(fq_se, fq_pe):
     if len(fq_se) > 0 or len(fq_pe) > 0:
-        linfo(CONBLUE + 'Preparing user provided FASTQ files')
+        print()
+        Log.inf('Preparing user provided FASTQ files.')
 
     se_fastq_files = {}
     pe_fastq_files = {}
@@ -296,7 +303,7 @@ def user_fastq_files(fq_se, fq_pe, linfo=print):
         se_fastq_files[sample_base_name]['src'] = 'usr'
         se_fastq_files[sample_base_name]['avg_len'] = None
         se_fastq_files[sample_base_name]['tax_id'] = tax_id
-        linfo(sample_base_name + ': ' + basename(path))
+        Log.msg(sample_base_name + ':', basename(path))
 
     for pe in fq_pe:
         tax_id = pe[0]
@@ -315,22 +322,22 @@ def user_fastq_files(fq_se, fq_pe, linfo=print):
         pe_fastq_files[sample_base_name]['src'] = 'usr'
         pe_fastq_files[sample_base_name]['avg_len'] = None
         pe_fastq_files[sample_base_name]['tax_id'] = tax_id
-        linfo(sample_base_name + ': ' + basename(path[0]))
-        linfo(' ' * (len(sample_base_name) + 2) + basename(path[1]))
+        Log.msg(sample_base_name + ':', basename(path[0]) + '\n' +
+                ' ' * (len(sample_base_name) + 2) + basename(path[1]))
 
     return se_fastq_files, pe_fastq_files
 
 
 def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
-                        dir_cache_fq_minlen, vsearch, linfo=print):
+                        dir_cache_fq_minlen, vsearch):
     # lowest allowable
     low = 35
 
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
-        linfo(CONBLUE + 'Calculating minimum acceptable read length')
+        print()
+        Log.inf('Calculating minimum acceptable read length.')
         if vsearch is None:
-            linfo(CONSRED + 'vsearch is not available. ' +
-                  'Cannot continue. Exiting.')
+            Log.err('vsearch is not available. Cannot continue. Exiting.')
             exit(0)
     else:
         return None
@@ -351,7 +358,7 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
         if src == 'sra':
             ml = max(avg_len // 3, low)
             se_fastq_files[se]['min_acc_len'] = ml
-            linfo(str(ml) + ' nt: ' + se)
+            Log.msg(str(ml) + ' nt:', se)
             continue
 
         fq_path = se_fastq_files[se]['path']
@@ -364,7 +371,7 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
         if src == 'sra':
             ml = max(avg_len // 3, low)
             pe_fastq_files[pe]['min_acc_len'] = ml
-            linfo(str(ml) + ' nt: ' + pe)
+            Log.msg(str(ml) + ' nt:', pe)
             continue
 
         fq_path = pe_fastq_files[pe]['path'][0]
@@ -378,7 +385,7 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
 
         else:
             cmd = [vsearch, '--fastq_stats', x[1], '--log', x[2]]
-            call(cmd)
+            run(cmd, do_not_raise=True)
 
             with open(x[2]) as f:
                 stats = f.read()
@@ -395,9 +402,9 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
             pickled[x[0]] = ml
 
         if ml is not None:
-            linfo(str(ml) + ' nt: ' + x[0])
+            Log.msg(str(ml) + ' nt:', x[0])
         else:
-            linfo(' ?' + ' nt: ' + x[0])
+            Log.msg(' ?' + ' nt:', x[0])
             ml = low
 
         if x[3] == 'se':
@@ -411,17 +418,18 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
 
 
 def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
-                   threads, dir_temp, should_run, linfo=print):
+                   threads, dir_temp, should_run):
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
+        print()
         if should_run is False:
-            linfo(CONBLUE + 'Skipping Rcorrector as requested')
+            Log.wrn('Skipping Rcorrector as requested.')
         else:
-            linfo(CONBLUE + 'Running Rcorrector')
+            Log.inf('Running Rcorrector.')
 
         if rcorrector is None:
-            linfo(CONSRED + 'Rcorrector is not available. ' +
-                  'Cannot continue. Exiting.')
+            Log.err('Rcorrector is not available. Cannot continue. Exiting.')
             exit(0)
+
     for se in se_fastq_files:
         dir_fq_cor_data_sample = opj(dir_fq_cor_data, se)
         fq_path = se_fastq_files[se]['path']
@@ -436,11 +444,10 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
             continue
 
         if ope(dir_fq_cor_data_sample):
-            linfo(CONGREE + 'Corrected FASTQ file for sample ' + se +
-                  ' already exists')
+            Log.msg('Corrected FASTQ file already exists:', se)
         else:
-            make_dir(dir_fq_cor_data_sample)
-            linfo('SE mode: ' + se)
+            make_dirs(dir_fq_cor_data_sample)
+            Log.msg('SE mode:', se)
             run_rcorrector_se(rcorrector=rcorrector,
                               in_file=fq_path,
                               out_dir=dir_fq_cor_data_sample,
@@ -479,11 +486,10 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
             continue
 
         if ope(dir_fq_cor_data_sample):
-            linfo(CONGREE + 'Corrected FASTQ files for sample ' + pe +
-                  ' already exist')
+            Log.msg('Corrected FASTQ files already exist:', pe)
         else:
-            make_dir(dir_fq_cor_data_sample)
-            linfo('PE mode: ' + pe)
+            make_dirs(dir_fq_cor_data_sample)
+            Log.msg('PE mode:', pe)
             run_rcorrector_pe(rcorrector=rcorrector,
                               in_file_1=fq_path_1,
                               in_file_2=fq_path_2,
@@ -507,8 +513,7 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
 
             if fq_path_3 is not None:
 
-                linfo('SE mode: ' + pe +
-                      ' (Paired-read SRA run contains unpaired reads.)')
+                Log.msg('SE mode (Paired-read SRA run contains unpaired reads):', pe)
 
                 run_rcorrector_se(rcorrector=rcorrector,
                                   in_file=fq_path_3,
@@ -560,12 +565,12 @@ def file_name_patterns():
 
 
 def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
-                    trimmomatic, adapters, fpatt, threads, linfo=print):
+                    trimmomatic, adapters, fpatt, threads):
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
-        linfo(CONBLUE + 'Running Trimmomatic')
+        print()
+        Log.inf('Running Trimmomatic.')
         if trimmomatic is None:
-            linfo(CONSRED + 'trimmomatic is not available. ' +
-                  'Cannot continue. Exiting.')
+            Log.err('trimmomatic is not available. Cannot continue. Exiting.')
             exit(0)
     for se in se_fastq_files:
         dir_fq_trim_data_sample = opj(dir_fq_trim_data, se)
@@ -577,11 +582,10 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
         se_fastq_files[se]['trim_path_fq'] = out_f
 
         if ope(dir_fq_trim_data_sample):
-            linfo(CONGREE + 'Trimmed FASTQ file for sample ' + se +
-                  ' already exists')
+            Log.msg('Trimmed FASTQ file already exists:', se)
         else:
-            make_dir(dir_fq_trim_data_sample)
-            linfo('SE mode: ' + se)
+            make_dirs(dir_fq_trim_data_sample)
+            Log.msg('SE mode:', se)
             trimmomatic_se(
                 trimmomatic=trimmomatic,
                 adapters=adapters,
@@ -607,11 +611,10 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
         pe_fastq_files[pe]['trim_path_fq'] = out_fs
 
         if ope(dir_fq_trim_data_sample):
-            linfo(CONGREE + 'Trimmed FASTQ files for sample ' + pe +
-                  ' already exist')
+            Log.msg('Trimmed FASTQ files already exist:', pe)
         else:
-            make_dir(dir_fq_trim_data_sample)
-            linfo('PE mode: ' + pe)
+            make_dirs(dir_fq_trim_data_sample)
+            Log.msg('PE mode:', pe)
             trimmomatic_pe(
                 trimmomatic=trimmomatic,
                 adapters=adapters,
@@ -630,8 +633,7 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
                 out_f = opj(dir_fq_trim_data_sample, 'unpaired.fastq' + ext)
                 stats_f = opj(dir_fq_trim_data_sample, pe + '_unpaired.txt')
 
-                linfo('SE mode: ' + pe +
-                      ' (Paired-read SRA run contains unpaired reads.)')
+                Log.msg('SE mode (Paired-read SRA run contains unpaired reads):', pe)
 
                 trimmomatic_se(
                     trimmomatic=trimmomatic,
@@ -658,7 +660,7 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
 
 
 def dnld_refseqs_for_taxid(taxid, filter_term, taxonomy, dir_cache_refseqs,
-                           query='', db='nuccore', linfo=print):
+                           query='', db='nuccore'):
     ft = None
     if filter_term == 'plastid':
         ft = '("chloroplast"[filter] OR "plastid"[filter])'
@@ -671,46 +673,44 @@ def dnld_refseqs_for_taxid(taxid, filter_term, taxonomy, dir_cache_refseqs,
             tax_term = taxonomy.scientific_name_for_taxid(taxid)
         term = '"RefSeq"[Keyword] AND "{}"[Primary Organism] AND {}'.format(tax_term, ft)
         term = query + term
-        accs = set(accessions_ncbi(esearch(term=term, db=db)))
+        accs = set(accs_eutil(search_eutil(db, term)))
         if len(accs) > 0:
             plural = 'sequences'
             if len(accs) == 1:
                 plural = 'sequence'
-            linfo('Found {} RefSeq {} {} for {}.'.format(len(accs), filter_term, plural, tax_term))
+            Log.msg('Found {} RefSeq {} {} for'.format(len(accs), filter_term, plural), tax_term)
             # Random sample ###################################################
             if len(accs) > 10:
-                linfo('Using a random sample of ten RefSeq sequences.')
+                Log.wrn('Using a random sample of ten RefSeq sequences.')
                 random.seed(a=len(accs), version=2)
                 accs = set(random.sample(accs, 10))
             ###################################################################
             break
         else:
-            linfo('No RefSeq {} sequences were found for {}.'.format(filter_term, tax_term))
+            Log.wrn('No RefSeq {} sequences were found for'.format(filter_term), tax_term)
 
     cache_path = opj(dir_cache_refseqs, filter_term + '__' +
                      tax_term.replace(' ', '_') + '.fasta')
     parsed_fasta_cache = {}
     if ope(cache_path):
-        parsed_fasta_cache = read_fasta(cache_path, def_to_first_space=True)
+        parsed_fasta_cache = read_fasta(cache_path, seq_type=SEQ_TYPE_NT,
+                                        def_to_first_space=True)
+        parsed_fasta_cache = seq_records_to_dict(parsed_fasta_cache)
         for acc in parsed_fasta_cache:
             if acc in accs:
                 accs.remove(acc)
     if len(accs) > 0:
-        parsed_fasta = dnld_seqs_fasta_format(list(accs), db)
+        parsed_fasta = dnld_ncbi_seqs(db, list(accs))
+        parsed_fasta = seq_records_to_dict(parsed_fasta, prepend_acc=True)
         parsed_fasta.update(parsed_fasta_cache)
         write_fasta(parsed_fasta, cache_path)
-    # else:
-    #     parsed_fasta = parsed_fasta_cache
 
     return cache_path
 
 
-def _should_run_bt2(taxid, taxonomy, bt2_order, bowtie2, bowtie2_build,
-                    linfo=print):
+def _should_run_bt2(taxid, taxonomy, bt2_order, bowtie2, bowtie2_build):
 
     dbs = OrderedDict()
-
-    msg_fnf = CONSRED + 'File not found: {}' + CONSDFL
 
     for x in bt2_order:
         db_path_ok = False
@@ -733,19 +733,19 @@ def _should_run_bt2(taxid, taxonomy, bt2_order, bowtie2, bowtie2_build,
             if ope(db_path) and isfile(db_path):
                 dbs[x] = db_path
             else:
-                linfo(msg_fnf.format(db_path))
+                Log.err('File not found:', db_path)
                 exit(1)
 
     if len(dbs) > 0:
 
         if bowtie2 is None:
-            linfo(CONSRED + 'bowtie2 is not available. ' +
-                  'Cannot continue. Exiting.')
+            Log.err('bowtie2 is not available. ' +
+                    'Cannot continue. Exiting.')
             exit(0)
 
         if bowtie2_build is None:
-            linfo(CONSRED + 'bowtie2-build is not available. ' +
-                  'Cannot continue. Exiting.')
+            Log.err('bowtie2-build is not available. ' +
+                    'Cannot continue. Exiting.')
             exit(0)
 
     return dbs
@@ -753,7 +753,7 @@ def _should_run_bt2(taxid, taxonomy, bt2_order, bowtie2, bowtie2_build,
 
 def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
                bowtie2, bowtie2_build, threads, dir_temp, bt2_order,
-               fpatt, taxonomy, dir_cache_refseqs, linfo=print):
+               fpatt, taxonomy, dir_cache_refseqs):
 
     new_se_fastq_files = dict()
     new_pe_fastq_files = dict()
@@ -765,7 +765,7 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
 
         taxid = se_fastq_files[se]['tax_id']
         dbs = _should_run_bt2(taxid, taxonomy, bt2_order, bowtie2,
-                              bowtie2_build, linfo)
+                              bowtie2_build)
 
         in_f = se_fastq_files[se]['trim_path_fq']
         in_f_orig = in_f
@@ -775,7 +775,8 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
             continue
 
         if msg_printed is False:
-            linfo(CONBLUE + 'Running Bowtie2')
+            print()
+            Log.inf('Running Bowtie2.')
             msg_printed = True
 
         for i, db in enumerate(dbs):
@@ -807,24 +808,21 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
             new_se_fastq_files[new_se]['gc_tt'] = TranslationTable(gc)
             new_se_fastq_files[new_se]['filter_path_fq'] = out_f
             if ope(dir_fq_bt_data_sample):
-                linfo(CONGREE + 'Bowtie2 filtered FASTQ file for sample ' +
-                      new_se + ' already exists')
+                Log.msg('Bowtie2 filtered FASTQ file already exists:', new_se)
                 in_f = opj(dir_fq_bt_data_sample_un, se + '.fastq')
             else:
-                linfo('SE mode: ' + new_se)
-                make_dir(dir_fq_bt_data_sample)
+                Log.msg('SE mode:', new_se)
+                make_dirs(dir_fq_bt_data_sample)
 
                 db_fasta_path = None
                 bt2_idx_path = None
                 if db_path in (MT, PT):
                     db_fasta_path = dnld_refseqs_for_taxid(
                         taxid, db, taxonomy, dir_cache_refseqs, query='',
-                        db='nuccore', linfo=linfo)
+                        db='nuccore')
                     bt2_idx_path = splitext(db_fasta_path)[0]
                 else:
                     db_fasta_path = db_path
-                    # dir_bt_idx = opj(dir_fq_bt_data_sample, 'bt2')
-                    # make_dir(dir_bt_idx)
                     bt2_idx_path = opj(dir_cache_refseqs,
                                        splitext(basename(db_fasta_path))[0])
 
@@ -859,7 +857,7 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
 
         taxid = pe_fastq_files[pe]['tax_id']
         dbs = _should_run_bt2(taxid, taxonomy, bt2_order, bowtie2,
-                              bowtie2_build, linfo)
+                              bowtie2_build)
 
         in_fs = pe_fastq_files[pe]['trim_path_fq']
         in_fs_orig = tuple(in_fs)
@@ -869,7 +867,8 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
             continue
 
         if msg_printed is False:
-            linfo(CONBLUE + 'Running Bowtie2')
+            print()
+            Log.inf('Running Bowtie2.')
             msg_printed = True
 
         for i, db in enumerate(dbs):
@@ -903,25 +902,22 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
             new_pe_fastq_files[new_pe]['gc_tt'] = TranslationTable(gc)
             new_pe_fastq_files[new_pe]['filter_path_fq'] = out_fs
             if ope(dir_fq_bt_data_sample):
-                linfo(CONGREE + 'Bowtie2 filtered FASTQ files for sample ' +
-                      new_pe + ' already exist')
+                Log.msg('Bowtie2 filtered FASTQ files already exist:', new_pe)
                 in_fs = [x.replace('@D@', dir_fq_bt_data_sample_un) for x in fpatt]
                 in_fs = [x.replace('@N@', pe) for x in in_fs]
             else:
-                linfo('PE mode: ' + new_pe)
-                make_dir(dir_fq_bt_data_sample)
+                Log.msg('PE mode:', new_pe)
+                make_dirs(dir_fq_bt_data_sample)
 
                 db_fasta_path = None
                 bt2_idx_path = None
                 if db_path in (MT, PT):
                     db_fasta_path = dnld_refseqs_for_taxid(
                         taxid, db, taxonomy, dir_cache_refseqs, query='',
-                        db='nuccore', linfo=linfo)
+                        db='nuccore')
                     bt2_idx_path = splitext(db_fasta_path)[0]
                 else:
                     db_fasta_path = db_path
-                    # dir_bt_idx = opj(dir_fq_bt_data_sample, 'bt2')
-                    # make_dir(dir_bt_idx)
                     bt2_idx_path = opj(dir_cache_refseqs,
                                        splitext(basename(db_fasta_path))[0])
 
@@ -971,13 +967,13 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
 
 
 def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
-                confidence, kraken2, threads, dir_temp, fpatt, linfo=print):
+                confidence, kraken2, threads, dir_temp, fpatt):
 
     if (len(se_fastq_files) > 0 or len(pe_fastq_files) > 0) and len(order) > 0:
-        linfo(CONBLUE + 'Running Kraken2')
+        print()
+        Log.msg_inf('Running Kraken2.', 'Confidence: ' + str(confidence))
         if kraken2 is None:
-            linfo(CONSRED + 'kraken2 is not available. ' +
-                  'Cannot continue. Exiting.')
+            Log.err('kraken2 is not available. Cannot continue. Exiting.')
             exit(0)
 
     nuclear = None
@@ -1005,12 +1001,11 @@ def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
         se_fastq_files[se]['filter_path_fq'] = out_f
 
         if ope(dir_fq_filter_data_sample):
-            linfo(CONGREE + 'Kraken2 filtered FASTQ files for sample ' + se +
-                  ' already exist')
+            Log.msg('Kraken2 filtered FASTQ files already exist:', se)
         else:
-            make_dir(dir_fq_filter_data_sample)
-            linfo('SE mode. Confidence: ' +
-                  str(confidence) + '. ' + se)
+            make_dirs(dir_fq_filter_data_sample)
+            print()
+            Log.msg('SE mode:', se)
             run_kraken_filters(
                 order=order,
                 dbs=dbs,
@@ -1020,8 +1015,7 @@ def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
                 confidence=confidence,
                 kraken2=kraken2,
                 threads=threads,
-                dir_temp=dir_temp,
-                linfo=linfo)
+                dir_temp=dir_temp)
 
     for pe in pe_fastq_files:
 
@@ -1045,12 +1039,11 @@ def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
         pe_fastq_files[pe]['filter_path_fq'] = out_fs
 
         if ope(dir_fq_filter_data_sample):
-            linfo(CONGREE + 'Kraken2 filtered FASTQ files for sample ' + pe +
-                  ' already exist')
+            Log.msg('Kraken2 filtered FASTQ files already exist:', pe)
         else:
-            make_dir(dir_fq_filter_data_sample)
-            linfo('PE mode. Confidence: ' +
-                  str(confidence) + '. ' + pe)
+            make_dirs(dir_fq_filter_data_sample)
+            print()
+            Log.msg('PE mode:', pe)
             run_kraken_filters(
                 order=order,
                 dbs=dbs,
@@ -1060,17 +1053,16 @@ def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
                 confidence=confidence,
                 kraken2=kraken2,
                 threads=threads,
-                dir_temp=dir_temp,
-                linfo=linfo)
+                dir_temp=dir_temp)
 
 
 def filtered_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
-                      fpatt, linfo=print):
+                      fpatt):
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
-        linfo(CONBLUE + 'Converting FASTQ to FASTA using Seqtk')
+        print()
+        Log.inf('Converting FASTQ to FASTA using Seqtk.')
         if seqtk is None:
-            linfo(CONSRED + 'seqtk is not available. ' +
-                  'Cannot continue. Exiting.')
+            Log.err('seqtk is not available. Cannot continue. Exiting.')
             exit(0)
     for se in se_fastq_files:
         dir_fa_trim_data_sample = opj(dir_fa_trim_data, se)
@@ -1079,11 +1071,10 @@ def filtered_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
         se_fastq_files[se]['filter_path_fa'] = out_f
 
         if ope(dir_fa_trim_data_sample):
-            linfo(CONGREE + 'Filtered FASTA files for sample ' + se +
-                  ' already exist')
+            Log.msg('Filtered FASTA files already exist:', se)
         else:
-            make_dir(dir_fa_trim_data_sample)
-            linfo(fq_path)
+            make_dirs(dir_fa_trim_data_sample)
+            Log.msg(basename(fq_path))
             seqtk_fq_to_fa(seqtk, fq_path, out_f)
 
     for pe in pe_fastq_files:
@@ -1094,23 +1085,22 @@ def filtered_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
         pe_fastq_files[pe]['filter_path_fa'] = out_fs
 
         if ope(dir_fa_trim_data_sample):
-            linfo(CONGREE + 'Filtered FASTA files for sample ' + pe +
-                  ' already exist')
+            Log.msg('Filtered FASTA files already exist:', pe)
         else:
-            make_dir(dir_fa_trim_data_sample)
+            make_dirs(dir_fa_trim_data_sample)
             pe_trim_files = zip(fq_paths, out_fs)
             for x in pe_trim_files:
-                linfo(x[0])
+                Log.msg(basename(x[0]))
                 seqtk_fq_to_fa(seqtk, x[0], x[1])
 
 
 def makeblastdb_fq(se_fastq_files, pe_fastq_files, dir_blast_fa_trim,
-                   makeblastdb, fpatt, linfo=print):
+                   makeblastdb, fpatt):
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
-        linfo(CONBLUE + 'Building BLAST databases for reads')
+        print()
+        Log.inf('Building BLAST databases for reads.')
         if makeblastdb is None:
-            linfo(CONSRED + 'makeblastdb is not available. ' +
-                  'Cannot continue. Exiting.')
+            Log.err('makeblastdb is not available. Cannot continue. Exiting.')
             exit(0)
     for se in se_fastq_files:
         dir_blast_fa_trim_sample = opj(dir_blast_fa_trim, se)
@@ -1119,11 +1109,10 @@ def makeblastdb_fq(se_fastq_files, pe_fastq_files, dir_blast_fa_trim,
         se_fastq_files[se]['blast_db_path'] = out_f
 
         if ope(dir_blast_fa_trim_sample):
-            linfo(CONGREE + 'BLAST database for sample ' + se +
-                  ' already exists')
+            Log.msg('BLAST database already exists:', se)
         else:
-            make_dir(dir_blast_fa_trim_sample)
-            linfo(fa_path)
+            make_dirs(dir_blast_fa_trim_sample)
+            Log.msg(basename(fa_path))
             make_blast_db(
                 exec_file=makeblastdb,
                 in_file=fa_path,
@@ -1139,13 +1128,12 @@ def makeblastdb_fq(se_fastq_files, pe_fastq_files, dir_blast_fa_trim,
         pe_fastq_files[pe]['blast_db_path'] = out_fs
 
         if ope(dir_blast_fa_trim_sample):
-            linfo(CONGREE + 'BLAST database for sample ' + pe +
-                  ' already exists')
+            Log.msg('BLAST database already exists:', pe)
         else:
-            make_dir(dir_blast_fa_trim_sample)
+            make_dirs(dir_blast_fa_trim_sample)
             pe_trim_files = zip(fa_paths, out_fs)
             for x in pe_trim_files:
-                linfo(x[0])
+                Log.msg(basename(x[0]))
                 make_blast_db(
                     exec_file=makeblastdb,
                     in_file=x[0],

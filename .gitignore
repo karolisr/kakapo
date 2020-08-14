@@ -65,7 +65,7 @@ coverage.xml
 *.cover
 *.py,cover
 .hypothesis/
-.pytest_cache
+*.pytest_cache/
 
 # Translations
 *.mo
@@ -179,7 +179,7 @@ $RECYCLE.BIN/
 # Icon must end with two \r
 Icon
 
-# Thumbnails
+# Thumbnails or osxfuse
 ._*
 
 # Files that might appear in the root of a volume
@@ -199,13 +199,10 @@ Temporary Items
 .apdisk
 
 # PyCharm
-.idea
-
-tests/kakapo_test_data
+.idea/
 
 # Sublime Text
 *.sublime-project
 *.sublime-workspace
 
-# osxfuse
-._*
+tests/kakapo_test_data/

@@ -1,35 +1,32 @@
-# -*- coding: utf-8 -*-
-
 """Kakapo workflow: Find ORFs."""
 
 import json
 
 from functools import partial
-from io import StringIO
 from os.path import join as opj
 from sys import exit
 
-from kakapo.bioio import read_fasta
-from kakapo.bioio import trim_desc_to_first_space_in_fasta_text
-from kakapo.bioio import write_fasta
-from kakapo.blast import collate_blast_results
 from kakapo.data.start_codon_context import contexts as atg_contexts
-from kakapo.orf import find_orf_for_blast_hit
-from kakapo.seq import reverse_complement, translate
-from kakapo.seqtk import seqtk_extract_reads
+from kakapo.tools.bioio import seq_records_to_dict
+from kakapo.tools.bioio import trim_desc_to_first_space_in_fasta_text
+from kakapo.tools.bioio import write_fasta
+from kakapo.tools.blast import collate_blast_results
+from kakapo.tools.orf import find_orf_for_blast_hit
+from kakapo.tools.seq import SEQ_TYPE_DNA
+from kakapo.tools.seq import reverse_complement, translate
+from kakapo.tools.seqtk import seqtk_extract_reads
+from kakapo.utils.logging import Log
 
 
 def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,
                         dir_temp, prepend_assmbl, min_target_orf_len,
                         max_target_orf_len, allow_non_aug, allow_no_strt_cod,
                         allow_no_stop_cod, tax, tax_group, tax_ids_user,
-                        min_overlap, organelle, linfo=print):
+                        min_overlap, organelle):
 
     if len(assemblies) > 0:
-        linfo('Analyzing BLAST hits for assemblies [' + ss + ']')
         if seqtk is None:
-            linfo('seqtk is not available. ' +
-                  'Cannot continue. Exiting.')
+            Log.err('seqtk is not available. Cannot continue. Exiting.')
             exit(0)
 
     for a in assemblies:
@@ -68,6 +65,8 @@ def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,
         transcripts_nt_orf = {}
         transcripts_aa_orf = {}
 
+        transcripts_with_acceptable_orfs = set()
+
         ann_key = 'annotations__'
 
         a[ann_key + ss] = {}
@@ -98,19 +97,18 @@ def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,
         if _.strip() == '':
             continue
 
-        linfo(assmbl_name)
+        print()
+        Log.msg_inf('Analyzing BLAST hits.', ('-' * 112) +
+                    '\nAssembly: ' + assmbl_name +
+                    '\nSearch Strategy: ' + ss + '\n')
 
-        _ = trim_desc_to_first_space_in_fasta_text(_)
-
-        parsed_fasta = read_fasta(StringIO(_))
+        parsed_fasta = trim_desc_to_first_space_in_fasta_text(_, SEQ_TYPE_DNA)
+        parsed_fasta = seq_records_to_dict(parsed_fasta)
         ######################################################################
 
         all_kakapo_results = {}
         json_dump_file_path = opj(dir_prj_transcripts, assmbl_name +
                                   '_ann_kakapo__' + ss + '.json')
-
-        if len(collated) > 0:
-            print('\n' + '-' * 90 + '\n')
 
         for hit in collated:
 
@@ -164,12 +162,9 @@ def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,
             cntx_r = atg_contexts[cntx_r_key]
             ##################################################################
 
-            orf_log_str = target_name.center(90) + '\n'
-            orf_log_str += query_name.center(90) + '\n\n'
-
-            orf_log_str += ('grade'.rjust(6) + 'ovrlp'.rjust(7) +
-                            'cntx'.rjust(6) + 'length'.center(9) +
-                            'cntx_l'.rjust(7) + 'cntx_r'.rjust(15) + '\n')
+            orf_log_str = ('grade'.rjust(5) + 'ovrlp'.rjust(7) +
+                           'cntx'.rjust(6) + 'length'.center(9) +
+                           'cntx_l'.rjust(7) + 'cntx_r'.rjust(15) + '\n')
 
             orf = find_orf_for_blast_hit(
                 seq=target_seq,
@@ -208,7 +203,7 @@ def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,
             if len(good_orfs) > 0:
                 a[ann_key + ss][target_name]['orfs_good'] = dict()
                 orfs_good_dict = a[ann_key + ss][target_name]['orfs_good']
-                orf_log_str += '\n' + 'VALID'.center(90) + '\n'
+                orf_log_str += '\n' + 'VALID' + '\n'
 
                 for i, good_orf in enumerate(good_orfs):
 
@@ -239,6 +234,8 @@ def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,
 
                     transcripts_nt_orf[target_def_orf] = orf_seq
 
+                    transcripts_with_acceptable_orfs.add(target_name)
+
                     transl_seq = translate(orf_seq,
                                            gc_tt.table_ambiguous,
                                            start_codons)
@@ -246,10 +243,10 @@ def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,
                     transcripts_aa_orf[target_def_orf] = transl_seq[:-1]
 
             else:
-                orf_log_str += '\n' + 'NOT VALID'.center(90) + '\n'
+                orf_log_str += '\n' + 'NOT VALID' + '\n'
 
-            orf_log_str += '\n' + '-' * 90 + '\n'
-            print(orf_log_str)
+            Log.msg('Transcript: ' + target_name +
+                    '\n     Query: ' + query_name + '\n\n', orf_log_str)
 
             if len(bad_orfs) > 0:
                 a[ann_key + ss][target_name]['orfs_bad'] = dict()
@@ -298,16 +295,18 @@ def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,
 
         # --------------------------------------------------------------------
 
-        linfo('Transcripts: ' + str(len(transcripts_nt)))
+        Log.msg_inf('Assembly: ' + assmbl_name +
+                    '\nSearch Strategy: ' + ss +
+                    '\nTranscripts: ' + str(len(transcripts_nt)) +
+                    '\nTranscripts with acceptable ORFs: ' +
+                    str(len(transcripts_with_acceptable_orfs)),
+                    '\n' + ('-' * 134))
 
         if len(transcripts_nt) > 0:
             write_fasta(transcripts_nt, transcripts_nt_fasta_file)
             a['transcripts_nt_fasta_file__' + ss] = transcripts_nt_fasta_file
         else:
             a['transcripts_nt_fasta_file__' + ss] = None
-
-        linfo('Transcripts with acceptable ORFs: ' +
-              str(len(transcripts_nt_orf)))
 
         if len(transcripts_nt_orf) > 0:
             write_fasta(transcripts_nt_orf, transcripts_nt_orf_fasta_file)

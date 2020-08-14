@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Kakapo workflow: Run InterProScan."""
 
 import json
@@ -11,21 +9,21 @@ from os.path import exists as ope
 from os.path import join as opj
 from time import sleep
 
-from kakapo.bioio import read_fasta
-from kakapo.config import PICKLE_PROTOCOL
-from kakapo.ebi_iprscan5 import job_runner
-from kakapo.ebi_iprscan5 import result_json
-from kakapo.helpers import split_seq_defn_for_printing as split_seq_defn
+from kakapo.tools.bioio import read_fasta
+from kakapo.tools.bioio import seq_records_to_dict
+from kakapo.tools.config import PICKLE_PROTOCOL
+from kakapo.tools.ebi_iprscan5 import job_runner
+from kakapo.tools.ebi_iprscan5 import result_json
+from kakapo.tools.seq import SEQ_TYPE_AA
+from kakapo.utils.logging import Log
+
+from kakapo.utils.misc import split_seq_defn_for_printing as split_seq_defn
 
 
 def run_inter_pro_scan(ss, assemblies, email, dir_prj_ips, dir_cache_prj,
-                       parallel_run_count, max_title_a_len, max_run_id_len,
-                       linfo=print):
+                       parallel_run_count, max_title_a_len, max_run_id_len):
 
     delay = 0.25
-
-    # if len(assemblies)  0:
-    #     linfo('Running InterProScan on translated transcripts [' + ss + ']')
 
     for a in assemblies:
 
@@ -43,16 +41,14 @@ def run_inter_pro_scan(ss, assemblies, email, dir_prj_ips, dir_cache_prj,
                                   ss + '.json')
 
         if ope(json_dump_file_path):
-            linfo('InterProScan results for assembly ' + assmbl_name +
-                  ', search strategy ' + ss + ' have already been downloaded.')
+            Log.inf('InterProScan results for assembly ' + assmbl_name + ', '
+                    'search strategy ' + ss + ' have already been downloaded.')
             continue
         else:
-            print()
-            linfo('Running InterProScan on translated ' + ss +
-                  ' from ' + assmbl_name + '.')
-            print()
+            Log.inf('Running InterProScan on translated ' + ss +
+                    ' from ' + assmbl_name + '.')
 
-        seqs = read_fasta(aa_file)
+        seqs = seq_records_to_dict(read_fasta(aa_file, SEQ_TYPE_AA))
 
         # Filter all ORFs except the first one.
         for seq_def in tuple(seqs.keys()):
@@ -82,10 +78,8 @@ def run_inter_pro_scan(ss, assemblies, email, dir_prj_ips, dir_cache_prj,
             with open(_, 'wb') as f:
                 pickle.dump(jobs, f, protocol=PICKLE_PROTOCOL)
 
-        print()
-        linfo('Downloading InterProScan results for ' + ss +
-              ' in ' + assmbl_name + '.')
-        print()
+        Log.inf('Downloading InterProScan results for ' + ss +
+                ' in ' + assmbl_name + '.')
 
         all_ips_results = {}
 
@@ -105,7 +99,7 @@ def run_inter_pro_scan(ss, assemblies, email, dir_prj_ips, dir_cache_prj,
                    run_id.ljust(max_run_id_len) +
                    progress_str.rjust(4) + ' ' + job_id)
 
-            print(msg)
+            Log.msg(msg)
 
             sleep(delay)
 
@@ -122,8 +116,6 @@ def run_inter_pro_scan(ss, assemblies, email, dir_prj_ips, dir_cache_prj,
             job_no_def = job.split(' ')[0]
 
             all_ips_results[job_no_def] = ips_json
-
-        # print()
 
         with open(json_dump_file_path, 'w') as f:
             json.dump(all_ips_results, f, sort_keys=True, indent=4)
