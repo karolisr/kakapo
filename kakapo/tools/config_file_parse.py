@@ -422,3 +422,23 @@ def config_file_parse(file_path, taxonomy, linfo=print):
                 }
 
     return ret_dict
+
+
+def use_colors(file_path):
+
+    cfg = ConfigParser(delimiters=('='), allow_no_value=True)
+    cfg.optionxform = str
+
+    try:
+        cfg.read(file_path)
+    except MissingSectionHeaderError:
+        return False
+
+    try:
+        return cfg.getboolean('General', 'use_colors')
+
+    except NoSectionError as err:
+        return False
+
+    except NoOptionError as err:
+        return False
