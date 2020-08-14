@@ -179,7 +179,7 @@ $RECYCLE.BIN/
 # Icon must end with two \r
 Icon
 
-# Thumbnails
+# Thumbnails or osxfuse
 ._*
 
 # Files that might appear in the root of a volume
@@ -206,6 +206,3 @@ tests/kakapo_test_data
 # Sublime Text
 *.sublime-project
 *.sublime-workspace
-
-# osxfuse
-._*
