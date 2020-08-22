@@ -33,11 +33,10 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
         se_fastq_files[se]['spades_assembly' + '__' + ss] = None
 
         if ope(dir_results):
-            Log.msg('SPAdes assembly for sample ' + se +
-                    ' already exists:', ss)
+            Log.msg('SPAdes assembly already exists:', se)
         else:
             make_dirs(dir_results)
-            Log.msg('Running SPAdes on: ' + se, ss)
+            Log.msg('Running SPAdes on:', se)
             run_spades_se(spades,
                           out_dir=dir_results,
                           input_file=fq_path,
@@ -48,13 +47,13 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
         assmbl_path = opj(dir_results, 'transcripts.fasta')
         if ope(assmbl_path):
             count = len(read_fasta(assmbl_path, SEQ_TYPE_NT))
-            tr_str = ' transcripts'
+            tr_str = ' transcripts.'
             if count == 1:
-                tr_str = ' transcript'
-            Log.msg('SPAdes produced ' + str(count) + tr_str + ':', ss)
+                tr_str = ' transcript.'
+            Log.msg('SPAdes produced ' + str(count) + tr_str, False)
             se_fastq_files[se]['spades_assembly' + '__' + ss] = assmbl_path
         else:
-            Log.wrn('SPAdes produced no transcripts:', ss)
+            Log.wrn('SPAdes produced no transcripts.', False)
 
     for pe in pe_fastq_files:
         dir_results = opj(dir_spades_assemblies, pe + '__' + ss)
@@ -62,11 +61,10 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
         pe_fastq_files[pe]['spades_assembly' + '__' + ss] = None
 
         if ope(dir_results):
-            Log.msg('SPAdes assembly for sample ' + pe + ' already exists:',
-                    ss)
+            Log.msg('SPAdes assembly already exists:', pe)
         else:
             make_dirs(dir_results)
-            Log.msg('Running SPAdes on: ' + pe, ss)
+            Log.msg('Running SPAdes on: ' + pe)
 
             if osstat(fq_paths[0]).st_size > 0 and \
                osstat(fq_paths[1]).st_size > 0:
@@ -92,13 +90,13 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
         assmbl_path = opj(dir_results, 'transcripts.fasta')
         if ope(assmbl_path):
             count = len(read_fasta(assmbl_path, SEQ_TYPE_NT))
-            tr_str = ' transcripts'
+            tr_str = ' transcripts.'
             if count == 1:
-                tr_str = ' transcript'
-            Log.msg('SPAdes produced ' + str(count) + tr_str + ':', ss)
+                tr_str = ' transcript.'
+            Log.msg('SPAdes produced ' + str(count) + tr_str, False)
             pe_fastq_files[pe]['spades_assembly' + '__' + ss] = assmbl_path
         else:
-            Log.wrn('SPAdes produced no transcripts:', ss)
+            Log.wrn('SPAdes produced no transcripts.', False)
 
 
 def combine_assemblies(se_fastq_files, pe_fastq_files, user_assemblies, tax,

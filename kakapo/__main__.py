@@ -249,7 +249,7 @@ def main():
 
     # Prepare configuration directory ----------------------------------------
     if ope(DIR_CFG):
-        Log.msg_inf('Found configuration directory:', DIR_CFG)
+        Log.inf('Found configuration directory:', DIR_CFG)
     else:
         Log.wrn('Creating configuration directory:', DIR_CFG)
         make_dirs(DIR_CFG)
@@ -292,7 +292,7 @@ def main():
         print()
 
     # Parse configuration file -----------------------------------------------
-    Log.msg_inf('Reading configuration file:', CONFIG_FILE_PATH)
+    Log.inf('Reading configuration file:', CONFIG_FILE_PATH)
     _ = config_file_parse(CONFIG_FILE_PATH, tax)
 
     allow_no_stop_cod = _['allow_no_stop_cod']
@@ -335,7 +335,7 @@ def main():
 
     # Parse search strategies file -------------------------------------------
     if SS_FILE_PATH is not None:
-        Log.msg_inf('Reading search strategies file:', SS_FILE_PATH)
+        Log.inf('Reading search strategies file:', SS_FILE_PATH)
         sss = ss_file_parse(SS_FILE_PATH)
     else:
         Log.wrn('Search strategies file was not provided.\n' +
@@ -347,7 +347,7 @@ def main():
     # Create output directory ------------------------------------------------
     if dir_out is not None:
         if ope(dir_out):
-            Log.msg_inf('Found output directory:', dir_out)
+            Log.inf('Found output directory:', dir_out)
         else:
             Log.wrn('Creating output directory:', dir_out)
             make_dirs(dir_out)
@@ -635,37 +635,39 @@ def main():
     prepare_output_directories(dir_out, prj_name)
 
     # Run vsearch on reads ---------------------------------------------------
-    should_run_vsearch = False
+    # should_run_vsearch = False
+    # for ss in sss:
+    #     if stat(aa_queries_files[ss]).st_size == 0:
+    #         continue
+    #     else:
+    #         should_run_vsearch = True
+    #         break
+
+    # if should_run_vsearch is True:
+    #     print()
+    #     Log.inf('Checking if Vsearch should be run.')
+
     for ss in sss:
         if stat(aa_queries_files[ss]).st_size == 0:
             continue
-        else:
-            should_run_vsearch = True
-            break
-
-    if should_run_vsearch is True:
         print()
-        Log.inf('Checking if Vsearch should be run.')
-
-    for ss in sss:
-        if stat(aa_queries_files[ss]).st_size == 0:
-            continue
+        Log.inf('Checking if Vsearch should be run:', ss)
         run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
                              dir_prj_vsearch_results_fa_trim,
                              pe_vsearch_results_file_patterns, ss, seqtk)
 
     # Run SPAdes -------------------------------------------------------------
-    should_run_spades = False
-    for ss in sss:
-        if stat(aa_queries_files[ss]).st_size == 0:
-            continue
-        else:
-            should_run_spades = True
-            break
+    # should_run_spades = False
+    # for ss in sss:
+    #     if stat(aa_queries_files[ss]).st_size == 0:
+    #         continue
+    #     else:
+    #         should_run_spades = True
+    #         break
 
-    if should_run_spades is True:
-        print()
-        Log.inf('Checking if SPAdes should be run.')
+    # if should_run_spades is True:
+    #     print()
+    #     Log.inf('Checking if SPAdes should be run.')
 
     for ss in sss:
         if stat(aa_queries_files[ss]).st_size == 0:
@@ -674,6 +676,8 @@ def main():
             for pe in pe_fastq_files:
                 pe_fastq_files[pe]['spades_assembly' + '__' + ss] = None
             continue
+        print()
+        Log.inf('Checking if SPAdes should be run:', ss)
         run_spades(se_fastq_files, pe_fastq_files, dir_prj_spades_assemblies,
                    spades, dir_temp, ss, THREADS, RAM)
 
@@ -707,7 +711,7 @@ def main():
 
         if should_run_tblastn is False:
             print()
-            Log.msg_inf('Will not run BLAST. No transcripts exist:', ss)
+            Log.inf('Will not run BLAST. No transcripts exist:', ss)
             continue
 
         blast_2_evalue_ss = sss[ss]['blast_2_evalue']
@@ -762,7 +766,7 @@ def main():
                             blast_2_qcov_hsp_perc_ss, organelle)
 
     # GFF3 files from kakapo results JSON files ------------------------------
-    print()
+    # print()
     for ss in sss:
         if stat(aa_queries_files[ss]).st_size == 0:
             continue

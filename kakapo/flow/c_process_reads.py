@@ -117,41 +117,55 @@ def dnld_sra_info(sras, dir_cache_prj):
                 Log.err(sra_info_str, 'Skipping.')
 
             else:
-                sra_info_str = ('SRA run {sra} {strategy} ({source}) '
-                                '{layout}-end library.\n'
-                                'Sourced from {species} '
-                                '(TaxID: {txid}).\n'
-                                'Sequenced using {platform} platform on '
-                                '{model}.').format(
-                                    sra=sra,
-                                    source=sra_lib_source.title(),
-                                    strategy=sra_lib_strategy,
-                                    layout=sra_lib_layout,
-                                    platform=sra_seq_platform,
-                                    model=sra_seq_platform_model,
-                                    species=sra_species,
-                                    txid=sra_taxid)
+                # sra_info_str = ('SRA run {sra} {strategy} ({source}) '
+                #                 '{layout}-end library.\n'
+                #                 'Sourced from {species} '
+                #                 '(TaxID: {txid}).\n'
+                #                 'Sequenced using {platform} platform on '
+                #                 '{model}.').format(
+                #                     sra=sra,
+                #                     source=sra_lib_source.title(),
+                #                     strategy=sra_lib_strategy,
+                #                     layout=sra_lib_layout,
+                #                     platform=sra_seq_platform,
+                #                     model=sra_seq_platform_model,
+                #                     species=sra_species,
+                #                     txid=sra_taxid)
+
+                Log.msg('{sra}:'.format(sra=sra),
+                        '{strategy} {layout}-end library ({source}).'.format(
+                            strategy=sra_lib_strategy,
+                            layout=sra_lib_layout,
+                            source=sra_lib_source.title()))
+                Log.msg('    Source:',
+                        '{species} (TaxID: {txid}).'.format(
+                            species=sra_species,
+                            txid=sra_taxid), False)
+                Log.msg('Technology:',
+                        '{platform} platform on {model}.'.format(
+                            platform=sra_seq_platform,
+                            model=sra_seq_platform_model), False)
 
                 sra_runs_info[sra]['KakapoLibraryLayout'] = \
                     sra_runs_info[sra]['LibraryLayout']
 
                 if sra_lib_layout == 'paired' and sra_spots_with_mates == 0:
                     sra_runs_info[sra]['KakapoLibraryLayout'] = 'SINGLE'
-                    sra_info_str = (
-                        sra_info_str + '\nListed as containing '
-                        'paired-end reads, but only a single set of reads '
-                        'is available. Treating as single-ended.')
+                    # sra_info_str = (
+                    #     sra_info_str + '\nListed as containing '
+                    #     'paired-end reads, but only a single set of reads '
+                    #     'is available. Treating as single-ended.')
 
                 elif (sra_lib_layout == 'paired' and
                       sra_spots != sra_spots_with_mates):
                     sra_runs_info[sra]['KakapoLibraryLayout'] = 'PAIRED_UNP'
-                    sra_info_str = (
-                        sra_info_str + '\nListed as containing '
-                        'paired-end reads, but not all reads are paired.')
+                    # sra_info_str = (
+                    #     sra_info_str + '\nListed as containing '
+                    #     'paired-end reads, but not all reads are paired.')
 
                 sras_acceptable.append(sra)
 
-                Log.msg(sra_info_str)
+                # Log.msg(sra_info_str)
 
     with open(__, 'wb') as f:
         pickle.dump(sra_runs_info, f, protocol=PICKLE_PROTOCOL)
@@ -971,7 +985,7 @@ def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
 
     if (len(se_fastq_files) > 0 or len(pe_fastq_files) > 0) and len(order) > 0:
         print()
-        Log.msg_inf('Running Kraken2.', 'Confidence: ' + str(confidence))
+        Log.inf('Running Kraken2.', 'Confidence: ' + str(confidence))
         if kraken2 is None:
             Log.err('kraken2 is not available. Cannot continue. Exiting.')
             exit(0)

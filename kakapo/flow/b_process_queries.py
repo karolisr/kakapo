@@ -28,7 +28,7 @@ from kakapo.utils.logging import Log
 
 def pfam_uniprot_accessions(ss, pfam_acc, tax_ids, dir_cache_pfam_acc):
     if len(pfam_acc) > 0:
-        Log.msg_inf('Downloading UniProt accessions for Pfam accessions:', ss)
+        Log.inf('Downloading UniProt accessions for Pfam accessions:', ss)
     pfam_seqs_list = []
     for pa in pfam_acc:
         pfam_id = pfam_entry(pa)[0]['id']
@@ -65,7 +65,7 @@ def dnld_pfam_uniprot_seqs(ss, uniprot_acc, aa_uniprot_file, dir_cache_prj):
         if (set(uniprot_acc) != set(prev_uniprot_acc)) or \
            (not ope(aa_uniprot_file)):
 
-            Log.msg_inf('Downloading Pfam protein sequences from UniProt:', ss)
+            Log.inf('Downloading Pfam protein sequences from UniProt:', ss)
             # Note: the number of sequences downloaded from UniProt may
             # be less than the total number of accessions. This is normal
             # as Pfam may return "obsolete" accessions, which will not be
@@ -96,7 +96,7 @@ def user_entrez_search(ss, queries, dir_cache_prj, requery_after):
                     dnld_needed = False
 
         if dnld_needed is True:
-            Log.msg_inf('Searching for protein sequences on NCBI:', ss)
+            Log.inf('Searching for protein sequences on NCBI:', ss)
             for q in queries:
                 esearch_results = search_eutil(db='protein', term=q)
                 accs = accs + accs_eutil(esearch_results)
@@ -106,7 +106,7 @@ def user_entrez_search(ss, queries, dir_cache_prj, requery_after):
         else:
             days = requery_after.total_seconds() / 60 / 60 / 24
             days = '{:.2f}'.format(days)
-            Log.msg_inf('NCBI results are less than ' + days + ' day(s) old. Will not search again.', ss)
+            Log.inf('NCBI results are less than ' + days + ' day(s) old. Will not search again.:', ss)
             pickle_file = opj(dir_cache_prj, 'ncbi_prot_metadata_cache__' + ss)
             if ope(pickle_file):
                 with open(pickle_file, 'rb') as f:
@@ -118,7 +118,8 @@ def user_entrez_search(ss, queries, dir_cache_prj, requery_after):
 
 def user_protein_accessions(ss, prot_acc_user, dir_cache_prj, taxonomy):
     if len(prot_acc_user) > 0:
-        Log.msg_inf('Reading user provided protein accessions:', ss)
+        Log.inf('Reading user provided protein accessions:', ss)
+        print()
         pickle_file = opj(dir_cache_prj, 'ncbi_prot_metadata_cache__' + ss)
         acc_old = set()
         if ope(pickle_file):
@@ -133,6 +134,7 @@ def user_protein_accessions(ss, prot_acc_user, dir_cache_prj, taxonomy):
 
         prot_acc = []
         prot_info_to_print = []
+        max_acc_len = 0
         for pa in pa_info:
             acc = pa['accessionversion']
             prot_acc.append(acc)
@@ -144,11 +146,12 @@ def user_protein_accessions(ss, prot_acc_user, dir_cache_prj, taxonomy):
             else:
                 organism = taxonomy.scientific_name_for_taxid(taxid)
                 pa['organism'] = organism
-            title = title_split[0]
-            title = title.lower().strip()
-            title = title.replace('_', ' ').replace('-', ' ')
-            title = title.replace(',', '')
-            title = title[0].upper() + title[1:] + ' [' + organism + ']'
+            # title = title_split[0]
+            # title = title.lower().strip()
+            # title = title.replace('_', ' ').replace('-', ' ')
+            # title = title.replace(',', '')
+            # title = title[0].upper() + title[1:] + ' [' + organism + ']'
+            max_acc_len = max(max_acc_len, len(acc))
             prot_info_to_print.append((title, acc))
 
         prot_info_to_print = sorted(prot_info_to_print)
@@ -157,7 +160,7 @@ def user_protein_accessions(ss, prot_acc_user, dir_cache_prj, taxonomy):
             acc = pi[1]
             if len(title) > 80:
                 title = title[:77] + '...'
-            Log.msg(acc + ':', title)
+            Log.msg(acc.rjust(max_acc_len) + ':', title, False)
 
         with open(pickle_file, 'wb') as f:
             pickle.dump(pa_info, f, protocol=PICKLE_PROTOCOL)
@@ -186,7 +189,7 @@ def dnld_prot_seqs(ss, prot_acc_user, aa_prot_ncbi_file, dir_cache_prj):
                     pa_info = pickle.load(f)
 
             print()
-            Log.msg_inf('Downloading protein sequences from NCBI:', ss)
+            Log.inf('Downloading protein sequences from NCBI:', ss)
             _ = dnld_ncbi_seqs('protein', prot_acc_user, rettype='gb',
                                retmode='xml')
             prot_acc_user_new = list()
@@ -221,7 +224,7 @@ def user_aa_fasta(ss, user_queries, aa_prot_user_file):
     _ = ''
     if len(user_queries) > 0:
         print()
-        Log.msg_inf('Reading user provided AA sequences:', ss)
+        Log.inf('Reading user provided AA sequences:', ss)
         for ap in user_queries:
             Log.msg(ap)
             with open(ap, 'r') as f:
@@ -232,7 +235,7 @@ def user_aa_fasta(ss, user_queries, aa_prot_user_file):
 
 
 def combine_aa_fasta(ss, fasta_files, aa_queries_file):
-    Log.msg_inf('Combining all AA query sequences:', ss)
+    Log.inf('Combining all AA query sequences:', ss)
     _ = ''
     for fasta_file in fasta_files:
         if ope(fasta_file):
@@ -249,7 +252,7 @@ def filter_queries(ss, aa_queries_file, min_query_length,
 
     if logging is True:
         print()
-        Log.msg_inf('Filtering AA query sequences:', ss)
+        Log.inf('Filtering AA query sequences:', ss)
         Log.msg('min_query_length:', str(min_query_length))
         Log.msg('max_query_length:', str(max_query_length))
         Log.msg('max_query_identity:', str(max_query_identity))

@@ -33,7 +33,7 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
 
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
         print()
-        Log.msg_inf('Running BLAST on reads:', ss)
+        Log.inf('Running BLAST on reads:', ss)
         if tblastn is None:
             Log.err('tblastn is not available. Cannot continue. Exiting.')
             exit(0)
@@ -84,9 +84,9 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                 pickled = pickle.load(f)
 
         if ope(out_f_fasta) and pickled == settings:
-            Log.msg('The provided BLAST settings and query sequences did ' +
-                    'not change since the previous run.\n\tBLAST results for ' +
-                    'sample "' + se + '" already exist:', ss)
+            # Log.msg('The provided BLAST settings and query sequences did '
+            #         'not change since the previous run.')
+            Log.msg('BLAST results already exist:', se)
 
         else:
             changed_blast_1 = True
@@ -107,7 +107,7 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                       db_genetic_code=genetic_code,
                       out_cols=BLST_RES_COLS_1)
 
-            Log.msg_inf('Extracting unique BLAST hits using Seqtk:', ss)
+            Log.inf('Extracting unique BLAST hits using Seqtk:', ss)
 
             keep_unique_lines_in_file(out_f)
 
@@ -140,9 +140,9 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                 pickled = pickle.load(f)
 
         if ope(out_f_fasta) and pickled == settings:
-            Log.msg('The provided BLAST settings and query sequences did ' +
-                    'not change since the previous run.\n\tBLAST results for ' +
-                    'sample "' + pe + '" already exist:', ss)
+            # Log.msg('The provided BLAST settings and query sequences did '
+            #         'not change since the previous run.')
+            Log.msg('BLAST results already exist:', pe)
 
         else:
             changed_blast_1 = True
@@ -216,7 +216,7 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
         se_fastq_files[se]['vsearch_results_path' + '__' + ss] = out_f_fastq
 
         if ope(out_f_fastq):
-            Log.msg('Vsearch results for sample ' + se + ' already exists:', ss)
+            Log.msg('Vsearch results already exist:', se)
         else:
             make_dirs(dir_results)
             Log.msg('Running vsearch on: ' + basename(fq_path), ss)
@@ -245,7 +245,7 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
 
         if ope(out_fs_fastq[0]) and ope(out_fs_fastq[1]) and \
            ope(out_fs_fastq[2]) and ope(out_fs_fastq[3]):
-            Log.msg('Vsearch results for sample ' + pe + ' already exist:', ss)
+            Log.msg('Vsearch results already exist:', pe)
         else:
             make_dirs(dir_results)
             pe_trim_files = zip(fq_paths, out_fs, out_fs_fastq)

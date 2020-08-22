@@ -98,9 +98,9 @@ def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,
             continue
 
         print()
-        Log.msg_inf('Analyzing BLAST hits.', ('-' * 112) +
-                    '\nAssembly: ' + assmbl_name +
-                    '\nSearch Strategy: ' + ss + '\n')
+        Log.inf('Analyzing BLAST hits', '=' * 113 + '\n')
+        Log.msg('Assembly:', assmbl_name, False)
+        Log.msg('Search Strategy:', ss + '\n\n' + '-' * 134 + '\n', False)
 
         parsed_fasta = trim_desc_to_first_space_in_fasta_text(_, SEQ_TYPE_DNA)
         parsed_fasta = seq_records_to_dict(parsed_fasta)
@@ -203,7 +203,7 @@ def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,
             if len(good_orfs) > 0:
                 a[ann_key + ss][target_name]['orfs_good'] = dict()
                 orfs_good_dict = a[ann_key + ss][target_name]['orfs_good']
-                orf_log_str += '\n' + 'VALID' + '\n'
+                orf_log_str += '\n' + 'VALID ' + '-' * 128 + '\n'
 
                 for i, good_orf in enumerate(good_orfs):
 
@@ -243,10 +243,10 @@ def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,
                     transcripts_aa_orf[target_def_orf] = transl_seq[:-1]
 
             else:
-                orf_log_str += '\n' + 'NOT VALID' + '\n'
+                orf_log_str += '\n' + 'NOT VALID ' + '-' * 124 + '\n'
 
-            Log.msg('Transcript: ' + target_name +
-                    '\n     Query: ' + query_name + '\n\n', orf_log_str)
+            Log.msg('Transcript:', target_name, False)
+            Log.msg('     Query:', query_name + '\n\n' + orf_log_str, False)
 
             if len(bad_orfs) > 0:
                 a[ann_key + ss][target_name]['orfs_bad'] = dict()
@@ -295,12 +295,12 @@ def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,
 
         # --------------------------------------------------------------------
 
-        Log.msg_inf('Assembly: ' + assmbl_name +
-                    '\nSearch Strategy: ' + ss +
-                    '\nTranscripts: ' + str(len(transcripts_nt)) +
-                    '\nTranscripts with acceptable ORFs: ' +
-                    str(len(transcripts_with_acceptable_orfs)),
-                    '\n' + ('-' * 134))
+        Log.msg('Assembly:', assmbl_name, False)
+        Log.msg('Search Strategy:', ss, False)
+        Log.msg('Transcripts:', str(len(transcripts_nt)), False)
+        Log.msg('Transcripts with acceptable ORFs:',
+                str(len(transcripts_with_acceptable_orfs)) + '\n' +
+                '=' * 134, False)
 
         if len(transcripts_nt) > 0:
             write_fasta(transcripts_nt, transcripts_nt_fasta_file)

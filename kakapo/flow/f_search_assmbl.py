@@ -26,7 +26,7 @@ def run_tblastn_on_assemblies(ss, assemblies, aa_queries_file, tblastn,
 
     if len(assemblies) > 0:
         print()
-        Log.msg_inf('Running BLAST on assemblies:', ss)
+        Log.inf('Running BLAST on assemblies:', ss)
         if tblastn is None:
             Log.err('tblastn is not available. Cannot continue. Exiting.')
             exit(0)
@@ -78,9 +78,9 @@ def run_tblastn_on_assemblies(ss, assemblies, aa_queries_file, tblastn,
                 pickled = pickle.load(f)
 
         if ope(_) and pickled == settings:
-            Log.msg('The provided BLAST settings and query sequences did ' +
-                    'not change since the previous run.\n\tBLAST results for ' +
-                    'the assembly "' + assmbl_name + '" already exist:', ss)
+            # Log.msg('The provided BLAST settings and query sequences did '
+            #         'not change since the previous run.')
+            Log.msg('BLAST results already exist:', assmbl_name)
 
         else:
             Log.msg('Running tblastn on: ' + assmbl_name, ss)

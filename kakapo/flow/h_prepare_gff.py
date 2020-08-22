@@ -48,7 +48,7 @@ def gff_from_json(ss, assemblies, dir_prj_ips, dir_prj_transcripts_combined,
         elif ope(kakapo_json_path):
             json_dict = parse_kakapo_json_file(kakapo_json_path)
 
-        Log.inf('Producing GFF3 files for ' + ss + ' in ' + assmbl_name + '.')
+        # Log.inf('Producing GFF3 files for ' + ss + ' in ' + assmbl_name + '.')
         gff_from_json_dict(json_dict, gff_path)
 
         all_gff_paths.append(gff_path)
