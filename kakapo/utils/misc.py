@@ -296,6 +296,49 @@ def rename_fq_seqs(in_file, prefix, suffix):
     move(out_file_temp, in_file)
 
 
+def avg_read_len_fq(in_file):
+    r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(in_file)
+
+    num_reads = 0
+    tot_seq_len = 0
+
+    with fqopen(in_file, r_mode) as in_f:
+        entries = grouper(in_f, 4)
+        for i, entry in enumerate(entries):
+            _, seq, _, _ = [x.strip() for x in entry]
+            tot_seq_len += len(seq)
+            num_reads = i
+        num_reads += 1
+
+    return tot_seq_len / num_reads
+
+
+def approx_avg_read_len_fq(in_file):
+    r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(in_file)
+
+    head, _, plhld, qual = None, None, None, None
+
+    num_reads = 0
+    file_size = 0
+
+    with fqopen(in_file, r_mode) as in_f:
+        entries = grouper(in_f, 4)
+        for i, entry in enumerate(entries):
+            head, _, plhld, qual = [x.strip() for x in entry]
+            break
+
+        for _ in in_f:
+            num_reads += 1
+        num_reads = num_reads / 4
+
+        file_size = in_f.seek(0, 2)
+
+    rec_size_no_seq = len(head + plhld + qual) + 4
+    recs_size_no_seq = rec_size_no_seq * num_reads
+
+    return (file_size - recs_size_no_seq) / num_reads
+
+
 def split_seq_defn_for_printing(defn):
     defn_split = defn.split(' ')
     defn_a = defn_split[0]

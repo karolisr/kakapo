@@ -42,6 +42,7 @@ from kakapo.utils.misc import make_dirs
 from kakapo.utils.misc import plain_or_gzip
 from kakapo.utils.misc import rename_fq_seqs
 from kakapo.utils.misc import splitext_gz
+from kakapo.utils.misc import approx_avg_read_len_fq
 from kakapo.utils.subp import run
 
 
@@ -398,20 +399,34 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
             ml = pickled[x[0]]
 
         else:
-            cmd = [vsearch, '--fastq_stats', x[1], '--log', x[2]]
-            run(cmd, do_not_raise=True)
+            # ----------------------------------------------------------------
+            # Use 'vsearch --fastq_stats'. About 2x slower than the
+            #   approx_avg_read_len_fq function.
+            #
+            # cmd = [vsearch, '--fastq_stats', x[1], '--log', x[2]]
+            # run(cmd, do_not_raise=True)
+            # with open(x[2]) as f:
+            #     stats = f.read()
+            # remove(x[2])
+            # ml = re.findall(r'>=\s+(\d+)', stats)
+            # if len(ml) != 0:
+            #     ml = max(int(ml[0]) // 3, low)
+            # else:
+            #     ml = None
+            # ----------------------------------------------------------------
+            # 22:59:12 50 nt: Hylocereus_polyrhizus_1195597_SRR7829961
+            # 22:59:46 50 nt: Schlumbergera_truncata_15H-02_pol_S47    34s
+            # 23:00:30 50 nt: Schlumbergera_truncata_15H-02_sty_S49    44s
+            # ----------------------------------------------------------------
 
-            with open(x[2]) as f:
-                stats = f.read()
-
-            remove(x[2])
-
-            ml = re.findall(r'>=\s+(\d+)', stats)
-
-            if len(ml) != 0:
-                ml = max(int(ml[0]) // 3, low)
-            else:
-                ml = None
+            # ----------------------------------------------------------------
+            ml = approx_avg_read_len_fq(x[1])
+            ml = max(int(ml) // 3, low)
+            # ----------------------------------------------------------------
+            # 23:12:06 50 nt: Hylocereus_polyrhizus_1195597_SRR7829961
+            # 23:12:20 50 nt: Schlumbergera_truncata_15H-02_pol_S47    14s
+            # 23:12:39 50 nt: Schlumbergera_truncata_15H-02_sty_S49    19s
+            # ----------------------------------------------------------------
 
             pickled[x[0]] = ml
 
