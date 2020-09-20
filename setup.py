@@ -1,6 +1,5 @@
 """Kakapo Setup Script."""
 
-from setuptools import find_packages
 from setuptools import setup
 
 from kakapo import __author__ as kakapo_author
@@ -25,7 +24,7 @@ setup(name=kakapo_script_name,
       maintainer=kakapo_author,
       maintainer_email=kakapo_author_email,
       url=kakapo_url,
-      packages=find_packages(),
+      include_package_data=True,
       install_requires=reqs,
       python_requires='>=3.7',
       entry_points={'console_scripts': ['kakapo=kakapo.__main__:run_kakapo']},

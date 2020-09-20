@@ -2,15 +2,15 @@
 
 """Kakapo main file."""
 
-import inspect
-import os
-import sys
+# import inspect
+# import os
+# import sys
 
 ##############################################################################
-SCRIPT_FILE_PATH = inspect.getfile(inspect.currentframe())
-SCRIPT_DIR_PATH = os.path.dirname(os.path.abspath(SCRIPT_FILE_PATH))
-KAKAPO_DIR_PATH = os.path.sep.join(SCRIPT_DIR_PATH.split(os.path.sep)[0:-1])
-sys.path.insert(0, KAKAPO_DIR_PATH)
+# SCRIPT_FILE_PATH = inspect.getfile(inspect.currentframe())
+# SCRIPT_DIR_PATH = os.path.dirname(os.path.abspath(SCRIPT_FILE_PATH))
+# KAKAPO_DIR_PATH = os.path.sep.join(SCRIPT_DIR_PATH.split(os.path.sep)[0:-1])
+# sys.path.insert(0, KAKAPO_DIR_PATH)
 ##############################################################################
 
 import argparse
@@ -275,6 +275,11 @@ def main():
     rcorrector = deps.dep_check_rcorrector(DIR_DEP, FORCE_DEPS)
     kraken2, kraken2_build = deps.dep_check_kraken2(DIR_DEP, OS_ID,
                                                     RELEASE_NAME, FORCE_DEPS)
+
+    kakapolib = deps.dep_check_kakapolib(FORCE_DEPS)
+    if kakapolib is None:
+        Log.err('Could not compile "kakapolib". Cannot continue.')
+        exit(0)
 
     print()
 
@@ -547,7 +552,7 @@ def main():
 
     # Minimum acceptable read length -----------------------------------------
     min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
-                        dir_cache_fq_minlen, vsearch)
+                        dir_cache_fq_minlen)
 
     # Run Rcorrector ---------------------------------------------------------
     run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,

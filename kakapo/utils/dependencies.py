@@ -3,17 +3,19 @@
 import stat
 import tarfile
 import zipfile
+
 from os import chmod
 from os import linesep as lns
 from os import remove
-from os.path import exists as ope
-from os.path import join as opj
 from os.path import basename
 from os.path import dirname
+from os.path import exists as ope
+from os.path import join as opj
 from shutil import move
 from shutil import rmtree
 from tempfile import NamedTemporaryFile
 
+from kakapo.utils.c.kakapolib import dep_check_kakapolib as dckkpl
 from kakapo.utils.homebrew import brew_get
 from kakapo.utils.logging import Log
 from kakapo.utils.misc import download_file
@@ -25,6 +27,10 @@ from kakapo.utils.subp import which
 
 
 PY3 = which('python3')
+
+
+def dep_check_kakapolib(force):
+    return dckkpl(force)
 
 
 def dnld_kraken2_dbs(dbs_path):

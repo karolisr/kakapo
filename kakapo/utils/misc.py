@@ -1,10 +1,19 @@
 """Miscellaneous."""
 
+# import inspect
+# import os
+
+##############################################################################
+# SCRIPT_FILE_PATH = inspect.getfile(inspect.currentframe())
+# SCRIPT_DIR_PATH = os.path.dirname(os.path.abspath(SCRIPT_FILE_PATH))
+##############################################################################
+
 import fileinput
 import gzip
 import hashlib
 import re
 import sys
+
 from collections import defaultdict
 from collections import OrderedDict
 from datetime import datetime
@@ -26,6 +35,8 @@ from os.path import splitext
 from shutil import move
 from urllib.parse import urlparse
 
+from kakapo.utils.c.kakapolib import fq_avg_read_len
+from kakapo.utils.c.kakapolib import fq_avg_read_len_gz
 from kakapo.utils.http import download_file as download_file_http
 
 
@@ -298,45 +309,55 @@ def rename_fq_seqs(in_file, prefix, suffix):
 
 def avg_read_len_fq(in_file):
     r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(in_file)
-
-    num_reads = 0
-    tot_seq_len = 0
-
-    with fqopen(in_file, r_mode) as in_f:
-        entries = grouper(in_f, 4)
-        for i, entry in enumerate(entries):
-            _, seq, _, _ = [x.strip() for x in entry]
-            tot_seq_len += len(seq)
-            num_reads = i
-        num_reads += 1
-
-    return tot_seq_len / num_reads
+    avg_read_len = 0
+    if ext.startswith('.gz'):
+        avg_read_len = fq_avg_read_len_gz(in_file)
+    else:
+        avg_read_len = fq_avg_read_len(in_file)
+    return avg_read_len
 
 
-def approx_avg_read_len_fq(in_file):
-    r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(in_file)
+# def avg_read_len_fq(in_file):
+#     r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(in_file)
 
-    head, _, plhld, qual = None, None, None, None
+#     num_reads = 0
+#     tot_seq_len = 0
 
-    num_reads = 0
-    file_size = 0
+#     with fqopen(in_file, r_mode) as in_f:
+#         entries = grouper(in_f, 4)
+#         for i, entry in enumerate(entries):
+#             _, seq, _, _ = [x.strip() for x in entry]
+#             tot_seq_len += len(seq)
+#             num_reads = i
+#         num_reads += 1
 
-    with fqopen(in_file, r_mode) as in_f:
-        entries = grouper(in_f, 4)
-        for i, entry in enumerate(entries):
-            head, _, plhld, qual = [x.strip() for x in entry]
-            break
+#     return tot_seq_len / num_reads
 
-        for _ in in_f:
-            num_reads += 1
-        num_reads = num_reads / 4
 
-        file_size = in_f.seek(0, 2)
+# def approx_avg_read_len_fq(in_file):
+#     r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(in_file)
 
-    rec_size_no_seq = len(head + plhld + qual) + 4
-    recs_size_no_seq = rec_size_no_seq * num_reads
+#     head, _, plhld, qual = None, None, None, None
 
-    return (file_size - recs_size_no_seq) / num_reads
+#     num_reads = 0
+#     file_size = 0
+
+#     with fqopen(in_file, r_mode) as in_f:
+#         entries = grouper(in_f, 4)
+#         for i, entry in enumerate(entries):
+#             head, _, plhld, qual = [x.strip() for x in entry]
+#             break
+
+#         for _ in in_f:
+#             num_reads += 1
+#         num_reads = num_reads / 4
+
+#         file_size = in_f.seek(0, 2)
+
+#     rec_size_no_seq = len(head + plhld + qual) + 4
+#     recs_size_no_seq = rec_size_no_seq * num_reads
+
+#     return (file_size - recs_size_no_seq) / num_reads
 
 
 def split_seq_defn_for_printing(defn):
