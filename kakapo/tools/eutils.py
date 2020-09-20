@@ -275,13 +275,19 @@ def _history_server_data_ok(data):
 
 # Secondary functions --------------------------------------------------------
 def search(db: str, term: str) -> dict:
-    json = esearch(db=db, term=term, usehistory=True)
+    ret_dict = {'db': db, 'query_keys': [], 'web_env': None, 'count': 0}
+    esearchresult = None
+    for i in range(5):
+        json = esearch(db=db, term=term, usehistory=True)
+        if json is not None:
+            esearchresult = json['esearchresult']
+            if 'count' not in esearchresult:
+                esearchresult = None
+                continue
+            else:
+                break
 
-    ret_dict = {'db': db, 'query_keys': [], 'web_env': None,
-                'count': 0}
-
-    if json is not None:
-        esearchresult = json['esearchresult']
+    if esearchresult is not None:
         count = int(esearchresult['count'])
         if count == 0:
             return ret_dict

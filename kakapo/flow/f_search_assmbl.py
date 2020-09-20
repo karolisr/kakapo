@@ -83,7 +83,7 @@ def run_tblastn_on_assemblies(ss, assemblies, aa_queries_file, tblastn,
             Log.msg('BLAST results already exist:', assmbl_name)
 
         else:
-            Log.msg('Running tblastn on: ' + assmbl_name, ss)
+            Log.msg('Running tblastn on:', assmbl_name)
 
             if ope(ips_json_dump_path):
                 osremove(ips_json_dump_path)

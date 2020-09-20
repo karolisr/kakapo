@@ -7,3 +7,7 @@ find . -type d -name "__pycache__" -delete
 find . -type d -name ".pytest_cache" -exec rm -rf {} \;
 
 rm -rf build dist *.spec
+
+cd kakapo/utils/c/src
+make deep-clean
+cd ../../../../

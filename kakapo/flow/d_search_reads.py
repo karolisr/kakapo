@@ -91,7 +91,7 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
         else:
             changed_blast_1 = True
             make_dirs(dir_results)
-            Log.msg('Running tblastn on: ' + basename(blast_db_path), ss)
+            Log.msg('Running tblastn on:', basename(blast_db_path))
             run_blast(exec_file=tblastn,
                       task='tblastn',
                       threads=threads,
@@ -107,7 +107,7 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                       db_genetic_code=genetic_code,
                       out_cols=BLST_RES_COLS_1)
 
-            Log.inf('Extracting unique BLAST hits using Seqtk:', ss)
+            Log.inf('Extracting unique BLAST hits using Seqtk.')
 
             keep_unique_lines_in_file(out_f)
 
@@ -150,7 +150,7 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
             pe_trim_files = zip(blast_db_paths, out_fs, fq_paths, out_fs_fastq,
                                 out_fs_fasta)
             for x in pe_trim_files:
-                Log.msg('Running tblastn on: ' + basename(x[0]), ss)
+                Log.msg('Running tblastn on:', basename(x[0]))
                 run_blast(exec_file=tblastn,
                           task='tblastn',
                           threads=threads,
@@ -166,7 +166,7 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                           db_genetic_code=genetic_code,
                           out_cols=BLST_RES_COLS_1)
 
-                Log.msg('Extracting unique BLAST hits using Seqtk:', ss)
+                Log.msg('Extracting unique BLAST hits using Seqtk.')
 
                 keep_unique_lines_in_file(x[1])
 
@@ -219,7 +219,7 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
             Log.msg('Vsearch results already exist:', se)
         else:
             make_dirs(dir_results)
-            Log.msg('Running vsearch on: ' + basename(fq_path), ss)
+            Log.msg('Running vsearch on:', basename(fq_path))
             run_vsearch(vsearch,
                         ident=ident,
                         q_file=blast_results_fa_path,
@@ -227,7 +227,7 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
                         out_file=out_f,
                         minlen=min_acc_len)
 
-            Log.msg('Extracting unique vsearch hits using Seqtk:', ss)
+            Log.msg('Extracting unique vsearch hits using Seqtk.')
             keep_unique_lines_in_file(out_f)
             seqtk_extract_reads(seqtk, fq_path, out_f_fastq, out_f)
             osremove(out_f)
@@ -250,7 +250,7 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
             make_dirs(dir_results)
             pe_trim_files = zip(fq_paths, out_fs, out_fs_fastq)
             for x in pe_trim_files:
-                Log.msg('Running vsearch on: ' + basename(x[0]), ss)
+                Log.msg('Running vsearch on:', basename(x[0]))
                 run_vsearch(vsearch,
                             ident=ident,
                             q_file=blast_results_fa_path,
@@ -259,7 +259,7 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
                             minlen=min_acc_len)
 
             Log.msg('Extracting unique vsearch hits from paired files '
-                    'using Seqtk:', ss)
+                    'using Seqtk.')
 
             p1txt = out_fs[0]
             p2txt = out_fs[1]
@@ -283,7 +283,7 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
             osremove(p12txt_temp)
 
             Log.msg('Extracting unique vsearch hits from unpaired files '
-                    'using Seqtk:', ss)
+                    'using Seqtk.')
 
             u1txt = out_fs[2]
             u2txt = out_fs[3]
