@@ -2,15 +2,15 @@
 
 """Kakapo main file."""
 
-# import inspect
-# import os
-# import sys
+import inspect
+import os
+import sys
 
 ##############################################################################
-# SCRIPT_FILE_PATH = inspect.getfile(inspect.currentframe())
-# SCRIPT_DIR_PATH = os.path.dirname(os.path.abspath(SCRIPT_FILE_PATH))
-# KAKAPO_DIR_PATH = os.path.sep.join(SCRIPT_DIR_PATH.split(os.path.sep)[0:-1])
-# sys.path.insert(0, KAKAPO_DIR_PATH)
+SCRIPT_FILE_PATH = inspect.getfile(inspect.currentframe())
+SCRIPT_DIR_PATH = os.path.dirname(os.path.abspath(SCRIPT_FILE_PATH))
+KAKAPO_DIR_PATH = os.path.sep.join(SCRIPT_DIR_PATH.split(os.path.sep)[0:-1])
+sys.path.insert(0, KAKAPO_DIR_PATH)
 ##############################################################################
 
 import argparse
