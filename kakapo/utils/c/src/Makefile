@@ -1,6 +1,7 @@
 CC=gcc
 
-OPTS=-Wall -Werror -std=c99 -O3
+# OPTS=-Wall -Werror -std=c99 -O3
+OPTS=-std=c99 -O3
 
 DIR_LIB=../lib
 DIR_BIN=../bin
