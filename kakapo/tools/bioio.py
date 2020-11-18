@@ -52,7 +52,8 @@ def read_fasta(f, seq_type, upper=True, def_to_first_space=False,
             seq_lines = list()
             records.append([process_defn(line), seq_lines])
         else:
-            seq_lines.append(line)
+            if seq_lines is not None:
+                seq_lines.append(line)
 
     for rec in records:
         rec[1] = process_seq(''.join(rec[1]))

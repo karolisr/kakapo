@@ -80,7 +80,8 @@ def history(f: CallableT) -> CallableT:
 
 def with_history(f: CallableT) -> CallableT:
     @wraps(f)
-    def wrapper(data: dict):
+    def wrapper(data: dict, **kwargs):
+        # def wrapper(data: dict, rettype: str = 'gb', retmode: str = 'xml'):
 
         db = data['db']
         query_keys = data['query_keys']
@@ -394,9 +395,28 @@ def seqs(data: dict, rettype: str = 'gb', retmode: str = 'xml') -> list:
 @dispatch(str, Iterable, namespace=EUTILS_NS)
 def seqs(db: str, ids: IterableT[str], rettype: str = 'gb',
          retmode: str = 'xml', location: dict = None) -> list:
-    txt = efetch(db=db, ids=ids, rettype=rettype, retmode=retmode,
-                 location=location)
-    return _process_downloaded_seq_data(txt, db, rettype, retmode)
+    if location is None:
+        ids_requested = set(ids)
+        r_temp = list()
+        epost_r = epost(db, ids)
+        r = seqs(epost_r, rettype=rettype, retmode=retmode)
+        r_temp += r
+        if len(r) != len(ids_requested):
+            # DEBUG
+            # print('DEBUG : eutils.seqs : len(r) != len(ids_requested) ::',
+            #       len(r), len(ids_requested))
+            # END DEBUG
+            ids_dnld = set([x.accession_version for x in r_temp])
+            ids_remaining = ids_requested - ids_dnld
+            r = seqs(db, list(ids_remaining), rettype=rettype, retmode=retmode)
+            r_temp += r
+            return r_temp
+        else:
+            return r_temp
+    else:
+        txt = efetch(db=db, ids=ids, rettype=rettype, retmode=retmode,
+                     location=location)
+        return _process_downloaded_seq_data(txt, db, rettype, retmode)
 
 
 @dispatch(Iterable, namespace=EUTILS_NS)
@@ -411,7 +431,12 @@ def cds(ids_protein: IterableT[str]) -> list:
             cds_acc = prot_rec.coded_by['external_ref']
 
             cds_rec = seqs('nuccore', [cds_acc], rettype='fasta',
-                           retmode='text', location=cds_loc_str)[0]
+                           retmode='text', location=cds_loc_str)
+
+            if len(cds_rec) > 0:
+                cds_rec = cds_rec[0]
+            else:
+                continue
 
             cds_def = cds_rec.definition
             cds_acc_ver = cds_rec.accession_version

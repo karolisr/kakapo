@@ -25,11 +25,11 @@ def dnld_cds_for_ncbi_prot_acc(ss, prot_acc_user, prot_cds_ncbi_file, tax,
     if acc_old == set(prot_acc_user):
         cds_rec_dict = pickled[1]
         Log.inf('The CDS for the dereplicated set of the user-provided '
-                    'NCBI protein accessions have already been '
-                    'downloaded:', ss)
+                'NCBI protein accessions have already been '
+                'downloaded:', ss)
     else:
         Log.inf('Downloading CDS for the dereplicated set of the user-provided '
-                    'NCBI protein accessions:', ss)
+                'NCBI protein accessions:', ss)
         cds_rec_dict = seq_records_to_dict(cds_for_prot(prot_acc_user),
                                            prepend_acc=True)
         with open(pickle_file, 'wb') as f:
