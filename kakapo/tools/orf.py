@@ -131,6 +131,15 @@ def find_orf_for_blast_hit(seq, frame, hit_start, hit_end, start_codons,
 
     seq_len = len(seq)
     seq_local = seq
+    min_len_to_consider = 200
+
+    # FixMe: very long sequence (genomic) hack
+    padding = 10000
+    max_hit_len = padding
+    seq_temp = seq
+    seq_trim_start = 0
+    seq_trim_end = seq_len
+    ###
 
     if frame > 0:
         hit_len = hit_end - hit_start
@@ -144,10 +153,25 @@ def find_orf_for_blast_hit(seq, frame, hit_start, hit_end, start_codons,
         hit_len = hit_end - hit_start
         frames = [-1, -2, -3]
 
-    min_len_to_consider = 200
+    # FixMe: very long sequence (genomic) hack
+    if hit_start - padding >= 0:
+        seq_trim_start = hit_start - padding
+    if hit_end + padding <= seq_len:
+        seq_trim_end = hit_end + padding
+    seq_temp = seq[seq_trim_start:seq_trim_end]
+    ###
 
-    results = get_orf_coords_for_frames(seq, start_codons, stop_codons,
-                                        min_len_to_consider, frames=frames)
+    # print('len(seq)', len(seq))
+    # print('len(seq_temp)', len(seq_temp))
+    # print('frame', frame)
+    # print(hit_start, hit_end)
+
+    # FixMe: very long sequence (genomic) hack
+    results = list()
+    if hit_len < max_hit_len:
+        results = get_orf_coords_for_frames(seq_temp, start_codons, stop_codons,
+                                            min_len_to_consider, frames=frames)
+    ###
 
     orfs = list()
 
@@ -157,6 +181,12 @@ def find_orf_for_blast_hit(seq, frame, hit_start, hit_end, start_codons,
         orf_coords = r['orf_coords']
 
         for loc in orf_coords:
+
+            # FixMe: very long sequence (genomic) hack
+            loc = list(loc)
+            loc[0] = loc[0] + seq_trim_start
+            loc[1] = loc[1] + seq_trim_start
+            ###
 
             orf_beg = loc[0]
             orf_end = loc[1]
@@ -188,6 +218,7 @@ def find_orf_for_blast_hit(seq, frame, hit_start, hit_end, start_codons,
         ovrlp = overlap((hit_start, hit_end), (orf_start, orf_end))
         ovrlp = ovrlp / max(orf_len, hit_len)
         orf['ovrlp'] = ovrlp
+        # orf['grade'] = ovrlp
         orf['grade'] = (ovrlp ** 1.25) * orf['sc_score']
 
     orfs = sorted(orfs, key=itemgetter('grade'), reverse=True)
