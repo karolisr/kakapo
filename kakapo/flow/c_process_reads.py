@@ -143,7 +143,7 @@ def dnld_sra_info(sras, dir_cache_prj):
                             species=sra_species,
                             txid=sra_taxid), False)
                 Log.msg('Technology:',
-                        '{platform} platform on {model}.'.format(
+                        '{platform} platform / {model}.'.format(
                             platform=sra_seq_platform,
                             model=sra_seq_platform_model), False)
 
