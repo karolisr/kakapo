@@ -91,7 +91,7 @@ def dnld_sra_info(sras, dir_cache_prj):
             sra_spots_with_mates = int(info['spots_with_mates'])
 
             sample_base_name = (sra_species.replace(' ', '_') + '_' +
-                                sra_taxid + '_' + sra)
+                                sra_taxid + '_' + sra).replace('/', '_')
 
             sra_runs_info[sra]['KakapoSampleBaseName'] = sample_base_name
 
