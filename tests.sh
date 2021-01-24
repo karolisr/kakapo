@@ -3,6 +3,5 @@ cd /home/travis/build/karolisr/kakapo/kakapo/utils/c/src
 make deep-clean
 make test
 make
-cd ../../../
-cd tests
+cd /home/travis/build/karolisr/kakapo/tests
 pytest
