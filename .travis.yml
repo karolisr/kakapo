@@ -4,7 +4,7 @@ python:
   - "3.7"
 before_install:
   - sudo apt-get -y update
-  - sudo apt-get -y install zlib1g-dev lib64z1-dev lib32z1-dev libx32z1-dev zlib1g-dbg
+  - sudo apt-get -y install zlib1g-dev lib64z1-dev zlib1g-dbg
 install:
   - pip install -r requirements.txt
 script:
