@@ -20,10 +20,10 @@ gzlib.o: gzlib.c
 	$(CC) $(OPTS) -lz -fPIC -c -o gzlib.o gzlib.c
 
 fq_avg_read_len: fq_avg_read_len.c gzlib.o fqlib.o
-	$(CC) $(OPTS) -lz -o fq_avg_read_len fq_avg_read_len.c gzlib.o fqlib.o
+	$(CC) $(OPTS) -o fq_avg_read_len fq_avg_read_len.c gzlib.o fqlib.o -lz
 
 fq_avg_read_len_gz: fq_avg_read_len_gz.c gzlib.o fqlib.o
-	$(CC) $(OPTS) -lz -o fq_avg_read_len_gz fq_avg_read_len_gz.c gzlib.o fqlib.o
+	$(CC) $(OPTS) -o fq_avg_read_len_gz fq_avg_read_len_gz.c gzlib.o fqlib.o -lz
 
 test: all fq_avg_read_len fq_avg_read_len_gz
 	time ./fq_avg_read_len $(DIR_TEST_DATA)/FASTQ_300000.fq
