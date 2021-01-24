@@ -85,13 +85,16 @@ def dnld_sra_info(sras, dir_cache_prj):
             sra_lib_strategy = info['LibraryStrategy']
             sra_seq_platform = info['Platform'].lower().capitalize()
             sra_seq_platform_model = info['Model']
-            sra_species = info['ScientificName']
+
+            sra_species = info['ScientificName'].replace('/', '_')
+            sra_runs_info[sra]['ScientificName'] = sra_species
+
             sra_taxid = info['TaxID']
             sra_spots = int(info['spots'])
             sra_spots_with_mates = int(info['spots_with_mates'])
 
             sample_base_name = (sra_species.replace(' ', '_') + '_' +
-                                sra_taxid + '_' + sra).replace('/', '_')
+                                sra_taxid + '_' + sra)
 
             sra_runs_info[sra]['KakapoSampleBaseName'] = sample_base_name
 
