@@ -554,10 +554,6 @@ def main():
     min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
                         dir_cache_fq_minlen)
 
-    # Run Rcorrector ---------------------------------------------------------
-    run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
-                   THREADS, dir_temp, should_run_rcorrector)
-
     # File name patterns -----------------------------------------------------
     a, b, c, d, e = file_name_patterns()
 
@@ -570,6 +566,11 @@ def main():
     # Run Trimmomatic --------------------------------------------------------
     run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
                     trimmomatic, adapters, pe_trim_fq_file_patterns, THREADS)
+
+    # Run Rcorrector ---------------------------------------------------------
+    run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
+                   THREADS, dir_temp, pe_trim_fq_file_patterns,
+                   should_run_rcorrector)
 
     # Run Bowtie 2 -----------------------------------------------------------
     run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_bt2_data,

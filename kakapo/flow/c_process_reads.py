@@ -421,7 +421,7 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
 
 
 def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
-                   threads, dir_temp, should_run):
+                   threads, dir_temp, fpatt, should_run):
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
         print()
         if should_run is False:
@@ -429,13 +429,13 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
         else:
             Log.inf('Running Rcorrector.')
 
-        if rcorrector is None:
-            Log.err('Rcorrector is not available. Cannot continue. Exiting.')
-            exit(0)
+            if rcorrector is None:
+                Log.err('Rcorrector is not available. Cannot continue. Exiting.')
+                exit(0)
 
     for se in se_fastq_files:
         dir_fq_cor_data_sample = opj(dir_fq_cor_data, se)
-        fq_path = se_fastq_files[se]['path']
+        fq_path = se_fastq_files[se]['trim_path_fq']
         r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(fq_path)
         log_f = opj(dir_fq_cor_data_sample, se + '.txt')
         out_f = opj(dir_fq_cor_data_sample, se + '.fastq' + ext)
@@ -466,26 +466,24 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
 
     for pe in pe_fastq_files:
         dir_fq_cor_data_sample = opj(dir_fq_cor_data, pe)
-        fq_path_1 = pe_fastq_files[pe]['path'][0]
-        fq_path_2 = pe_fastq_files[pe]['path'][1]
-        fq_path_3 = None
-        out_f_3 = None
+
+        fq_path_1 = pe_fastq_files[pe]['trim_path_fq'][0]
+        fq_path_2 = pe_fastq_files[pe]['trim_path_fq'][1]
+        fq_path_3 = pe_fastq_files[pe]['trim_path_fq'][2]
+        fq_path_4 = pe_fastq_files[pe]['trim_path_fq'][3]
+
         r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(fq_path_1)
-        log_f = opj(dir_fq_cor_data_sample, pe + '.txt')
-        out_f_1 = opj(dir_fq_cor_data_sample, pe + '_R1.fastq' + ext)
-        out_f_2 = opj(dir_fq_cor_data_sample, pe + '_R2.fastq' + ext)
+        log_f = opj(dir_fq_cor_data_sample, pe + '_paired.txt')
 
-        pe_fastq_files[pe]['cor_path_fq'] = [out_f_1, out_f_2]
+        out_fs = [x.replace('@D@', dir_fq_cor_data_sample) for x in fpatt]
+        out_fs = [x.replace('@N@', pe) for x in out_fs]
+        out_fs = [x + ext for x in out_fs]
 
-        if len(pe_fastq_files[pe]['path']) == 3:
-            fq_path_3 = pe_fastq_files[pe]['path'][2]
-            out_f_3 = opj(dir_fq_cor_data_sample, pe + '_R3.fastq' + ext)
-            pe_fastq_files[pe]['cor_path_fq'].append(out_f_3)
+        pe_fastq_files[pe]['cor_path_fq'] = out_fs
 
         if should_run is False:
-            pe_fastq_files[pe]['cor_path_fq'] = [fq_path_1, fq_path_2]
-            if fq_path_3 is not None:
-                pe_fastq_files[pe]['cor_path_fq'].append(fq_path_3)
+            pe_fastq_files[pe]['cor_path_fq'] = [fq_path_1, fq_path_2,
+                                                 fq_path_3, fq_path_4]
             continue
 
         if ope(dir_fq_cor_data_sample):
@@ -507,32 +505,44 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
 
             filter_unc_pe(in_file_1=fq_cor_path_1,
                           in_file_2=fq_cor_path_2,
-                          out_file_1=out_f_1,
-                          out_file_2=out_f_2,
+                          out_file_1=out_fs[0],
+                          out_file_2=out_fs[1],
                           log_file=log_f)
 
             remove(fq_cor_path_1)
             remove(fq_cor_path_2)
 
-            if fq_path_3 is not None:
+            run_rcorrector_se(rcorrector=rcorrector,
+                              in_file=fq_path_3,
+                              out_dir=dir_fq_cor_data_sample,
+                              threads=threads,
+                              dir_temp=dir_temp)
 
-                Log.msg('SE mode (Paired-read SRA run contains unpaired reads):', pe)
+            fq_base_path_3 = opj(dir_fq_cor_data_sample,
+                                 basename(fq_path_3))
+            fq_cor_path_3 = splitext_gz(fq_base_path_3)[0] + '.cor.fq' + ext
+            log_f_3 = opj(dir_fq_cor_data_sample, pe + '_unpaired_1.txt')
 
-                run_rcorrector_se(rcorrector=rcorrector,
-                                  in_file=fq_path_3,
-                                  out_dir=dir_fq_cor_data_sample,
-                                  threads=threads,
-                                  dir_temp=dir_temp)
+            filter_unc_se(in_file=fq_cor_path_3, out_file=out_fs[2],
+                          log_file=log_f_3)
 
-                fq_base_path_3 = opj(dir_fq_cor_data_sample,
-                                     basename(fq_path_3))
-                fq_cor_path_3 = splitext_gz(fq_base_path_3)[0] + '.cor.fq'
-                log_f_3 = opj(dir_fq_cor_data_sample, pe + '_unpaired.txt')
+            remove(fq_cor_path_3)
 
-                filter_unc_se(in_file=fq_cor_path_3, out_file=out_f_3,
-                              log_file=log_f_3)
+            run_rcorrector_se(rcorrector=rcorrector,
+                              in_file=fq_path_4,
+                              out_dir=dir_fq_cor_data_sample,
+                              threads=threads,
+                              dir_temp=dir_temp)
 
-                remove(fq_cor_path_3)
+            fq_base_path_4 = opj(dir_fq_cor_data_sample,
+                                 basename(fq_path_4))
+            fq_cor_path_4 = splitext_gz(fq_base_path_4)[0] + '.cor.fq' + ext
+            log_f_4 = opj(dir_fq_cor_data_sample, pe + '_unpaired_2.txt')
+
+            filter_unc_se(in_file=fq_cor_path_4, out_file=out_fs[3],
+                          log_file=log_f_4)
+
+            remove(fq_cor_path_4)
 
 
 def file_name_patterns():
@@ -577,7 +587,7 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
             exit(0)
     for se in se_fastq_files:
         dir_fq_trim_data_sample = opj(dir_fq_trim_data, se)
-        fq_path = se_fastq_files[se]['cor_path_fq']
+        fq_path = se_fastq_files[se]['path']
         r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(fq_path)
         min_acc_len = se_fastq_files[se]['min_acc_len']
         stats_f = opj(dir_fq_trim_data_sample, se + '.txt')
@@ -600,12 +610,12 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
 
     for pe in pe_fastq_files:
         dir_fq_trim_data_sample = opj(dir_fq_trim_data, pe)
-        fq_path_1 = pe_fastq_files[pe]['cor_path_fq'][0]
-        fq_path_2 = pe_fastq_files[pe]['cor_path_fq'][1]
+        fq_path_1 = pe_fastq_files[pe]['path'][0]
+        fq_path_2 = pe_fastq_files[pe]['path'][1]
         fq_path_3 = None
         r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(fq_path_1)
-        if len(pe_fastq_files[pe]['cor_path_fq']) == 3:
-            fq_path_3 = pe_fastq_files[pe]['cor_path_fq'][2]
+        if len(pe_fastq_files[pe]['path']) == 3:
+            fq_path_3 = pe_fastq_files[pe]['path'][2]
         min_acc_len = pe_fastq_files[pe]['min_acc_len']
         stats_f = opj(dir_fq_trim_data_sample, pe + '.txt')
         out_fs = [x.replace('@D@', dir_fq_trim_data_sample) for x in fpatt]
@@ -770,7 +780,7 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
         dbs = _should_run_bt2(taxid, taxonomy, bt2_order, bowtie2,
                               bowtie2_build)
 
-        in_f = se_fastq_files[se]['trim_path_fq']
+        in_f = se_fastq_files[se]['cor_path_fq']
         in_f_orig = in_f
 
         if len(dbs) == 0:
@@ -862,7 +872,7 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
         dbs = _should_run_bt2(taxid, taxonomy, bt2_order, bowtie2,
                               bowtie2_build)
 
-        in_fs = pe_fastq_files[pe]['trim_path_fq']
+        in_fs = pe_fastq_files[pe]['cor_path_fq']
         in_fs_orig = tuple(in_fs)
 
         if len(dbs) == 0:

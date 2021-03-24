@@ -64,11 +64,11 @@ def prepare_output_directories(dir_out, prj_name):
     dir_fq_data = opj(dir_global, '01-sra-fq-data')
     make_dirs(dir_fq_data)
 
-    dir_fq_cor_data = opj(dir_global, '02-corrected-fq-data')
-    make_dirs(dir_fq_cor_data)
-
-    dir_fq_trim_data = opj(dir_global, '03-trimmed-fq-data')
+    dir_fq_trim_data = opj(dir_global, '02-trimmed-fq-data')
     make_dirs(dir_fq_trim_data)
+
+    dir_fq_cor_data = opj(dir_global, '03-corrected-fq-data')
+    make_dirs(dir_fq_cor_data)
 
     dir_fq_filter_bt2_data = opj(dir_global, '04-bowtie2-filtered-fq-data')
     make_dirs(dir_fq_filter_bt2_data)
