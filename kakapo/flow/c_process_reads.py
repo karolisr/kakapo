@@ -316,7 +316,7 @@ def user_fastq_files(fq_se, fq_pe):
         fq_type_1_match = re.findall(fq_type_1_regex, base)
         if len(fq_type_1_match) > 0 and len(fq_type_1_match[0]) == 3:
             base = fq_type_1_match[0][0]
-        sample_base_name = base
+        sample_base_name = base.rstrip('_').rstrip('-')
         se_fastq_files[sample_base_name] = {'path': path}
         se_fastq_files[sample_base_name]['src'] = 'usr'
         se_fastq_files[sample_base_name]['avg_len'] = None
@@ -335,7 +335,7 @@ def user_fastq_files(fq_se, fq_pe):
             base = fq_type_1_match[0][0]
         else:
             base = basename(commonprefix(path)).rstrip('_- R')
-        sample_base_name = base
+        sample_base_name = base.rstrip('_').rstrip('-')
         pe_fastq_files[sample_base_name] = {'path': path}
         pe_fastq_files[sample_base_name]['src'] = 'usr'
         pe_fastq_files[sample_base_name]['avg_len'] = None
