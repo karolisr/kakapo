@@ -641,18 +641,6 @@ def main():
     prepare_output_directories(dir_out, prj_name)
 
     # Run vsearch on reads ---------------------------------------------------
-    # should_run_vsearch = False
-    # for ss in sss:
-    #     if stat(aa_queries_files[ss]).st_size == 0:
-    #         continue
-    #     else:
-    #         should_run_vsearch = True
-    #         break
-
-    # if should_run_vsearch is True:
-    #     print()
-    #     Log.inf('Checking if Vsearch should be run.')
-
     for ss in sss:
         if stat(aa_queries_files[ss]).st_size == 0:
             continue
@@ -663,18 +651,6 @@ def main():
                              pe_vsearch_results_file_patterns, ss, seqtk)
 
     # Run SPAdes -------------------------------------------------------------
-    # should_run_spades = False
-    # for ss in sss:
-    #     if stat(aa_queries_files[ss]).st_size == 0:
-    #         continue
-    #     else:
-    #         should_run_spades = True
-    #         break
-
-    # if should_run_spades is True:
-    #     print()
-    #     Log.inf('Checking if SPAdes should be run.')
-
     for ss in sss:
         if stat(aa_queries_files[ss]).st_size == 0:
             for se in se_fastq_files:
@@ -772,7 +748,6 @@ def main():
                             blast_2_qcov_hsp_perc_ss, organelle)
 
     # GFF3 files from kakapo results JSON files ------------------------------
-    # print()
     for ss in sss:
         if stat(aa_queries_files[ss]).st_size == 0:
             continue
