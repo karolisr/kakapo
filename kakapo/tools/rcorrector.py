@@ -10,7 +10,9 @@ def run_rcorrector_se(rcorrector, in_file, out_dir, threads, dir_temp):
     cmd = [rcorrector,
            '-t', str(threads),
            '-s', in_file,
-           '-k', '23',
+           '-k', '20',
+           '-maxcorK', '4',
+           '-wk', '0.90',
            '-od', out_dir]
 
     run(cmd, cwd=dir_temp, do_not_raise=True)
@@ -23,7 +25,9 @@ def run_rcorrector_pe(rcorrector, in_file_1, in_file_2, out_dir, threads,
            '-t', str(threads),
            '-1', in_file_1,
            '-2', in_file_2,
-           '-k', '23',
+           '-k', '20',
+           '-maxcorK', '4',
+           '-wk', '0.90',
            '-od', out_dir]
 
     run(cmd, cwd=dir_temp, do_not_raise=True)
