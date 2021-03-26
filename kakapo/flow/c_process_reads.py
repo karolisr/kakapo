@@ -8,6 +8,7 @@ import re
 from collections import OrderedDict
 from copy import deepcopy
 from os import remove
+from os import stat
 from os.path import basename
 from os.path import commonprefix
 from os.path import exists as ope
@@ -639,37 +640,47 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
             remove(fq_cor_path_1)
             remove(fq_cor_path_2)
 
-            run_rcorrector_se(rcorrector=rcorrector,
-                              in_file=fq_path_3,
-                              out_dir=dir_fq_cor_data_sample,
-                              threads=threads,
-                              dir_temp=dir_temp)
+            # unpaired 1
+            if stat(fq_path_3).st_size != 0:
+                run_rcorrector_se(rcorrector=rcorrector,
+                                  in_file=fq_path_3,
+                                  out_dir=dir_fq_cor_data_sample,
+                                  threads=threads,
+                                  dir_temp=dir_temp)
 
-            fq_base_path_3 = opj(dir_fq_cor_data_sample,
-                                 basename(fq_path_3))
-            fq_cor_path_3 = splitext_gz(fq_base_path_3)[0] + '.cor.fq' + ext
-            log_f_3 = opj(dir_fq_cor_data_sample, pe + '_unpaired_1.txt')
+                fq_base_path_3 = opj(dir_fq_cor_data_sample,
+                                     basename(fq_path_3))
+                fq_cor_path_3 = splitext_gz(fq_base_path_3)[0] + '.cor.fq' + ext
+                log_f_3 = opj(dir_fq_cor_data_sample, pe + '_unpaired_1.txt')
 
-            filter_unc_se(in_file=fq_cor_path_3, out_file=out_fs[2],
-                          log_file=log_f_3)
+                filter_unc_se(in_file=fq_cor_path_3, out_file=out_fs[2],
+                              log_file=log_f_3)
 
-            remove(fq_cor_path_3)
+                remove(fq_cor_path_3)
+            else:
+                with open(out_fs[2], 'w') as f:
+                    f.write('')
 
-            run_rcorrector_se(rcorrector=rcorrector,
-                              in_file=fq_path_4,
-                              out_dir=dir_fq_cor_data_sample,
-                              threads=threads,
-                              dir_temp=dir_temp)
+            # unpaired 2
+            if stat(fq_path_4).st_size != 0:
+                run_rcorrector_se(rcorrector=rcorrector,
+                                  in_file=fq_path_4,
+                                  out_dir=dir_fq_cor_data_sample,
+                                  threads=threads,
+                                  dir_temp=dir_temp)
 
-            fq_base_path_4 = opj(dir_fq_cor_data_sample,
-                                 basename(fq_path_4))
-            fq_cor_path_4 = splitext_gz(fq_base_path_4)[0] + '.cor.fq' + ext
-            log_f_4 = opj(dir_fq_cor_data_sample, pe + '_unpaired_2.txt')
+                fq_base_path_4 = opj(dir_fq_cor_data_sample,
+                                     basename(fq_path_4))
+                fq_cor_path_4 = splitext_gz(fq_base_path_4)[0] + '.cor.fq' + ext
+                log_f_4 = opj(dir_fq_cor_data_sample, pe + '_unpaired_2.txt')
 
-            filter_unc_se(in_file=fq_cor_path_4, out_file=out_fs[3],
-                          log_file=log_f_4)
+                filter_unc_se(in_file=fq_cor_path_4, out_file=out_fs[3],
+                              log_file=log_f_4)
+                remove(fq_cor_path_4)
 
-            remove(fq_cor_path_4)
+            else:
+                with open(out_fs[3], 'w') as f:
+                    f.write('')
 
 
 def dnld_refseqs_for_taxid(taxid, filter_term, taxonomy, dir_cache_refseqs,
