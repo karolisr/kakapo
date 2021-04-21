@@ -24,6 +24,14 @@ from kakapo.utils.misc import replace_line_in_file
 from kakapo.utils.logging import Log
 
 
+GROUP_TAX_IDS = {'animals': 33208,
+                 'archaea': 2157,
+                 'bacteria': 2,
+                 'fungi': 4751,
+                 'plants': 33090,
+                 'viruses': 10239}
+
+
 # FixMe: This needs to be done in a more elegant way.
 #        Should inform the user that the closest taxonomic term should be
 #        provided
@@ -214,7 +222,8 @@ def ss_file_parse(file_path):
     return ret_dict
 
 
-def config_file_parse(file_path, taxonomy):
+def config_file_parse(file_path, taxonomy=None, err_on_missing=True,
+                      editor=False):
 
     cfg = ConfigParser(delimiters=('='), allow_no_value=True)
     cfg.optionxform = str
@@ -230,15 +239,23 @@ def config_file_parse(file_path, taxonomy):
         # General
         project_name = cfg.get('General', 'project_name')
         email = cfg.get('General', 'email')
-        output_directory = abspath(expanduser(cfg.get(
-            'General', 'output_directory')))
+
+        output_directory = cfg.get('General', 'output_directory')
+        if editor is False:
+            output_directory = abspath(expanduser(output_directory))
+
+        should_use_colors = cfg.getboolean('General', 'use_colors')
+
+        entrez_api_key = cfg.get('General', 'entrez_api_key')
+
         should_run_ipr = cfg.getboolean('General', 'run_inter_pro_scan')
         should_run_rcorrector = cfg.getboolean('General', 'run_rcorrector')
         prepend_assmbl = cfg.getboolean('General',
                                         'prepend_assembly_name_to_sequence_name')
         kraken_confidence = cfg.getfloat('General', 'kraken_2_confidence')
-        requery_after = cfg.getfloat('General', 'requery_after')
-        requery_after = datetime.timedelta(days=requery_after)
+        requery_after = cfg.getint('General', 'requery_after')
+        if editor is False:
+            requery_after = datetime.timedelta(days=requery_after)
 
         # Target filters
         allow_non_aug = cfg.getboolean('Target filters',
@@ -251,20 +268,14 @@ def config_file_parse(file_path, taxonomy):
         # Query taxonomic group
         tax_group_raw = cfg.items('Query taxonomic group')
 
-        if len(tax_group_raw) != 1:
-            raise Exception('One taxonomic group should be listed.')
+        if err_on_missing is True:
+            if len(tax_group_raw) != 1:
+                raise Exception('One taxonomic group should be listed.')
 
         tax_group = tax_group_raw[0][0].lower()
         tax_group_name = tax_group.title()
 
-        group_tax_ids = {'animals': 33208,
-                         'archaea': 2157,
-                         'bacteria': 2,
-                         'fungi': 4751,
-                         'plants': 33090,
-                         'viruses': 10239}
-
-        tax_group = group_tax_ids[tax_group]
+        tax_group = GROUP_TAX_IDS[tax_group]
 
         # Target SRA accessions
         sras = cfg.items('Target SRA accessions')
@@ -297,12 +308,15 @@ def config_file_parse(file_path, taxonomy):
 
             taxa_temp = [val[0]]
 
-            # FixMe: It is possible for tax_id to be None!
-            #        What happens then?
-            tax_id = _parse_taxa(taxa=taxa_temp,
-                                 tax_group=tax_group,
-                                 taxonomy=taxonomy,
-                                 config_file_path=file_path)[0]
+            if taxonomy is not None:
+                # FixMe: It is possible for tax_id to be None!
+                #        What happens then?
+                tax_id = _parse_taxa(taxa=taxa_temp,
+                                     tax_group=tax_group,
+                                     taxonomy=taxonomy,
+                                     config_file_path=file_path)[0]
+            else:
+                tax_id = taxa_temp[0]
 
             # See FixMe above.
             if tax_id is None:
@@ -312,18 +326,46 @@ def config_file_parse(file_path, taxonomy):
                 f_name = basename(val[1])
                 d_path = abspath(expanduser(dirname(val[1])))
                 pattern = re.escape(f_name).replace('\\*', '.')
-                try:
-                    files, err = list_of_files_at_path(d_path)
-                except Exception:
-                    exit(1)
-                pe = [f for f in files if re.match(pattern, basename(f)) is not None]
-                pe.sort()
-                pe = [join(d_path, f) for f in pe]
-                fq_pe.append([tax_id, pe])
+                files, err = list_of_files_at_path(d_path)
+
+                if err is not None:
+                    Log.err(err)
+                    if err_on_missing is True:
+                        Log.err('Stopping.')
+                        exit(1)
+
+                if editor is False:
+                    pe = [f for f in files if re.match(pattern, basename(f)) is not None]
+                    pe.sort()
+                    # ToDo: check if files in 'pe' exist
+                    pe = [join(d_path, f) for f in pe]
+                    fq_pe.append([tax_id, pe])
+                else:
+                    pe = val[1]
+                    fq_pe.append([tax_id, pe])
 
             elif key.startswith('se_'):
-                se = abspath(expanduser(val[1]))
-                fq_se.append([tax_id, se])
+                f_name = basename(val[1])
+                d_path = abspath(expanduser(dirname(val[1])))
+                files, err = list_of_files_at_path(d_path)
+
+                if err is not None:
+                    Log.err(err)
+                    if err_on_missing is True:
+                        Log.err('Stopping.')
+                        exit(1)
+
+                if editor is False:
+                    se = abspath(expanduser(val[1]))
+                    if not ope(se):
+                        Log.err('Cannot find the FASTQ file:', se)
+                        Log.err('Stopping.')
+                        exit(1)
+                    fq_se.append([tax_id, se])
+
+                else:
+                    se = val[1]
+                    fq_se.append([tax_id, se])
 
             # See FixMe above.
             if tax_id != tax_group:
@@ -348,14 +390,21 @@ def config_file_parse(file_path, taxonomy):
         taxa_temp = [x[0] for x in assmbl_temp]
         taxa_temp = [x.split('.')[0] for x in taxa_temp]
 
-        # FixMe: It is possible for one of the tax_ids to be None!
-        #        What happens then?
-        tax_ids = _parse_taxa(taxa=taxa_temp,
-                              tax_group=tax_group,
-                              taxonomy=taxonomy,
-                              config_file_path=file_path)
+        if taxonomy is not None:
+            # FixMe: It is possible for one of the tax_ids to be None!
+            #        What happens then?
+            tax_ids = _parse_taxa(taxa=taxa_temp,
+                                  tax_group=tax_group,
+                                  taxonomy=taxonomy,
+                                  config_file_path=file_path)
+        else:
+            tax_ids = taxa_temp
 
-        assmbl_temp = [abspath(expanduser(x[1])) for x in assmbl_temp]
+        if editor is False:
+            assmbl_temp = [abspath(expanduser(x[1])) for x in assmbl_temp]
+        else:
+            assmbl_temp = [x[1] for x in assmbl_temp]
+
         assmbl_temp = list(zip(tax_ids, assmbl_temp))
 
         assmbl = list()
@@ -370,7 +419,8 @@ def config_file_parse(file_path, taxonomy):
             a_path = a[1]
             if not ope(a_path):
                 Log.err('Cannot find the assembly file:', a_path)
-                all_assemblies_found = False
+                if editor is False:
+                    all_assemblies_found = False
             assmbl.append(tuple(a))
 
         if all_assemblies_found is False:
@@ -445,8 +495,10 @@ def config_file_parse(file_path, taxonomy):
 
                 'email': email,
                 'requery_after': requery_after,
+                'entrez_api_key': entrez_api_key,
                 'fq_pe': fq_pe,
                 'fq_se': fq_se,
+                'should_use_colors': should_use_colors,
                 'should_run_rcorrector': should_run_rcorrector,
                 'should_run_ipr': should_run_ipr,
                 'bt2_order': bt2_order,
@@ -466,7 +518,7 @@ def config_file_parse(file_path, taxonomy):
 
 def use_colors(file_path):
 
-    cfg = ConfigParser(delimiters=('='), allow_no_value=True)
+    cfg = ConfigParser(delimiters=('=',), allow_no_value=True)
     cfg.optionxform = str
 
     try:
