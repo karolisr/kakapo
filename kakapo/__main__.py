@@ -213,9 +213,9 @@ else:
     print(SCRIPT_INFO)
     print(CONSRED + 'Configuration file was not provided. Nothing to do.' + CONSDFL)
     print()
-    print('-' * 80)
+    print('-' * 78)
     PARSER.print_help()
-    print('-' * 80)
+    print('-' * 78)
     print()
     exit(0)
 
