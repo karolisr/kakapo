@@ -116,44 +116,44 @@ def dep_check_seqtk(dir_dep, force):
 def _write_trimmomatic_adapters_file(dir_dep):
     path_adapters = opj(dir_dep, 'trimmomatic_adapters.fasta')
 
-    adapters = ('>TruSeq2_SE'
-                'AGATCGGAAGAGCTCGTATGCCGTCTTCTGCTTG'
-                '>TruSeq2_PE_f'
-                'AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT'
-                '>TruSeq2_PE_r'
-                'AGATCGGAAGAGCGGTTCAGCAGGAATGCCGAG'
-                '>TruSeq3_IndexedAdapter'
-                'AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC'
-                '>TruSeq3_UniversalAdapter'
-                'AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTA'
-                '>PrefixPE/1'
-                'AATGATACGGCGACCACCGAGATCTACACTCTTTCCCTACACGACGCTCTTCCGATCT'
-                '>PrefixPE/2'
-                'CAAGCAGAAGACGGCATACGAGATCGGTCTCGGCATTCCTGCTGAACCGCTCTTCCGATCT'
-                '>PCR_Primer1'
-                'AATGATACGGCGACCACCGAGATCTACACTCTTTCCCTACACGACGCTCTTCCGATCT'
-                '>PCR_Primer1_rc'
-                'AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT'
-                '>PCR_Primer2'
-                'CAAGCAGAAGACGGCATACGAGATCGGTCTCGGCATTCCTGCTGAACCGCTCTTCCGATCT'
-                '>PCR_Primer2_rc'
-                'AGATCGGAAGAGCGGTTCAGCAGGAATGCCGAGACCGATCTCGTATGCCGTCTTCTGCTTG'
-                '>FlowCell1'
-                'TTTTTTTTTTAATGATACGGCGACCACCGAGATCTACAC'
-                '>FlowCell2'
-                'TTTTTTTTTTCAAGCAGAAGACGGCATACGA'
-                '>PrefixPE/1'
-                'TACACTCTTTCCCTACACGACGCTCTTCCGATCT'
-                '>PrefixPE/2'
-                'GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCT'
-                '>PE1'
-                'TACACTCTTTCCCTACACGACGCTCTTCCGATCT'
-                '>PE1_rc'
-                'AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTA'
-                '>PE2'
-                'GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCT'
-                '>PE2_rc'
-                'AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC')
+    adapters = ('>TruSeq2_SE\n'
+                'AGATCGGAAGAGCTCGTATGCCGTCTTCTGCTTG\n'
+                '>TruSeq2_PE_f\n'
+                'AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT\n'
+                '>TruSeq2_PE_r\n'
+                'AGATCGGAAGAGCGGTTCAGCAGGAATGCCGAG\n'
+                '>TruSeq3_IndexedAdapter\n'
+                'AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC\n'
+                '>TruSeq3_UniversalAdapter\n'
+                'AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTA\n'
+                '>PrefixPE/1\n'
+                'AATGATACGGCGACCACCGAGATCTACACTCTTTCCCTACACGACGCTCTTCCGATCT\n'
+                '>PrefixPE/2\n'
+                'CAAGCAGAAGACGGCATACGAGATCGGTCTCGGCATTCCTGCTGAACCGCTCTTCCGATCT\n'
+                '>PCR_Primer1\n'
+                'AATGATACGGCGACCACCGAGATCTACACTCTTTCCCTACACGACGCTCTTCCGATCT\n'
+                '>PCR_Primer1_rc\n'
+                'AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT\n'
+                '>PCR_Primer2\n'
+                'CAAGCAGAAGACGGCATACGAGATCGGTCTCGGCATTCCTGCTGAACCGCTCTTCCGATCT\n'
+                '>PCR_Primer2_rc\n'
+                'AGATCGGAAGAGCGGTTCAGCAGGAATGCCGAGACCGATCTCGTATGCCGTCTTCTGCTTG\n'
+                '>FlowCell1\n'
+                'TTTTTTTTTTAATGATACGGCGACCACCGAGATCTACAC\n'
+                '>FlowCell2\n'
+                'TTTTTTTTTTCAAGCAGAAGACGGCATACGA\n'
+                '>PrefixPE/1\n'
+                'TACACTCTTTCCCTACACGACGCTCTTCCGATCT\n'
+                '>PrefixPE/2\n'
+                'GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCT\n'
+                '>PE1\n'
+                'TACACTCTTTCCCTACACGACGCTCTTCCGATCT\n'
+                '>PE1_rc\n'
+                'AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTA\n'
+                '>PE2\n'
+                'GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCT\n'
+                '>PE2_rc\n'
+                'AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC\n')
 
     if not ope(path_adapters):
         Log.msg('Writing Trimmomatic adapter files: ' + path_adapters)
@@ -209,15 +209,18 @@ def _ensure_vdb_cfg(dir_bin):
 def dep_check_sra_toolkit(dir_dep, os_id, dist_id, debian_dists, redhat_dists,
                           force):
     if os_id == 'mac':
-        url = ('https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.10.8/'
-               'sratoolkit.2.10.8-mac64.tar.gz')
+        url = ('https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.11.3/'
+               'sratoolkit.2.11.3-mac64.tar.gz')
     elif os_id == 'linux':
         if dist_id in debian_dists:
-            url = ('https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.10.8/'
-                   'sratoolkit.2.10.8-ubuntu64.tar.gz')
+            url = ('https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.11.3/'
+                   'sratoolkit.2.11.3-ubuntu64.tar.gz')
         elif dist_id in redhat_dists:
-            url = ('https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.10.8/'
-                   'sratoolkit.2.10.8-centos_linux64.tar.gz')
+            url = ('https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.11.3/'
+                   'sratoolkit.2.11.3-centos_linux64.tar.gz')
+        else:
+            url = ('https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.11.3/'
+                   'sratoolkit.2.11.3-ubuntu64.tar.gz')
 
     dnld_path = opj(dir_dep, 'sra-toolkit.tar.gz')
 
@@ -228,13 +231,13 @@ def dep_check_sra_toolkit(dir_dep, os_id, dist_id, debian_dists, redhat_dists,
         fasterq_dump = which('fasterq-dump')
         dir_bin = dirname(fasterq_dump).strip('bin')
         _ensure_vdb_cfg(dir_bin)
-        run(fasterq_dump)
+        run([fasterq_dump, "-V"])
     except Exception:
         try:
             dir_bin = opj(dir_dep, get_dep_dir(dir_dep, 'sratoolkit'))
             _ensure_vdb_cfg(dir_bin)
             fasterq_dump = opj(dir_bin, 'bin', 'fasterq-dump')
-            run(fasterq_dump)
+            run([fasterq_dump, "-V"])
         except Exception:
             Log.wrn('SRA Toolkit was not found on this system, trying to '
                     'download.')
@@ -264,15 +267,19 @@ def dep_check_sra_toolkit(dir_dep, os_id, dist_id, debian_dists, redhat_dists,
 def dep_check_blast(dir_dep, os_id, dist_id, debian_dists, redhat_dists,
                     force):
     if os_id == 'mac':
-        url = ('https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.10.1/'
-               'ncbi-blast-2.10.1+-x64-macosx.tar.gz')
+        url = ('https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/'
+               '2.12.0/ncbi-blast-2.10.1+-x64-macosx.tar.gz')
     elif os_id == 'linux':
         if dist_id in debian_dists:
             url = ('https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/'
-                   '2.10.1/ncbi-blast-2.10.1+-x64-linux.tar.gz')
+                   '2.12.0/ncbi-blast-2.12.0+-x64-linux.tar.gz')
         elif dist_id in redhat_dists:
             url = ('https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/'
-                   '2.10.1/ncbi-blast-2.10.1+-x64-linux.tar.gz')
+                   '2.12.0/ncbi-blast-2.12.0+-x64-linux.tar.gz')
+        else:
+            url = ('https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/'
+                   '2.12.0/ncbi-blast-2.12.0+-x64-linux.tar.gz')
+
 
     dnld_path = opj(dir_dep, 'ncbi-blast.tar.gz')
 
@@ -327,15 +334,18 @@ def dep_check_blast(dir_dep, os_id, dist_id, debian_dists, redhat_dists,
 def dep_check_vsearch(dir_dep, os_id, dist_id, debian_dists, redhat_dists,
                       force):
     if os_id == 'mac':
-        url = ('https://github.com/torognes/vsearch/releases/download/v2.15.0/'
-               'vsearch-2.15.0-macos-x86_64.tar.gz')
+        url = ('https://github.com/torognes/vsearch/releases/download/v2.21.1/'
+               'vsearch-2.21.1-macos-x86_64.tar.gz')
     elif os_id == 'linux':
         if dist_id in debian_dists:
             url = ('https://github.com/torognes/vsearch/releases/download/'
-                   'v2.15.0/vsearch-2.15.0-linux-x86_64.tar.gz')
+                   'v2.21.1/vsearch-2.21.1-linux-x86_64-static.tar.gz')
         elif dist_id in redhat_dists:
             url = ('https://github.com/torognes/vsearch/releases/download/'
-                   'v2.15.0/vsearch-2.15.0-linux-x86_64.tar.gz')
+                   'v2.21.1/vsearch-2.21.1-linux-x86_64-static.tar.gz')
+        else:
+            url = ('https://github.com/torognes/vsearch/releases/download/'
+                   'v2.21.1/vsearch-2.21.1-linux-x86_64-static.tar.gz')
 
     dnld_path = opj(dir_dep, 'vsearch.tar.gz')
 
@@ -379,11 +389,11 @@ def dep_check_vsearch(dir_dep, os_id, dist_id, debian_dists, redhat_dists,
 # SPAdes
 def dep_check_spades(dir_dep, os_id, force):
     if os_id == 'mac':
-        url = ('http://cab.spbu.ru/files/release3.14.1/'
-               'SPAdes-3.14.1-Darwin.tar.gz')
+        url = ('https://github.com/ablab/spades/releases/download/v3.15.4/'
+               'SPAdes-3.15.4-Darwin.tar.gz')
     elif os_id == 'linux':
-        url = ('http://cab.spbu.ru/files/release3.14.1/'
-               'SPAdes-3.14.1-Linux.tar.gz')
+        url = ('https://github.com/ablab/spades/releases/download/v3.15.4/'
+               'SPAdes-3.15.4-Linux.tar.gz')
 
     dnld_path = opj(dir_dep, 'SPAdes.tar.gz')
 
@@ -432,10 +442,10 @@ def dep_check_spades(dir_dep, os_id, force):
 def dep_check_bowtie2(dir_dep, os_id, force):
     if os_id == 'mac':
         url = ('https://sourceforge.net/projects/bowtie-bio/files/bowtie2/'
-               '2.4.2/bowtie2-2.4.2-macos-x86_64.zip/download')
+               '2.4.5/bowtie2-2.4.5-macos-x86_64.zip/download')
     elif os_id == 'linux':
         url = ('https://sourceforge.net/projects/bowtie-bio/files/bowtie2/'
-               '2.4.2/bowtie2-2.4.2-linux-x86_64.zip/download')
+               '2.4.5/bowtie2-2.4.5-linux-x86_64.zip/download')
 
     dnld_path = opj(dir_dep, 'bowtie2.zip')
 
