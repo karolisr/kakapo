@@ -789,22 +789,42 @@ def main():
         max_run_id_len += 2
         # --------------------------------------------------------------------
 
-        parallel_run_count = min(THREADS, len(ss_names))
+        ipr_list = list()
+        for asmbl in assemblies:
+            for ss in ss_names:
+                if stat(aa_queries_files[ss]).st_size == 0:
+                    continue
+                ipr_list.append([ss, asmbl])
 
-        def run_inter_pro_scan_parallel(ss):
-            if stat(aa_queries_files[ss]).st_size == 0:
-                return
+        parallel_run_count = min(7, len(ipr_list))
 
-            run_inter_pro_scan(ss, assemblies, email, dir_prj_ips,
+        def run_inter_pro_scan_parallel(ipr_comb):
+
+            run_inter_pro_scan(ipr_comb[0], [ipr_comb[1], ], email, dir_prj_ips,
                                dir_cache_prj, parallel_run_count,
                                max_title_a_len, max_run_id_len)
+
+            # GFF3 files from kakapo and InterProScan 5 results JSON files
+            # gff_from_json(ipr_comb[0], [ipr_comb[1], ], dir_prj_ips,
+            #               dir_prj_transcripts_combined, prj_name)
+
+        Parallel(n_jobs=parallel_run_count, verbose=0, require='sharedmem')(
+            delayed(run_inter_pro_scan_parallel)(ipr_comb) for ipr_comb in ipr_list)
+
+        # --------------------------------------------------------------------
+
+        parallel_run_count = THREADS
+
+        def produce_final_gff(ss):
+            if stat(aa_queries_files[ss]).st_size == 0:
+                return
 
             # GFF3 files from kakapo and InterProScan 5 results JSON files
             gff_from_json(ss, assemblies, dir_prj_ips,
                           dir_prj_transcripts_combined, prj_name)
 
         Parallel(n_jobs=parallel_run_count, verbose=0, require='sharedmem')(
-            delayed(run_inter_pro_scan_parallel)(ss) for ss in ss_names)
+            delayed(produce_final_gff)(ss) for ss in ss_names)
 
     # Download CDS for NCBI protein queries ----------------------------------
     print()
