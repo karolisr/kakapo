@@ -796,7 +796,7 @@ def main():
                     continue
                 ipr_list.append([ss, asmbl])
 
-        parallel_run_count = min(7, len(ipr_list))
+        parallel_run_count = min(5, len(ipr_list))
 
         def run_inter_pro_scan_parallel(ipr_comb):
 

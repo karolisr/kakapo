@@ -145,8 +145,9 @@ def result_gff(job_id, out_file=None):
 def job_runner(email, dir_cache, seqs=None, run_id='', parallel_run_count=1,
                max_title_a_len=0, max_run_id_len=0):
     """Run InterProScan 5."""
+    max_retries = 2
     max_jobs = int(30 / parallel_run_count)
-    delay = 0.333
+    delay = 0.5
     cfp = opj(dir_cache, 'ips5_cache_running_' + run_id)
 
     def load():
@@ -238,7 +239,7 @@ def job_runner(email, dir_cache, seqs=None, run_id='', parallel_run_count=1,
             # print('Looking for finished jobs: ' + run_id)
             # print()
             finished_jobs = False
-            sleep(delay + 7)
+            sleep(delay + 10)
             job_statuses = {}
 
             for title in running:
@@ -274,19 +275,25 @@ def job_runner(email, dir_cache, seqs=None, run_id='', parallel_run_count=1,
 
                 elif job_status == 'FINISHED':
                     job_id = running.pop(title)
-                    if 'error' in result_types(job_id):
+                    # print(result_types(job_id))
+                    if 'error' in result_types(job_id) and 'json' not in result_types(job_id):
                         job_status = 'FAILURE'
                         failure[title] = job_id
-                        if retry_list.count(title) < 3:
+                        if retry_list.count(title) < max_retries:
                             job_status = 'WILL_RETRY'
                             queue[title] = seqs_orig[title]
                             retry_list.append(title)
                     else:
                         finished[title] = job_id
 
+                # Note: URL to check the log https://www.ebi.ac.uk/Tools/services/rest/iprscan5/result/JOB_ID/log
                 elif job_status == 'FAILURE':
                     job_id = running.pop(title)
                     failure[title] = job_id
+                    if retry_list.count(title) < max_retries:
+                        job_status = 'WILL_RETRY'
+                        queue[title] = seqs_orig[title]
+                        retry_list.append(title)
 
                 elif job_status == 'ERROR':
                     continue
