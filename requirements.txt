@@ -5,4 +5,4 @@ joblib>=0.16.0
 multipledispatch>=0.6.0
 requests>=2.24.0
 urllib3>=1.25.9
-ncbi-taxonomy-local @ git+git://github.com/karolisr/ncbi-taxonomy-local
+ncbi-taxonomy-local @ git+https://github.com/karolisr/ncbi-taxonomy-local.git
