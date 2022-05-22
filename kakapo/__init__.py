@@ -6,7 +6,7 @@ date_time = datetime.now()
 y = str(date_time.year)
 
 __script_name__ = 'kakapo'
-__version__ = '0.7.9'
+__version__ = '0.7.10'
 __description__ = ('Extract and annotate protein family members from '
                    'transcriptomes.')
 __author__ = 'Karolis Ramanauskas'

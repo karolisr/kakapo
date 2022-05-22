@@ -8,14 +8,22 @@ from kakapo.utils.http import get
 from kakapo.utils.http import download_file
 
 
-def brew_get(package, os, platform, dnld_dir):
+def brew_get(package, os, platform, machine_type, dnld_dir):
 
     url_mac = 'https://formulae.brew.sh/api/formula/{}.json'
     url_linux = 'https://formulae.brew.sh/api/formula-linux/{}.json'
 
     if os == 'mac':
-        if platform == 'Big Sur':
-            platform = 'big_sur'
+        if platform == 'Monterey':
+            if machine_type == 'x86_64':
+                platform = 'monterey'
+            else:
+                platform = 'arm64_monterey'
+        elif platform == 'Big Sur':
+            if machine_type == 'x86_64':
+                platform = 'big_sur'
+            else:
+                platform = 'arm64_big_sur'
         elif platform == 'Catalina':
             platform = 'catalina'
         elif platform == 'Mojave':
@@ -55,9 +63,11 @@ def brew_get(package, os, platform, dnld_dir):
 
     dnld_dir = abspath(expanduser(dnld_dir))
     file_url = data['bottle']['stable']['files'][platform]['url']
-    file_name = file_url.split('/')[-1]
+    # file_name = file_url.split('/')[-1]
+    file_name = '{}__{}__{}__{}.tar.gz'.format(package, version, os, platform)
     dnld_path = opj(dnld_dir, file_name)
 
-    download_file(file_url, dnld_path)
+    # https://github.com/Homebrew/brew/pull/11070#issuecomment-830448946
+    download_file(file_url, dnld_path, {'Authorization': 'Bearer QQ=='})
 
     return dnld_path, version

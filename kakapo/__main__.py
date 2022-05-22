@@ -36,7 +36,8 @@ from kakapo.utils.misc import make_dirs
 from kakapo.utils.misc import time_stamp
 
 from kakapo.tools.config import CONSRED, CONSDFL, CONBLUE
-from kakapo.tools.config import DIR_CFG, DIR_DEP, DIR_TAX, DIR_KRK
+from kakapo.tools.config import DIR_DAT, DIR_DEP, DIR_TAX, DIR_KRK
+from kakapo.tools.config import MACHINE_TYPE
 from kakapo.tools.config import OS_ID, DIST_ID, DEBIAN_DISTS, REDHAT_DISTS
 from kakapo.tools.config import RELEASE_NAME
 from kakapo.tools.config import SCRIPT_INFO
@@ -153,12 +154,12 @@ PARSER.add_argument(
     help='Download Kraken2 databases and quit.')
 
 PARSER.add_argument(
-    '--clean-config-dir',
+    '--clean-data-dir',
     action='store_true',
     required=False,
-    dest='CLEAN_CONFIG_DIR',
-    help='Remove all downloaded software dependencies and\n'
-         'NCBI taxonomy data.')
+    dest='CLEAN_DATA_DIR',
+    help='Remove cached NCBI taxonomy data and all software dependencies '
+         'downloaded by {}.'.format(__script_name__))
 
 PARSER.add_argument(
     '-v', '--version',
@@ -176,7 +177,7 @@ PARSER.add_argument(
 
 ARGS = PARSER.parse_args()
 
-CLEAN_CONFIG_DIR = ARGS.CLEAN_CONFIG_DIR
+CLEAN_DATA_DIR = ARGS.CLEAN_DATA_DIR
 CONFIG_FILE_PATH = ARGS.CONFIG_FILE_PATH
 SS_FILE_PATH = ARGS.SS_FILE_PATH
 STOP_AFTER_FILTER = ARGS.STOP_AFTER_FILTER
@@ -195,15 +196,15 @@ if PRINT_VERSION is True:
     print(__script_name__ + ' v' + __version__)
     exit(0)
 
-if CLEAN_CONFIG_DIR is True and ope(DIR_CFG):
-    print(CONSRED + 'Removing configuration directory: ' + CONSDFL + DIR_CFG)
-    rmtree(DIR_CFG)
+if CLEAN_DATA_DIR is True and ope(DIR_DAT):
+    print(CONSRED + 'Removing ' + __script_name__ + ' data directory: ' + CONSDFL + DIR_DAT)
+    rmtree(DIR_DAT)
     exit(0)
-elif CLEAN_CONFIG_DIR is True:
-    print(CONSRED + 'Configuration directory does not exist. Nothing to do.' + CONSDFL)
+elif CLEAN_DATA_DIR is True:
+    print(CONSRED + 'The data directory does not exist. Nothing to do.' + CONSDFL)
     exit(0)
 
-if CLEAN_CONFIG_DIR is False and CONFIG_FILE_PATH is not None:
+if CLEAN_DATA_DIR is False and CONFIG_FILE_PATH is not None:
     if not ope(CONFIG_FILE_PATH):
         print(CONSRED + 'Configuration file ' + CONFIG_FILE_PATH + ' does not exist.' + CONSDFL)
         exit(0)
@@ -219,7 +220,7 @@ else:
     print()
     exit(0)
 
-if CLEAN_CONFIG_DIR is False and SS_FILE_PATH is not None:
+if CLEAN_DATA_DIR is False and SS_FILE_PATH is not None:
     if not ope(SS_FILE_PATH):
         print(CONSRED + 'Search strategies file ' + SS_FILE_PATH + ' does not exist.' + CONSDFL)
         exit(0)
@@ -247,12 +248,12 @@ def main():
     Log.set_file(log_stream)
     Log.set_write(True)
 
-    # Prepare configuration directory ----------------------------------------
-    if ope(DIR_CFG):
-        Log.inf('Found configuration directory:', DIR_CFG)
+    # Prepare kakapo data directory ----------------------------------------
+    if ope(DIR_DAT):
+        Log.inf('Found kakapo data directory:', DIR_DAT)
     else:
-        Log.wrn('Creating configuration directory:', DIR_CFG)
-        make_dirs(DIR_CFG)
+        Log.wrn('Creating kakapo data directory:', DIR_DAT)
+        make_dirs(DIR_DAT)
 
     print()
 
@@ -274,7 +275,8 @@ def main():
     bowtie2, bowtie2_build = deps.dep_check_bowtie2(DIR_DEP, OS_ID, FORCE_DEPS)
     rcorrector = deps.dep_check_rcorrector(DIR_DEP, FORCE_DEPS)
     kraken2, kraken2_build = deps.dep_check_kraken2(DIR_DEP, OS_ID,
-                                                    RELEASE_NAME, FORCE_DEPS)
+                                                    RELEASE_NAME, MACHINE_TYPE,
+                                                    FORCE_DEPS)
 
     kakapolib = deps.dep_check_kakapolib(FORCE_DEPS)
     if kakapolib is None:

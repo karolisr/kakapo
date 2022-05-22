@@ -99,8 +99,8 @@ def post(url, data, response_format):
     return response
 
 
-def download_file(url, local_path):
-    r = get(url)
+def download_file(url, local_path, response_format='json'):
+    r = get(url, response_format=response_format)
 
     with open(local_path, 'wb') as f:
         f.write(r.content)

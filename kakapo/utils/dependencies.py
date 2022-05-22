@@ -268,7 +268,7 @@ def dep_check_blast(dir_dep, os_id, dist_id, debian_dists, redhat_dists,
                     force):
     if os_id == 'mac':
         url = ('https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/'
-               '2.12.0/ncbi-blast-2.10.1+-x64-macosx.tar.gz')
+               '2.12.0/ncbi-blast-2.12.0+-x64-macosx.tar.gz')
     elif os_id == 'linux':
         if dist_id in debian_dists:
             url = ('https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/'
@@ -279,7 +279,6 @@ def dep_check_blast(dir_dep, os_id, dist_id, debian_dists, redhat_dists,
         else:
             url = ('https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/'
                    '2.12.0/ncbi-blast-2.12.0+-x64-linux.tar.gz')
-
 
     dnld_path = opj(dir_dep, 'ncbi-blast.tar.gz')
 
@@ -578,7 +577,7 @@ def dep_check_rcorrector(dir_dep, force):
 
 
 # Kraken2
-def dep_check_kraken2(dir_dep, os_id, release_name, force):
+def dep_check_kraken2(dir_dep, os_id, release_name, machine_type, force):
     url = 'https://github.com/karolisr/kraken2/archive/master.tar.gz'
 
     dnld_path = opj(dir_dep, 'kraken2.tar.gz')
@@ -652,7 +651,7 @@ def dep_check_kraken2(dir_dep, os_id, release_name, force):
                         rmtree(dir_libomp)
 
                     libomp_fp, v = brew_get('libomp', os_id, release_name,
-                                            dir_dep)
+                                            machine_type, dir_dep)
 
                     tar_ref = tarfile.open(libomp_fp, 'r:gz')
                     tar_ref.extractall(dir_dep)

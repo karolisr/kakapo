@@ -13,6 +13,7 @@ DEBUG_PROCESSES = False
 
 # System information ---------------------------------------------------------
 _ = check_os()
+MACHINE_TYPE = _['machine_type']
 OS_ID = _['os_id']
 OS_STR = _['os_str']
 RELEASE_ID = _['release_id']
@@ -41,12 +42,12 @@ CONYELL = '\033[0;93m'
 CONBLUE = '\033[0;94m'
 CONSDFL = '\033[0m'
 
-# Filesystem paths for configuration directory -------------------------------
+# Filesystem paths for kakapo data directories -------------------------------
 DIR_USR = os.path.expanduser('~')
-DIR_CFG = os.path.join(DIR_USR, '.config', __script_name__)
-DIR_DEP = os.path.join(DIR_CFG, 'dependencies')
-DIR_TAX = os.path.join(DIR_CFG, 'ncbi-taxonomy')
-DIR_KRK = os.path.join(DIR_CFG, 'kraken2_dbs')
+DIR_DAT = os.path.join(DIR_USR, '.local', 'share', __script_name__)  # XDG_DATA_HOME
+DIR_DEP = os.path.join(DIR_DAT, 'dependencies')
+DIR_TAX = os.path.join(DIR_DAT, 'ncbi-taxonomy')
+DIR_KRK = os.path.join(DIR_DAT, 'kraken2_dbs')
 
 # Script Info ----------------------------------------------------------------
 SCRIPT_INFO = ('\n' +
@@ -54,5 +55,5 @@ SCRIPT_INFO = ('\n' +
                                            v=__version__) +
                'Python version: {pv}\n'.format(pv=PY_V_STR) +
                'Operating system: {os}\n'.format(os=OS_INFO) +
-               'System info: {cpus} CPUs, {ram} GB RAM\n'.format(
-                   cpus=THREADS, ram='{0:.2f}'.format(RAM)))
+               'System info: {cpus} CPUs, {ram} GB RAM ({mt})\n'.format(
+                   cpus=THREADS, ram='{0:.2f}'.format(RAM), mt=MACHINE_TYPE))

@@ -2,6 +2,7 @@
 
 import sys
 from platform import mac_ver
+from platform import machine
 
 import distro
 
@@ -11,6 +12,7 @@ def check_os():
     dist_id = None
     release_id = None
     release_name = ''
+    machine_type = machine()
 
     os_id = None
     os_str = None
@@ -32,15 +34,14 @@ def check_os():
                     release_name = 'Sierra'
                 elif mv[1] == '11':
                     release_name = 'El Capitan'
-                elif mv[1] == '1':
+                elif mv[1] == '10':
                     release_name = 'Yosemite'
                 else:
                     release_name = ''
             elif mv[0] == '11':
-                if mv[1] == '0':
-                    release_name = 'Big Sur'
-                else:
-                    release_name = ''
+                release_name = 'Big Sur'
+            elif mv[0] == '12':
+                release_name = 'Monterey'
 
     elif sys.platform == 'win32':
         os_id = 'windows'
@@ -64,7 +65,8 @@ def check_os():
     redhat_dists = ['centos', 'fedora', 'rhel', 'scientific']
     supported_dists = debian_dists + redhat_dists
 
-    return {'os_id': os_id,
+    return {'machine_type': machine_type,
+            'os_id': os_id,
             'os_str': os_str,
             'dist_id': dist_id,
             'release_id': release_id,
