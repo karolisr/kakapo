@@ -92,8 +92,8 @@ from kakapo.flow.j_dnld_aa_query_cds import dnld_cds_for_ncbi_prot_acc
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 # Command line arguments -----------------------------------------------------
-USAGE = CONBLUE + '{} --cfg path/to/config_file ' \
-        '--ss path/to/search_strategies_file'.format(__script_name__) + CONSDFL
+USAGE = CONBLUE + '{} --cfg project_configuration_file ' \
+        '--ss search_strategies_file'.format(__script_name__) + CONSDFL
 
 PARSER = argparse.ArgumentParser(
     prog=__script_name__,
@@ -595,7 +595,7 @@ def main():
 
     # Stop After Filter ------------------------------------------------------
     if STOP_AFTER_FILTER is True:
-        Log.wrn('Stopping after Kraken2/Bowtie2 filtering step as requested.')
+        Log.wrn('Stopping after Kraken 2 / Bowtie 2 filtering step as requested.')
         exit(0)
 
     # Convert filtered FASTQ files to FASTA ----------------------------------
