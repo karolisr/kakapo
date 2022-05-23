@@ -737,23 +737,23 @@ def download_kraken2_dbs(dbs_path):
 
     # ------------------------------------------------------------------------
 
-    base = '16S_Silva132_20200326'
-    url = base_kraken2_url + base + '.tgz'
-    tgz = opj(dbs_path, base + '.tgz')
-    # ToDo: Use pattern matching for the directory name.
-    #       Instead of using 16S_SILVA132_k2db -> 16S_SILVA132
-    p_orig = opj(dbs_path, '16S_SILVA132_k2db')
-    db_name = '16S_Silva132'
-    p_new = opj(dbs_path, db_name)
+    # base = '16S_Silva132_20200326'
+    # url = base_kraken2_url + base + '.tgz'
+    # tgz = opj(dbs_path, base + '.tgz')
+    # # ToDo: Use pattern matching for the directory name.
+    # #       Instead of using 16S_SILVA132_k2db -> 16S_SILVA132
+    # p_orig = opj(dbs_path, '16S_SILVA132_k2db')
+    # db_name = '16S_Silva132'
+    # p_new = opj(dbs_path, db_name)
 
-    if not ope(p_new):
-        Log.msg(msg_prefix + db_name)
-        download_file(url=url, local_path=tgz, protocol='ftp')
-        tar_ref = tarfile.open(tgz, 'r:gz')
-        tar_ref.extractall(dbs_path)
-        tar_ref.close()
-        remove(tgz)
-        move(p_orig, p_new)
+    # if not ope(p_new):
+    #     Log.msg(msg_prefix + db_name)
+    #     download_file(url=url, local_path=tgz, protocol='ftp')
+    #     tar_ref = tarfile.open(tgz, 'r:gz')
+    #     tar_ref.extractall(dbs_path)
+    #     tar_ref.close()
+    #     remove(tgz)
+    #     move(p_orig, p_new)
 
     # ------------------------------------------------------------------------
 
