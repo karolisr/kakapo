@@ -338,6 +338,8 @@ def main():
     tax_ids_user = _['tax_ids']
     user_assemblies = _['assmbl']
 
+    os.environ['ENTREZ_KEY'] = _['entrez_api_key']
+
     print()
 
     # Parse search strategies file -------------------------------------------
