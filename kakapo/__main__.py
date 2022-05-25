@@ -299,7 +299,7 @@ def main():
         print()
 
     # Parse configuration file -----------------------------------------------
-    Log.inf('Reading configuration file:', CONFIG_FILE_PATH)
+    Log.inf('Reading project configuration file:', CONFIG_FILE_PATH)
     _ = config_file_parse(CONFIG_FILE_PATH, tax)
 
     allow_no_stop_cod = _['allow_no_stop_cod']
@@ -581,7 +581,7 @@ def main():
                bowtie2, bowtie2_build, THREADS, dir_temp, bt2_order,
                pe_trim_fq_file_patterns, tax, dir_cache_refseqs)
 
-    # Run Kraken2 ------------------------------------------------------------
+    # Run Kraken 2 -----------------------------------------------------------
     run_kraken2(krkn_order, kraken2_dbs, se_fastq_files, pe_fastq_files,
                 dir_fq_filter_krkn2_data, kraken_confidence, kraken2, THREADS,
                 dir_temp, pe_trim_fq_file_patterns)
@@ -595,7 +595,7 @@ def main():
     pe_fastq_files = OrderedDict(sorted(pe_fastq_files.items(),
                                         key=lambda x: x[1]['filter_path_fq']))
 
-    # Stop After Filter ------------------------------------------------------
+    # Stop after filter ------------------------------------------------------
     if STOP_AFTER_FILTER is True:
         Log.wrn('Stopping after Kraken 2 / Bowtie 2 filtering step as requested.')
         exit(0)
