@@ -859,13 +859,15 @@ def main():
 
     # ------------------------------------------------------------------------
 
-    rerun = input('\nRepeat ([y]/n)? ').lower().strip()
-    if rerun.startswith('y') or rerun == '':
-        print()
-        return False
-    else:
-        print('\nExiting...')
-        return True
+    # rerun = input('\nRepeat ([y]/n)? ').lower().strip()
+    # if rerun.startswith('y') or rerun == '':
+    #     print()
+    #     return False
+    # else:
+    #     print('\nExiting...')
+    #     return True
+
+    return True
 
     # ------------------------------------------------------------------------
 
