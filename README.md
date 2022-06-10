@@ -1,4 +1,4 @@
-# kakapo [![Build Status](https://travis-ci.com/karolisr/kakapo.svg?branch=master)](https://travis-ci.com/karolisr/kakapo)
+# kakapo [![Build Status](https://app.travis-ci.com/karolisr/kakapo.svg?branch=master)](https://app.travis-ci.com/karolisr/kakapo)
 
 ## Brief Description
 
