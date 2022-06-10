@@ -158,7 +158,7 @@ PARSER.add_argument(
     action='store_true',
     required=False,
     dest='CLEAN_DATA_DIR',
-    help='Remove cached NCBI taxonomy data and all software dependencies '
+    help='Remove cached NCBI taxonomy data and all software\ndependencies '
          'downloaded by {}.'.format(__script_name__))
 
 PARSER.add_argument(
