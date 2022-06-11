@@ -260,3 +260,5 @@ Temporary Items
 # Compiled C binaries
 kakapo/utils/c/fq
 kakapo/utils/c/fqgz
+
+bugs/
