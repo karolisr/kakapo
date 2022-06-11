@@ -14,7 +14,12 @@ def brew_get(package, os, platform, machine_type, dnld_dir):
     url_linux = 'https://formulae.brew.sh/api/formula-linux/{}.json'
 
     if os == 'mac':
-        if platform == 'Monterey':
+        if platform == 'Ventura':
+            if machine_type == 'x86_64':
+                platform = 'ventura'
+            else:
+                platform = 'arm64_ventura'
+        elif platform == 'Monterey':
             if machine_type == 'x86_64':
                 platform = 'monterey'
             else:
