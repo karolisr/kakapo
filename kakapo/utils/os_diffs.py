@@ -22,7 +22,7 @@ def check_os():
         os_str = 'macOS'
         release_id = mac_ver()[0]
         mv = release_id.split('.')
-        if len(mv) == 3:
+        if len(mv) >= 2:
             if mv[0] == '10':
                 if mv[1] == '15':
                     release_name = 'Catalina'
@@ -42,6 +42,8 @@ def check_os():
                 release_name = 'Big Sur'
             elif mv[0] == '12':
                 release_name = 'Monterey'
+            elif mv[0] == '13':
+                release_name = 'Ventura'
 
     elif sys.platform == 'win32':
         os_id = 'windows'
