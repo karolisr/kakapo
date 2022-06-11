@@ -12,8 +12,7 @@ __description__ = ('Extract and annotate protein family members from '
 __author__ = 'Karolis Ramanauskas'
 __author_email__ = 'kraman2@uic.edu'
 __copyright__ = 'Copyright \u00A9 ' + __author__ + ', ' + y
-__license__ = 'Creative Commons Attribution-ShareAlike 4.0 International ' \
-              'License: cc-by-sa-4.0'
+__license__ = 'GNU General Public License Version 3'
 __url__ = 'https://github.com/karolisr/kakapo'
 
 __all__ = []
