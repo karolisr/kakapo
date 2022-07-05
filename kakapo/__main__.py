@@ -471,7 +471,8 @@ def main():
         user_aa_fasta(ss, user_queries, aa_prot_user_files[ss])
 
     # Combine all AA queries -------------------------------------------------
-    print()
+    if len(sss) > 0:
+        print()
     aa_queries_files = OrderedDict()
     for ss in sss:
         aa_queries_files[ss] = opj(dir_prj_queries, 'aa_all__' + ss + '.fasta')
@@ -597,6 +598,7 @@ def main():
 
     # Stop after filter ------------------------------------------------------
     if STOP_AFTER_FILTER is True:
+        print()
         Log.wrn('Stopping after Kraken 2 / Bowtie 2 filtering step as requested.')
         exit(0)
 
@@ -675,6 +677,7 @@ def main():
     makeblastdb_assemblies(assemblies, dir_prj_blast_assmbl, makeblastdb)
 
     if any_queries is False:
+        print()
         Log.wrn('No query sequences were provided.')
 
     # Run tblastn on assemblies ----------------------------------------------
@@ -760,8 +763,9 @@ def main():
 
     # Run InterProScan 5 -----------------------------------------------------
     if should_run_ipr is True:
-        print()
         ss_names = tuple(sss.keys())
+        if len(ss_names) > 0:
+            print()
 
         # Determine the length of printed strings, for better spacing --------
         max_title_a_len = 0
@@ -812,8 +816,9 @@ def main():
             # gff_from_json(ipr_comb[0], [ipr_comb[1], ], dir_prj_ips,
             #               dir_prj_transcripts_combined, prj_name)
 
-        Parallel(n_jobs=parallel_run_count, verbose=0, require='sharedmem')(
-            delayed(run_inter_pro_scan_parallel)(ipr_comb) for ipr_comb in ipr_list)
+        if parallel_run_count > 0:
+            Parallel(n_jobs=parallel_run_count, verbose=0, require='sharedmem')(
+                delayed(run_inter_pro_scan_parallel)(ipr_comb) for ipr_comb in ipr_list)
 
         # --------------------------------------------------------------------
 
@@ -827,11 +832,11 @@ def main():
             gff_from_json(ss, assemblies, dir_prj_ips,
                           dir_prj_transcripts_combined, prj_name)
 
-        Parallel(n_jobs=parallel_run_count, verbose=0, require='sharedmem')(
-            delayed(produce_final_gff)(ss) for ss in ss_names)
+        if parallel_run_count > 0:
+            Parallel(n_jobs=parallel_run_count, verbose=0, require='sharedmem')(
+                delayed(produce_final_gff)(ss) for ss in ss_names)
 
     # Download CDS for NCBI protein queries ----------------------------------
-    print()
     prot_cds_ncbi_files = OrderedDict()
 
     def dnld_cds_for_ncbi_prot_acc_parallel(ss):
@@ -850,6 +855,8 @@ def main():
                                        dir_cache_prj)
 
     ss_names = tuple(sss.keys())
+    if len(ss_names) > 0:
+        print()
     Parallel(n_jobs=2, verbose=0, require='sharedmem')(
         delayed(dnld_cds_for_ncbi_prot_acc_parallel)(ss) for ss in ss_names)
 

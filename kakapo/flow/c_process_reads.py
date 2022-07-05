@@ -299,7 +299,7 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
 
 def user_fastq_files(fq_se, fq_pe):
     if len(fq_se) > 0 or len(fq_pe) > 0:
-        print()
+        # print()
         Log.inf('Preparing user provided FASTQ files.')
 
     se_fastq_files = {}
