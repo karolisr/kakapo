@@ -110,12 +110,9 @@ def ss_file_parse(file_path):
         Log.err('Missing section header(s) in the provided "Search Strategies" file:', file_path)
         exit(1)
 
-    required_options = set(('organelle',
-                            'min_query_length',
-                            'max_query_length',
-                            'max_query_identity',
-                            'min_target_orf_length',
-                            'max_target_orf_length'))
+    required_options = {'organelle', 'min_query_length', 'max_query_length',
+                        'max_query_identity', 'min_target_orf_length',
+                        'max_target_orf_length'}
 
     ret_dict = OrderedDict()
 
@@ -176,8 +173,7 @@ def ss_file_parse(file_path):
 
         if cfg.has_option(s, 'pfam_families'):
             pfam_families = str(cfg[s]['pfam_families'])
-            pfam_families = set(pfam_families.split('\n')) - \
-                set(('', 'None'))
+            pfam_families = set(pfam_families.split('\n')) - {'', 'None'}
             pfam_families = _parse_pfam(pfam_entries=pfam_families,
                                         config_file_path=file_path)
             pfam_families = sorted(pfam_families)
@@ -185,17 +181,16 @@ def ss_file_parse(file_path):
         if cfg.has_option(s, 'ncbi_accessions_aa'):
             ncbi_accessions_aa = str(cfg[s]['ncbi_accessions_aa'])
             ncbi_accessions_aa = sorted(set(ncbi_accessions_aa.split('\n')) -
-                                        set(('', 'None')))
+                                        {'', 'None'})
 
         if cfg.has_option(s, 'entrez_search_queries'):
             entrez_search_queries = str(cfg[s]['entrez_search_queries'])
             entrez_search_queries = sorted(
-                set(entrez_search_queries.split('\n')) - set(('', 'None')))
+                set(entrez_search_queries.split('\n')) - {'', 'None'})
 
         if cfg.has_option(s, 'fasta_files_aa'):
             fasta_files_aa = str(cfg[s]['fasta_files_aa'])
-            fasta_files_aa = set(fasta_files_aa.split('\n')) - \
-                set(('', 'None'))
+            fasta_files_aa = set(fasta_files_aa.split('\n')) - {'', 'None'}
             fasta_files_aa = [abspath(expanduser(x)) for x in fasta_files_aa]
             fasta_files_aa = sorted(fasta_files_aa)
 
@@ -324,8 +319,15 @@ def config_file_parse(file_path, taxonomy=None, err_on_missing=True,
 
             if key.startswith('pe_'):
                 f_name = basename(val[1])
+
+                if not '*' in f_name:
+                    print()
+                    Log.err('The "*" character was not found in the PE file pattern:', f_name)
+                    Log.err('Stopping.')
+                    exit(1)
+
                 d_path = abspath(expanduser(dirname(val[1])))
-                pattern = re.escape(f_name).replace('\\*', '.')
+                pattern = re.escape(f_name).replace('\\*', '.') + '$'
                 files, err = list_of_files_at_path(d_path)
 
                 if err is not None:
@@ -337,8 +339,34 @@ def config_file_parse(file_path, taxonomy=None, err_on_missing=True,
                 if editor is False:
                     pe = [f for f in files if re.match(pattern, basename(f)) is not None]
                     pe.sort()
-                    # ToDo: check if files in 'pe' exist
+
+                    if len(pe) == 0:
+                        print()
+                        Log.err('No FASTQ files match the pattern:', f_name)
+                        Log.err('Stopping.')
+                        exit(1)
+
+                    elif len(pe) == 1:
+                        print()
+                        Log.err('Only one FASTQ file matches the PE file pattern:', f_name)
+                        Log.err('Stopping.')
+                        exit(1)
+
+                    elif len(pe) > 2:
+                        print()
+                        Log.err(str(len(pe)) + ' FASTQ files match the PE file pattern:', f_name)
+                        Log.err('Stopping.')
+                        exit(1)
+
                     pe = [join(d_path, f) for f in pe]
+
+                    for _ in pe:
+                        if not ope(_):
+                            print()
+                            Log.err('Cannot find the FASTQ file:', _)
+                            Log.err('Stopping.')
+                            exit(1)
+
                     fq_pe.append([tax_id, pe])
                 else:
                     pe = val[1]

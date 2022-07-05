@@ -641,7 +641,7 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
             remove(fq_cor_path_2)
 
             # unpaired 1
-            if stat(fq_path_3).st_size != 0:
+            if stat(fq_path_3).st_size > 512:
                 run_rcorrector_se(rcorrector=rcorrector,
                                   in_file=fq_path_3,
                                   out_dir=dir_fq_cor_data_sample,
@@ -662,7 +662,7 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
                     f.write('')
 
             # unpaired 2
-            if stat(fq_path_4).st_size != 0:
+            if stat(fq_path_4).st_size > 512:
                 run_rcorrector_se(rcorrector=rcorrector,
                                   in_file=fq_path_4,
                                   out_dir=dir_fq_cor_data_sample,
