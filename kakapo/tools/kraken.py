@@ -18,7 +18,7 @@ def _use_memory_mapping(db_path):
     mem_max = RAM / 3
     if mem_max < db_size:
         db_name = splitext(basename(db_path))[0]
-        Log.err('Not enough memory for Kraken2 database {}. '
+        Log.wrn('Not enough memory for Kraken2 database {}. '
                 'Switching to a slower memory-mapping mode.'.format(db_name))
         return '--memory-mapping'
     else:
