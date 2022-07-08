@@ -223,7 +223,6 @@ def dnld_prot_seqs(ss, prot_acc_user, aa_prot_ncbi_file, dir_cache_prj):
 def user_aa_fasta(ss, user_queries, aa_prot_user_file):
     _ = ''
     if len(user_queries) > 0:
-        print()
         Log.inf('Reading user provided AA sequences:', ss)
         for ap in user_queries:
             Log.msg(ap)
