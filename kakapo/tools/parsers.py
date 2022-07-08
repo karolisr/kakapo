@@ -31,8 +31,25 @@ def parse_esummary_xml_text(esummary_xml_text):
     return return_value
 
 
-def parse_efetch_sra_csv_text(efetch_sra_csv_text):
-    return list(csv.DictReader(efetch_sra_csv_text.splitlines()))
+# def parse_efetch_sra_csv_text(efetch_sra_csv_text):
+#     return list(csv.DictReader(efetch_sra_csv_text.splitlines()))
+
+
+def parse_efetch_sra_xml_text(efetch_sra_xml_text):
+    root = ElementTree.fromstring(efetch_sra_xml_text)
+
+    return_value = list()
+
+    for rec in root.findall('Row'):
+
+        record_dict = dict()
+
+        for itm in rec:
+            record_dict[itm.tag] = itm.text
+
+        return_value.append(record_dict)
+
+    return return_value
 
 
 def parse_gb_location(s):
