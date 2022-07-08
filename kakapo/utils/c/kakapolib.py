@@ -4,6 +4,7 @@ import ctypes
 
 from inspect import currentframe
 from inspect import getfile
+from os import environ
 from os.path import abspath
 from os.path import dirname
 from os.path import exists as ope
@@ -17,11 +18,12 @@ DIR_SCRIPT = dirname(abspath(FILE_SCRIPT))
 
 DIR_C_SRC = opj(DIR_SCRIPT, 'src')
 DIR_C_LIB = opj(DIR_SCRIPT, 'lib')
-KAKAPOLIB = opj(DIR_C_LIB, 'kakapolib.so')
 
 
 def dep_check_kakapolib(force=False, quiet=False):
-    kkpl = KAKAPOLIB
+    kkpl_suffix = environ['KKP_OS_ID'] + '_' + environ['KKP_MACHINE_TYPE']
+    so_name = 'kakapolib_' + kkpl_suffix + '.so'
+    kkpl = opj(DIR_C_LIB, so_name)
     if not ope(kkpl):
         if quiet is False:
             Log.wrn('Compiling kakapolib.')

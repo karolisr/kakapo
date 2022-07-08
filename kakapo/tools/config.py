@@ -33,6 +33,9 @@ _, PY_V_STR = python_version()
 THREADS = cpu_count()
 RAM = sys_ram(OS_ID)
 
+os.environ['KKP_OS_ID'] = OS_ID
+os.environ['KKP_MACHINE_TYPE'] = MACHINE_TYPE
+
 # Other ----------------------------------------------------------------------
 PICKLE_PROTOCOL = 2
 
