@@ -28,7 +28,7 @@ from requests.models import Response
 
 from kakapo.tools.bioio import read_fasta
 from kakapo.tools.parsers import eutils_loc_str
-from kakapo.tools.parsers import parse_efetch_sra_csv_text
+from kakapo.tools.parsers import parse_efetch_sra_xml_text
 from kakapo.tools.parsers import parse_esummary_xml_text
 from kakapo.tools.parsers import seq_records_gb
 from kakapo.tools.seq import SEQ_TYPE_NT, SEQ_TYPE_AA
@@ -464,12 +464,11 @@ def cds(data_protein: dict) -> dict:
 
 @dispatch(Iterable, namespace=EUTILS_NS)
 def sra_run_info(ids_srr: IterableT[str]) -> list:
-    efetch_csv_txt = efetch(db='sra', ids=ids_srr, rettype='runinfo',
-                            retmode='csv')
-    ret_list = parse_efetch_sra_csv_text(efetch_csv_txt)
+    efetch_xml_txt = efetch(db='sra', ids=ids_srr, rettype='runinfo',
+                            retmode='xml')
+    ret_list = parse_efetch_sra_xml_text(efetch_xml_txt)
     ret_list = [x for x in ret_list if x['Run'] in ids_srr]
     return ret_list
-
 
 @dispatch(str, namespace=EUTILS_NS)
 def sra_run_info(id_srr: str) -> list:
