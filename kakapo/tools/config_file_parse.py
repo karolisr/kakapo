@@ -245,6 +245,20 @@ def config_file_parse(file_path, taxonomy=None, err_on_missing=True,
 
         should_run_ipr = cfg.getboolean('General', 'run_inter_pro_scan')
         should_run_rcorrector = cfg.getboolean('General', 'run_rcorrector')
+
+        # ====================================================================
+        # Defaulting to Rcorrector BEFORE Trimmomatic
+
+        # To enable user choice of RCOR/TRIM order, add this to config file:
+        # rcorrector_before_trimmomatic = Yes
+
+        # uncomment the line below:
+        # rcorrector_before_trimmomatic = cfg.getboolean('General', 'rcorrector_before_trimmomatic')
+
+        # and comment the line below:
+        rcorrector_before_trimmomatic = True
+        # ====================================================================
+
         prepend_assmbl = cfg.getboolean('General',
                                         'prepend_assembly_name_to_sequence_name')
         kraken_confidence = cfg.getfloat('General', 'kraken_2_confidence')
@@ -528,6 +542,7 @@ def config_file_parse(file_path, taxonomy=None, err_on_missing=True,
                 'fq_se': fq_se,
                 'should_use_colors': should_use_colors,
                 'should_run_rcorrector': should_run_rcorrector,
+                'rcorrector_before_trimmomatic': rcorrector_before_trimmomatic,
                 'should_run_ipr': should_run_ipr,
                 'bt2_order': bt2_order,
                 'kraken_confidence': kraken_confidence,

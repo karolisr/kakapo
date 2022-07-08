@@ -57,7 +57,6 @@ def dnld_sra_info(sras, dir_cache_prj):
     sras_acceptable = []
 
     if len(sras) > 0:
-        print()
         Log.inf('Downloading SRA run information.')
     else:
         return sra_runs_info, sras_acceptable
@@ -122,26 +121,28 @@ def dnld_sra_info(sras, dir_cache_prj):
                 Log.err(sra_info_str, 'Skipping.')
 
             else:
-                # sra_info_str = ('SRA run {sra} {strategy} ({source}) '
-                #                 '{layout}-end library.\n'
-                #                 'Sourced from {species} '
-                #                 '(TaxID: {txid}).\n'
-                #                 'Sequenced using {platform} platform on '
-                #                 '{model}.').format(
-                #                     sra=sra,
-                #                     source=sra_lib_source.title(),
-                #                     strategy=sra_lib_strategy,
-                #                     layout=sra_lib_layout,
-                #                     platform=sra_seq_platform,
-                #                     model=sra_seq_platform_model,
-                #                     species=sra_species,
-                #                     txid=sra_taxid)
 
                 Log.msg('{sra}:'.format(sra=sra),
                         '{strategy} {layout}-end library ({source}).'.format(
                             strategy=sra_lib_strategy,
                             layout=sra_lib_layout,
                             source=sra_lib_source.title()))
+
+                sra_runs_info[sra]['KakapoLibraryLayout'] = \
+                    sra_runs_info[sra]['LibraryLayout']
+
+                if sra_lib_layout == 'paired' and sra_spots_with_mates == 0:
+                    sra_runs_info[sra]['KakapoLibraryLayout'] = 'SINGLE'
+                    Log.wrn('      Note:', 'Listed as containing '
+                            'paired-end reads, but only a single set of reads '
+                            'is available. Treating as single-ended.')
+
+                elif (sra_lib_layout == 'paired' and
+                      sra_spots != sra_spots_with_mates):
+                    sra_runs_info[sra]['KakapoLibraryLayout'] = 'PAIRED_UNP'
+                    Log.wrn('      Note:', 'Listed as containing '
+                            'paired-end reads, but not all reads are paired.')
+
                 Log.msg('    Source:',
                         '{species} (TaxID: {txid}).'.format(
                             species=sra_species,
@@ -151,26 +152,7 @@ def dnld_sra_info(sras, dir_cache_prj):
                             platform=sra_seq_platform,
                             model=sra_seq_platform_model), False)
 
-                sra_runs_info[sra]['KakapoLibraryLayout'] = \
-                    sra_runs_info[sra]['LibraryLayout']
-
-                if sra_lib_layout == 'paired' and sra_spots_with_mates == 0:
-                    sra_runs_info[sra]['KakapoLibraryLayout'] = 'SINGLE'
-                    # sra_info_str = (
-                    #     sra_info_str + '\nListed as containing '
-                    #     'paired-end reads, but only a single set of reads '
-                    #     'is available. Treating as single-ended.')
-
-                elif (sra_lib_layout == 'paired' and
-                      sra_spots != sra_spots_with_mates):
-                    sra_runs_info[sra]['KakapoLibraryLayout'] = 'PAIRED_UNP'
-                    # sra_info_str = (
-                    #     sra_info_str + '\nListed as containing '
-                    #     'paired-end reads, but not all reads are paired.')
-
                 sras_acceptable.append(sra)
-
-                # Log.msg(sra_info_str)
 
     with open(__, 'wb') as f:
         pickle.dump(sra_runs_info, f, protocol=PICKLE_PROTOCOL)
@@ -299,7 +281,6 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
 
 def user_fastq_files(fq_se, fq_pe):
     if len(fq_se) > 0 or len(fq_pe) > 0:
-        # print()
         Log.inf('Preparing user provided FASTQ files.')
 
     se_fastq_files = {}
@@ -454,7 +435,8 @@ def file_name_patterns():
 
 
 def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
-                    trimmomatic, adapters, fpatt, threads):
+                    trimmomatic, adapters, fpatt, threads,
+                    rcorrector_before_trimmomatic):
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
         print()
         Log.inf('Running Trimmomatic.')
@@ -463,7 +445,12 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
             exit(0)
     for se in se_fastq_files:
         dir_fq_trim_data_sample = opj(dir_fq_trim_data, se)
-        fq_path = se_fastq_files[se]['path']
+
+        if rcorrector_before_trimmomatic is True:
+            fq_path = se_fastq_files[se]['cor_path_fq']
+        else:
+            fq_path = se_fastq_files[se]['path']
+
         r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(fq_path)
         min_acc_len = se_fastq_files[se]['min_acc_len']
         stats_f = opj(dir_fq_trim_data_sample, se + '.txt')
@@ -486,12 +473,20 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
 
     for pe in pe_fastq_files:
         dir_fq_trim_data_sample = opj(dir_fq_trim_data, pe)
-        fq_path_1 = pe_fastq_files[pe]['path'][0]
-        fq_path_2 = pe_fastq_files[pe]['path'][1]
+
+        if rcorrector_before_trimmomatic is True:
+            pe_key = 'cor_path_fq'
+        else:
+            pe_key = 'path'
+
+        fq_path_1 = pe_fastq_files[pe][pe_key][0]
+        fq_path_2 = pe_fastq_files[pe][pe_key][1]
         fq_path_3 = None
+        if len(pe_fastq_files[pe][pe_key]) == 3:
+            fq_path_3 = pe_fastq_files[pe][pe_key][2]
+
         r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(fq_path_1)
-        if len(pe_fastq_files[pe]['path']) == 3:
-            fq_path_3 = pe_fastq_files[pe]['path'][2]
+
         min_acc_len = pe_fastq_files[pe]['min_acc_len']
         stats_f = opj(dir_fq_trim_data_sample, pe + '.txt')
         out_fs = [x.replace('@D@', dir_fq_trim_data_sample) for x in fpatt]
@@ -549,7 +544,8 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
 
 
 def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
-                   threads, dir_temp, fpatt, should_run):
+                   threads, dir_temp, fpatt, should_run,
+                   rcorrector_before_trimmomatic):
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
         print()
         if should_run is False:
@@ -563,7 +559,12 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
 
     for se in se_fastq_files:
         dir_fq_cor_data_sample = opj(dir_fq_cor_data, se)
-        fq_path = se_fastq_files[se]['trim_path_fq']
+
+        if rcorrector_before_trimmomatic is True:
+            fq_path = se_fastq_files[se]['path']
+        else:
+            fq_path = se_fastq_files[se]['trim_path_fq']
+
         r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(fq_path)
         log_f = opj(dir_fq_cor_data_sample, se + '.txt')
         out_f = opj(dir_fq_cor_data_sample, se + '.fastq' + ext)
@@ -595,10 +596,18 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
     for pe in pe_fastq_files:
         dir_fq_cor_data_sample = opj(dir_fq_cor_data, pe)
 
-        fq_path_1 = pe_fastq_files[pe]['trim_path_fq'][0]
-        fq_path_2 = pe_fastq_files[pe]['trim_path_fq'][1]
-        fq_path_3 = pe_fastq_files[pe]['trim_path_fq'][2]
-        fq_path_4 = pe_fastq_files[pe]['trim_path_fq'][3]
+        if rcorrector_before_trimmomatic is True:
+            fq_path_1 = pe_fastq_files[pe]['path'][0]
+            fq_path_2 = pe_fastq_files[pe]['path'][1]
+            fq_path_3 = None
+            if len(pe_fastq_files[pe]['path']) == 3:
+                fq_path_3 = pe_fastq_files[pe]['path'][2]
+            fq_path_4 = None
+        else:
+            fq_path_1 = pe_fastq_files[pe]['trim_path_fq'][0]
+            fq_path_2 = pe_fastq_files[pe]['trim_path_fq'][1]
+            fq_path_3 = pe_fastq_files[pe]['trim_path_fq'][2]
+            fq_path_4 = pe_fastq_files[pe]['trim_path_fq'][3]
 
         r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(fq_path_1)
         log_f = opj(dir_fq_cor_data_sample, pe + '_paired.txt')
@@ -607,11 +616,24 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
         out_fs = [x.replace('@N@', pe) for x in out_fs]
         out_fs = [x + ext for x in out_fs]
 
+        if fq_path_3 is None:
+            out_fs = [out_fs[0], out_fs[1]]
+
+        elif fq_path_4 is None:
+            out_fs[2] = out_fs[2].replace('_unpaired_1', '_unpaired')
+            out_fs = [out_fs[0], out_fs[1], out_fs[2]]
+
         pe_fastq_files[pe]['cor_path_fq'] = out_fs
 
         if should_run is False:
-            pe_fastq_files[pe]['cor_path_fq'] = [fq_path_1, fq_path_2,
-                                                 fq_path_3, fq_path_4]
+            if fq_path_3 is None:
+                pe_fastq_files[pe]['cor_path_fq'] = [fq_path_1, fq_path_2]
+            elif fq_path_4 is None:
+                pe_fastq_files[pe]['cor_path_fq'] = [fq_path_1, fq_path_2,
+                                                     fq_path_3]
+            else:
+                pe_fastq_files[pe]['cor_path_fq'] = [fq_path_1, fq_path_2,
+                                                     fq_path_3, fq_path_4]
             continue
 
         if ope(dir_fq_cor_data_sample):
@@ -641,7 +663,7 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
             remove(fq_cor_path_2)
 
             # unpaired 1
-            if stat(fq_path_3).st_size > 512:
+            if fq_path_3 is not None and ope(fq_path_3) and stat(fq_path_3).st_size > 512:
                 run_rcorrector_se(rcorrector=rcorrector,
                                   in_file=fq_path_3,
                                   out_dir=dir_fq_cor_data_sample,
@@ -651,18 +673,23 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
                 fq_base_path_3 = opj(dir_fq_cor_data_sample,
                                      basename(fq_path_3))
                 fq_cor_path_3 = splitext_gz(fq_base_path_3)[0] + '.cor.fq' + ext
-                log_f_3 = opj(dir_fq_cor_data_sample, pe + '_unpaired_1.txt')
+
+                if fq_path_4 is None:
+                    log_f_3 = opj(dir_fq_cor_data_sample, pe + '_unpaired.txt')
+                else:
+                    log_f_3 = opj(dir_fq_cor_data_sample, pe + '_unpaired_1.txt')
 
                 filter_unc_se(in_file=fq_cor_path_3, out_file=out_fs[2],
                               log_file=log_f_3)
 
                 remove(fq_cor_path_3)
             else:
-                with open(out_fs[2], 'w') as f:
-                    f.write('')
+                if rcorrector_before_trimmomatic is False:
+                    with open(out_fs[2], 'w') as f:
+                        f.write('')
 
             # unpaired 2
-            if stat(fq_path_4).st_size > 512:
+            if fq_path_4 is not None and ope(fq_path_4) and stat(fq_path_4).st_size > 512:
                 run_rcorrector_se(rcorrector=rcorrector,
                                   in_file=fq_path_4,
                                   out_dir=dir_fq_cor_data_sample,
@@ -679,8 +706,9 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
                 remove(fq_cor_path_4)
 
             else:
-                with open(out_fs[3], 'w') as f:
-                    f.write('')
+                if rcorrector_before_trimmomatic is False:
+                    with open(out_fs[3], 'w') as f:
+                        f.write('')
 
 
 def dnld_refseqs_for_taxid(taxid, filter_term, taxonomy, dir_cache_refseqs,
@@ -777,7 +805,8 @@ def _should_run_bt2(taxid, taxonomy, bt2_order, bowtie2, bowtie2_build):
 
 def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
                bowtie2, bowtie2_build, threads, dir_temp, bt2_order,
-               fpatt, taxonomy, dir_cache_refseqs):
+               fpatt, taxonomy, dir_cache_refseqs,
+               rcorrector_before_trimmomatic):
 
     new_se_fastq_files = dict()
     new_pe_fastq_files = dict()
@@ -791,7 +820,11 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
         dbs = _should_run_bt2(taxid, taxonomy, bt2_order, bowtie2,
                               bowtie2_build)
 
-        in_f = se_fastq_files[se]['cor_path_fq']
+        if rcorrector_before_trimmomatic is True:
+            in_f = se_fastq_files[se]['trim_path_fq']
+        else:
+            in_f = se_fastq_files[se]['cor_path_fq']
+
         in_f_orig = in_f
 
         if len(dbs) == 0:
@@ -883,7 +916,11 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
         dbs = _should_run_bt2(taxid, taxonomy, bt2_order, bowtie2,
                               bowtie2_build)
 
-        in_fs = pe_fastq_files[pe]['cor_path_fq']
+        if rcorrector_before_trimmomatic is True:
+            in_fs = pe_fastq_files[pe]['trim_path_fq']
+        else:
+            in_fs = pe_fastq_files[pe]['cor_path_fq']
+
         in_fs_orig = tuple(in_fs)
 
         if len(dbs) == 0:

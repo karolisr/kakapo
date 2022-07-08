@@ -326,6 +326,7 @@ def main():
     fq_pe = _['fq_pe']
     fq_se = _['fq_se']
     should_run_rcorrector = _['should_run_rcorrector']
+    rcorrector_before_trimmomatic = _['rcorrector_before_trimmomatic']
     should_run_ipr = _['should_run_ipr']
     bt2_order = _['bt2_order']
     kraken_confidence = _['kraken_confidence']
@@ -381,7 +382,8 @@ def main():
         f.write(__version__)
 
     # Create subdirectories in the output directory --------------------------
-    _ = prepare_output_directories(dir_out, prj_name)
+    _ = prepare_output_directories(dir_out, prj_name,
+                                   rcorrector_before_trimmomatic)
 
     dir_temp = _['dir_temp']
     dir_cache_pfam_acc = _['dir_cache_pfam_acc']
@@ -416,88 +418,6 @@ def main():
     Log.set_write(True)
 
     log_stream.close()
-
-    # Resolve descending taxonomy nodes --------------------------------------
-    tax_ids = tax.all_descending_taxids_for_taxids([tax_group])
-
-    # Pfam uniprot accessions ------------------------------------------------
-    pfam_uniprot_acc = OrderedDict()
-    for ss in sss:
-        pfam_acc = sss[ss]['pfam_families']
-        pfam_uniprot_acc[ss] = pfam_uniprot_accessions(ss, pfam_acc, tax_ids,
-                                                       dir_cache_pfam_acc)
-
-    # Download Pfam uniprot sequences if needed ------------------------------
-    aa_uniprot_files = OrderedDict()
-    for ss in sss:
-        aa_uniprot_files[ss] = opj(dir_prj_queries, 'aa_uniprot__' + ss +
-                                   '.fasta')
-        # ToDo: add support for the requery_after parameter.
-        dnld_pfam_uniprot_seqs(ss, pfam_uniprot_acc[ss], aa_uniprot_files[ss],
-                               dir_cache_prj)
-
-    # User provided entrez query ---------------------------------------------
-    prot_acc_user_from_query = OrderedDict()
-    for ss in sss:
-        entrez_queries = sss[ss]['entrez_search_queries']
-        prot_acc_user_from_query[ss] = user_entrez_search(ss, entrez_queries,
-                                                          dir_cache_prj,
-                                                          requery_after)
-
-    # User provided protein accessions ---------------------------------------
-    prot_acc_user = OrderedDict()
-    for ss in sss:
-        print()
-        prot_acc_all = sorted(set(sss[ss]['ncbi_accessions_aa'] +
-                                  prot_acc_user_from_query[ss]))
-        prot_acc_user[ss] = user_protein_accessions(ss, prot_acc_all,
-                                                    dir_cache_prj, tax)
-
-    # Download from NCBI if needed -------------------------------------------
-    aa_prot_ncbi_files = OrderedDict()
-    for ss in sss:
-        aa_prot_ncbi_files[ss] = opj(dir_prj_queries, 'aa_prot_ncbi__' + ss +
-                                     '.fasta')
-        prot_acc_user[ss] = dnld_prot_seqs(ss, prot_acc_user[ss],
-                                           aa_prot_ncbi_files[ss],
-                                           dir_cache_prj)
-
-    # User provided protein sequences ----------------------------------------
-    aa_prot_user_files = OrderedDict()
-    for ss in sss:
-        user_queries = sss[ss]['fasta_files_aa']
-        aa_prot_user_files[ss] = opj(dir_prj_queries, 'aa_prot_user__' + ss +
-                                     '.fasta')
-        user_aa_fasta(ss, user_queries, aa_prot_user_files[ss])
-
-    # Combine all AA queries -------------------------------------------------
-    if len(sss) > 0:
-        print()
-    aa_queries_files = OrderedDict()
-    for ss in sss:
-        aa_queries_files[ss] = opj(dir_prj_queries, 'aa_all__' + ss + '.fasta')
-        combine_aa_fasta(ss, [aa_uniprot_files[ss], aa_prot_ncbi_files[ss],
-                              aa_prot_user_files[ss]], aa_queries_files[ss])
-
-    # Filter AA queries ------------------------------------------------------
-    prot_acc_user_filtered = OrderedDict()
-    for ss in sss:
-        min_query_length = sss[ss]['min_query_length']
-        max_query_length = sss[ss]['max_query_length']
-        max_query_identity = sss[ss]['max_query_identity']
-
-        # Dereplicate all queries
-        filter_queries(ss, aa_queries_files[ss], min_query_length,
-                       max_query_length, max_query_identity,
-                       vsearch, prot_acc_user[ss], overwrite=True)
-
-        # Dereplicate only NCBI queries. CDS for these will be downloaded
-        # later for reference.
-        if ope(aa_prot_ncbi_files[ss]):
-            prot_acc_user_filtered[ss] = filter_queries(
-                ss, aa_prot_ncbi_files[ss], min_query_length, max_query_length,
-                max_query_identity, vsearch, prot_acc_user[ss],
-                overwrite=False, logging=False)
 
     # Download SRA run metadata if needed ------------------------------------
     sra_runs_info, sras_acceptable = dnld_sra_info(sras, dir_cache_prj)
@@ -568,19 +488,32 @@ def main():
     pe_blast_results_file_patterns = d
     pe_vsearch_results_file_patterns = e
 
-    # Run Trimmomatic --------------------------------------------------------
-    run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
-                    trimmomatic, adapters, pe_trim_fq_file_patterns, THREADS)
+    if rcorrector_before_trimmomatic is True:
+        # Run Rcorrector -----------------------------------------------------
+        run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data,
+                       rcorrector, THREADS, dir_temp, pe_trim_fq_file_patterns,
+                       should_run_rcorrector, rcorrector_before_trimmomatic)
 
-    # Run Rcorrector ---------------------------------------------------------
-    run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
-                   THREADS, dir_temp, pe_trim_fq_file_patterns,
-                   should_run_rcorrector)
+        # Run Trimmomatic ----------------------------------------------------
+        run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
+                        trimmomatic, adapters, pe_trim_fq_file_patterns,
+                        THREADS, rcorrector_before_trimmomatic)
+    else:
+        # Run Trimmomatic ----------------------------------------------------
+        run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
+                        trimmomatic, adapters, pe_trim_fq_file_patterns,
+                        THREADS, rcorrector_before_trimmomatic)
+
+        # Run Rcorrector -----------------------------------------------------
+        run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data,
+                       rcorrector, THREADS, dir_temp, pe_trim_fq_file_patterns,
+                       should_run_rcorrector, rcorrector_before_trimmomatic)
 
     # Run Bowtie 2 -----------------------------------------------------------
     run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_bt2_data,
                bowtie2, bowtie2_build, THREADS, dir_temp, bt2_order,
-               pe_trim_fq_file_patterns, tax, dir_cache_refseqs)
+               pe_trim_fq_file_patterns, tax, dir_cache_refseqs,
+               rcorrector_before_trimmomatic)
 
     # Run Kraken 2 -----------------------------------------------------------
     run_kraken2(krkn_order, kraken2_dbs, se_fastq_files, pe_fastq_files,
@@ -610,7 +543,94 @@ def main():
     makeblastdb_fq(se_fastq_files, pe_fastq_files, dir_blast_fa_trim,
                    makeblastdb, pe_blast_db_file_patterns)
 
-    # Check if there are any query sequences.
+    print()
+
+    # Resolve descending taxonomy nodes --------------------------------------
+    tax_ids = tax.all_descending_taxids_for_taxids([tax_group])
+
+    # Pfam uniprot accessions ------------------------------------------------
+    pfam_uniprot_acc = OrderedDict()
+    for ss in sss:
+        pfam_acc = sss[ss]['pfam_families']
+        pfam_uniprot_acc[ss] = pfam_uniprot_accessions(ss, pfam_acc, tax_ids,
+                                                       dir_cache_pfam_acc)
+
+    # Download Pfam uniprot sequences if needed ------------------------------
+    aa_uniprot_files = OrderedDict()
+    for ss in sss:
+        aa_uniprot_files[ss] = opj(dir_prj_queries, 'aa_uniprot__' + ss +
+                                   '.fasta')
+        # ToDo: add support for the requery_after parameter.
+        dnld_pfam_uniprot_seqs(ss, pfam_uniprot_acc[ss], aa_uniprot_files[ss],
+                               dir_cache_prj)
+
+    # User provided entrez query ---------------------------------------------
+    prot_acc_user_from_query = OrderedDict()
+    for ss in sss:
+        entrez_queries = sss[ss]['entrez_search_queries']
+        prot_acc_user_from_query[ss] = user_entrez_search(ss, entrez_queries,
+                                                          dir_cache_prj,
+                                                          requery_after)
+
+    # User provided protein accessions ---------------------------------------
+    prot_acc_user = OrderedDict()
+    for ss in sss:
+        print()
+        prot_acc_all = sorted(set(sss[ss]['ncbi_accessions_aa'] +
+                                  prot_acc_user_from_query[ss]))
+        prot_acc_user[ss] = user_protein_accessions(ss, prot_acc_all,
+                                                    dir_cache_prj, tax)
+
+    # Download from NCBI if needed -------------------------------------------
+    aa_prot_ncbi_files = OrderedDict()
+    for ss in sss:
+        aa_prot_ncbi_files[ss] = opj(dir_prj_queries, 'aa_prot_ncbi__' + ss +
+                                     '.fasta')
+        prot_acc_user[ss] = dnld_prot_seqs(ss, prot_acc_user[ss],
+                                           aa_prot_ncbi_files[ss],
+                                           dir_cache_prj)
+
+    # User provided protein sequences ----------------------------------------
+    if len(sss) == 0:
+        print()
+    aa_prot_user_files = OrderedDict()
+    for ss in sss:
+        user_queries = sss[ss]['fasta_files_aa']
+        aa_prot_user_files[ss] = opj(dir_prj_queries, 'aa_prot_user__' + ss +
+                                     '.fasta')
+        user_aa_fasta(ss, user_queries, aa_prot_user_files[ss])
+        print()
+
+    # Combine all AA queries -------------------------------------------------
+    if len(sss) == 0:
+        print()
+    aa_queries_files = OrderedDict()
+    for ss in sss:
+        aa_queries_files[ss] = opj(dir_prj_queries, 'aa_all__' + ss + '.fasta')
+        combine_aa_fasta(ss, [aa_uniprot_files[ss], aa_prot_ncbi_files[ss],
+                              aa_prot_user_files[ss]], aa_queries_files[ss])
+
+    # Filter AA queries ------------------------------------------------------
+    prot_acc_user_filtered = OrderedDict()
+    for ss in sss:
+        min_query_length = sss[ss]['min_query_length']
+        max_query_length = sss[ss]['max_query_length']
+        max_query_identity = sss[ss]['max_query_identity']
+
+        # Dereplicate all queries
+        filter_queries(ss, aa_queries_files[ss], min_query_length,
+                       max_query_length, max_query_identity,
+                       vsearch, prot_acc_user[ss], overwrite=True)
+
+        # Dereplicate only NCBI queries. CDS for these will be downloaded
+        # later for reference.
+        if ope(aa_prot_ncbi_files[ss]):
+            prot_acc_user_filtered[ss] = filter_queries(
+                ss, aa_prot_ncbi_files[ss], min_query_length, max_query_length,
+                max_query_identity, vsearch, prot_acc_user[ss],
+                overwrite=False, logging=False)
+
+    # Check if there are any query sequences ---------------------------------
     any_queries = False
     for ss in sss:
         if stat(aa_queries_files[ss]).st_size == 0:
@@ -644,7 +664,8 @@ def main():
             if ope(dir_prj_transcripts_combined):
                 rmtree(dir_prj_transcripts_combined)
 
-    prepare_output_directories(dir_out, prj_name)
+    prepare_output_directories(dir_out, prj_name,
+                               rcorrector_before_trimmomatic)
 
     # Run vsearch on reads ---------------------------------------------------
     for ss in sss:
@@ -677,7 +698,6 @@ def main():
     makeblastdb_assemblies(assemblies, dir_prj_blast_assmbl, makeblastdb)
 
     if any_queries is False:
-        print()
         Log.wrn('No query sequences were provided.')
 
     # Run tblastn on assemblies ----------------------------------------------
