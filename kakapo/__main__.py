@@ -54,26 +54,26 @@ from kakapo.tools.transl_tables import TranslationTable
 
 from kakapo.flow.a_prepare import prepare_output_directories
 
-from kakapo.flow.b_process_queries import combine_aa_fasta
-from kakapo.flow.b_process_queries import dnld_pfam_uniprot_seqs
-from kakapo.flow.b_process_queries import dnld_prot_seqs
-from kakapo.flow.b_process_queries import filter_queries
-from kakapo.flow.b_process_queries import pfam_uniprot_accessions
-from kakapo.flow.b_process_queries import user_aa_fasta
-from kakapo.flow.b_process_queries import user_entrez_search
-from kakapo.flow.b_process_queries import user_protein_accessions
+from kakapo.flow.b_process_reads import dnld_sra_fastq_files
+from kakapo.flow.b_process_reads import dnld_sra_info
+from kakapo.flow.b_process_reads import file_name_patterns
+from kakapo.flow.b_process_reads import filtered_fq_to_fa
+from kakapo.flow.b_process_reads import makeblastdb_fq
+from kakapo.flow.b_process_reads import min_accept_read_len
+from kakapo.flow.b_process_reads import run_bt2_fq
+from kakapo.flow.b_process_reads import run_kraken2
+from kakapo.flow.b_process_reads import run_rcorrector
+from kakapo.flow.b_process_reads import run_trimmomatic
+from kakapo.flow.b_process_reads import user_fastq_files
 
-from kakapo.flow.c_process_reads import dnld_sra_fastq_files
-from kakapo.flow.c_process_reads import dnld_sra_info
-from kakapo.flow.c_process_reads import file_name_patterns
-from kakapo.flow.c_process_reads import filtered_fq_to_fa
-from kakapo.flow.c_process_reads import makeblastdb_fq
-from kakapo.flow.c_process_reads import min_accept_read_len
-from kakapo.flow.c_process_reads import run_bt2_fq
-from kakapo.flow.c_process_reads import run_kraken2
-from kakapo.flow.c_process_reads import run_rcorrector
-from kakapo.flow.c_process_reads import run_trimmomatic
-from kakapo.flow.c_process_reads import user_fastq_files
+from kakapo.flow.c_process_queries import combine_aa_fasta
+from kakapo.flow.c_process_queries import dnld_pfam_uniprot_seqs
+from kakapo.flow.c_process_queries import dnld_prot_seqs
+from kakapo.flow.c_process_queries import filter_queries
+from kakapo.flow.c_process_queries import pfam_uniprot_accessions
+from kakapo.flow.c_process_queries import user_aa_fasta
+from kakapo.flow.c_process_queries import user_entrez_search
+from kakapo.flow.c_process_queries import user_protein_accessions
 
 from kakapo.flow.d_search_reads import run_tblastn_on_reads
 from kakapo.flow.d_search_reads import run_vsearch_on_reads
