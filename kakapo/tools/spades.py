@@ -1,5 +1,7 @@
 """SPAdes."""
 
+from os import stat
+
 from kakapo.utils.subp import run
 from kakapo.utils.subp import which
 
@@ -35,12 +37,18 @@ def run_spades_pe(spades, out_dir, input_files, threads, memory, rna):
            '-o', out_dir,
            '--pe1-1', input_files[0],  # paired_1.fastq
            '--pe1-2', input_files[1],  # paired_2.fastq
-           '--s1', input_files[2],     # unpaired_1.fastq
-           '--s2', input_files[3],     # unpaired_2.fastq
            '--only-assembler',
            '--threads', str(threads),
            '--memory', memory,
            '--phred-offset', '33']
+
+    if stat(input_files[2]).st_size > 512:  # unpaired_1.fastq
+        cmd.append('--s1')
+        cmd.append(input_files[2])
+
+    if stat(input_files[3]).st_size > 512:  # unpaired_2.fastq
+        cmd.append('--s2')
+        cmd.append(input_files[3])
 
     if rna:
         cmd.append('--rna')
