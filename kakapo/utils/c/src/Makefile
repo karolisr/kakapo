@@ -8,10 +8,22 @@ DIR_BIN=../bin
 
 DIR_TEST_DATA=../../../../tests/test_data
 
-all: kakapolib.so
+OS := $(shell uname -s)
+ifeq ($(OS),Linux)
+	kkparch := linux
+endif
+ifeq ($(OS),Darwin)
+	kkparch := mac
+endif
+ARCH := $(shell uname -m)
+KAKAPOLIB := kakapolib_$(kkparch)_${ARCH}.so
 
-kakapolib.so: gzlib.o fqlib.o
-	$(CC) $(OPTS) -lz -shared -o kakapolib.so gzlib.o fqlib.o
+$(info Compiling $(KAKAPOLIB))
+
+all: $(KAKAPOLIB)
+
+$(KAKAPOLIB): gzlib.o fqlib.o
+	$(CC) $(OPTS) -lz -shared -o $(KAKAPOLIB) gzlib.o fqlib.o
 
 fqlib.o: fqlib.c
 	$(CC) $(OPTS) -lz -fPIC -c -o fqlib.o fqlib.c
