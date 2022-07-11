@@ -464,6 +464,7 @@ def cds(data_protein: dict) -> dict:
 
 @dispatch(Iterable, namespace=EUTILS_NS)
 def sra_run_info(ids_srr: IterableT[str]) -> list:
+    # CSV output example: https://trace.ncbi.nlm.nih.gov/Traces/sra-db-be/sra-db-be.cgi?rettype=runinfo&acc=SRR13805638,SRR13805642
     efetch_xml_txt = efetch(db='sra', ids=ids_srr, rettype='runinfo',
                             retmode='xml')
     ret_list = parse_efetch_sra_xml_text(efetch_xml_txt)
