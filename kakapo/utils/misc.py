@@ -292,19 +292,20 @@ def rename_fq_seqs(in_file, prefix, suffix):
     r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(in_file)
 
     out_file_temp = in_file + '.temp'
-
+    i = 1
     with fqopen(in_file, r_mode) as in_f, \
             fqopen(out_file_temp, w_mode) as out_f:
         entries = grouper(in_f, 4)
-        for i, entry in enumerate(entries):
+        for entry in entries:
             head, seq, plhld, qual = [x.strip() for x in entry]
             head = '@' + prefix + '.' + str(i + 1) + ' ' + suffix
             plhld = '+'
             entry_str = '\n'.join([head, seq, plhld, qual])
             out_f.write('{}\n'.format(entry_str))
-
+            i += 1
     remove(in_file)
     move(out_file_temp, in_file)
+    return i
 
 
 def avg_read_len_fq(in_file):
