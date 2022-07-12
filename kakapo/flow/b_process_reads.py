@@ -50,6 +50,9 @@ from kakapo.utils.subp import run
 MT = 'mitochondrion'
 PT = 'plastid'
 
+MAX_READ_LEN_ILLUMINA = 1023
+MIN_READ_COUNT_SRA = 10000
+
 
 def dnld_sra_info(sras, dir_cache_prj):
 
@@ -187,6 +190,12 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
 
         if sra_lib_layout == 'single' or sra_lib_layout_k == 'single':
             se_file = opj(dir_fq_data, sra + '.fastq')
+
+            se_file_blacklisted = opj(dir_fq_data, sra + '_blacklisted.fastq')
+            if ope(se_file_blacklisted):
+                Log.wrn('Ignoring blacklisted SRA:', sra)
+                continue
+
             se_fastq_files[sample_base_name] = {'path': se_file}
             se_fastq_files[sample_base_name]['src'] = 'sra'
             se_fastq_files[sample_base_name]['avg_len'] = avg_len
@@ -199,14 +208,24 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
             pe_file_2 = opj(dir_fq_data, sra + '_2.fastq')
             pe_file_1_renamed = opj(dir_fq_data, sra + '_R1.fastq')
             pe_file_2_renamed = opj(dir_fq_data, sra + '_R2.fastq')
-            pe_fastq_files[sample_base_name] = {'path': [pe_file_1_renamed, pe_file_2_renamed]}
+
+            pe_file_1_renamed_blacklisted = opj(dir_fq_data,
+                                                sra + '_R1_blacklisted.fastq')
+
+            if ope(pe_file_1_renamed_blacklisted):
+                Log.wrn('Ignoring blacklisted SRA:', sra)
+                continue
+
+            pe_fastq_files[sample_base_name] = {'path': [pe_file_1_renamed,
+                                                         pe_file_2_renamed]}
             pe_fastq_files[sample_base_name]['src'] = 'sra'
             pe_fastq_files[sample_base_name]['avg_len'] = avg_len // 2
             pe_fastq_files[sample_base_name]['tax_id'] = sra_taxid
             if sra_lib_layout_k == 'paired_unp':
                 pe_file_3 = opj(dir_fq_data, sra + '.fastq')
                 pe_file_3_renamed = opj(dir_fq_data, sra + '_R3.fastq')
-                pe_fastq_files[sample_base_name]['path'].append(pe_file_3_renamed)
+                pe_fastq_files[sample_base_name]['path'].append(
+                    pe_file_3_renamed)
             if not ope(pe_file_1_renamed) or not ope(pe_file_2_renamed):
                 sra_dnld_needed = True
 
@@ -261,20 +280,53 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
             if sra_lib_layout == 'single' or sra_lib_layout_k == 'single':
                 if ope(se_file):
                     Log.msg('Renaming FASTQ reads in:', se_file)
-                    rename_fq_seqs(se_file, sra, '1:N:0')
+                    read_count = rename_fq_seqs(se_file, sra, '1:N:0')
+
+                    if read_count < MIN_READ_COUNT_SRA:
+                        Log.wrn('FASTQ file contains less than ' +
+                                str(MIN_READ_COUNT_SRA) +
+                                ' reads, blacklisting:', sra)
+                        del se_fastq_files[sample_base_name]
+                        move(se_file, se_file.replace('.fastq',
+                                                      '_blacklisted.fastq'))
 
             elif sra_lib_layout == 'paired':
+
+                read_1_count = 0
+                read_3_count = 0
+
                 if ope(pe_file_1_renamed):
                     Log.msg('Renaming FASTQ reads in:', pe_file_1_renamed)
-                    rename_fq_seqs(pe_file_1_renamed, sra, '1:N:0')
+                    read_1_count = rename_fq_seqs(pe_file_1_renamed, sra,
+                                                  '1:N:0')
+
                 if ope(pe_file_2_renamed):
                     Log.msg('Renaming FASTQ reads in:', pe_file_2_renamed)
-                    rename_fq_seqs(pe_file_2_renamed, sra, '2:N:0')
+                    read_2_count = rename_fq_seqs(pe_file_2_renamed, sra,
+                                                  '2:N:0')
+
                 if sra_lib_layout_k == 'paired_unp':
                     if ope(pe_file_3_renamed):
                         Log.msg('Renaming FASTQ reads in:', pe_file_3_renamed)
-                        rename_fq_seqs(pe_file_3_renamed, sra + '_unpaired',
-                                       '1:N:0')
+                        read_3_count = rename_fq_seqs(pe_file_3_renamed, sra +
+                                                      '_unpaired', '1:N:0')
+
+                if (read_1_count + read_3_count) < MIN_READ_COUNT_SRA:
+                    Log.wrn('FASTQ files contain less than ' +
+                            str(MIN_READ_COUNT_SRA) + ' reads, blacklisting:',
+                            sra)
+
+                    del pe_fastq_files[sample_base_name]
+                    move(pe_file_1_renamed,
+                         pe_file_1_renamed.replace('.fastq',
+                                                   '_blacklisted.fastq'))
+                    move(pe_file_2_renamed,
+                         pe_file_2_renamed.replace('.fastq',
+                                                   '_blacklisted.fastq'))
+                    if ope(pe_file_3_renamed):
+                        move(pe_file_3_renamed,
+                             pe_file_3_renamed.replace('.fastq',
+                                                       '_blacklisted.fastq'))
 
     return se_fastq_files, pe_fastq_files, sra_runs_info
 
@@ -350,52 +402,74 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
     queue = []
 
     for se in se_fastq_files:
-        src = se_fastq_files[se]['src']
-        avg_len = se_fastq_files[se]['avg_len']
-        if src == 'sra':
-            ml = max(avg_len // 3, low)
-            se_fastq_files[se]['min_acc_len'] = ml
-            Log.msg(str(ml) + ' nt:', se)
-            continue
+        # src = se_fastq_files[se]['src']
+        # avg_len = se_fastq_files[se]['avg_len']
+        # if src == 'sra':
+        #     ml = max(avg_len // 3, low)
+        #     se_fastq_files[se]['min_acc_len'] = ml
+        #     Log.msg(str(ml) + ' nt:', se)
+        #     continue
 
-        fq_path = se_fastq_files[se]['path']
+        # fq_path = se_fastq_files[se]['path']
         stats_file = opj(dir_temp, se + '_stats.txt')
-        queue.append([se, fq_path, stats_file, 'se'])
+        queue.append([se, [se_fastq_files[se]['path']], stats_file, 'se'])
 
     for pe in pe_fastq_files:
-        src = pe_fastq_files[pe]['src']
-        avg_len = pe_fastq_files[pe]['avg_len']
-        if src == 'sra':
-            ml = max(avg_len // 3, low)
-            pe_fastq_files[pe]['min_acc_len'] = ml
-            Log.msg(str(ml) + ' nt:', pe)
-            continue
+        # src = pe_fastq_files[pe]['src']
+        # avg_len = pe_fastq_files[pe]['avg_len']
+        # if src == 'sra':
+        #     ml = max(avg_len // 3, low)
+        #     pe_fastq_files[pe]['min_acc_len'] = ml
+        #     Log.msg(str(ml) + ' nt:', pe)
+        #     continue
 
-        fq_path = pe_fastq_files[pe]['path'][0]
+        # fq_path = pe_fastq_files[pe]['path'][0]
         stats_file = opj(dir_temp, pe + '_stats.txt')
-        queue.append([pe, fq_path, stats_file, 'pe'])
+        queue.append([pe, pe_fastq_files[pe]['path'], stats_file, 'pe'])
 
     for x in queue:
 
         if x[0] in pickled:
             ml = pickled[x[0]]
-
         else:
-            ml = avg_read_len_fq(x[1])
-            ml = max(int(ml) // 3, low)
+            ml = avg_read_len_fq(x[1][0])
+
+            if ml < MAX_READ_LEN_ILLUMINA:
+                ml = max(int(ml) // 3, low)
+            else:
+                ml = MAX_READ_LEN_ILLUMINA
 
             pickled[x[0]] = ml
 
         if ml is not None:
-            Log.msg(str(ml) + ' nt:', x[0])
+            if ml < MAX_READ_LEN_ILLUMINA:
+                Log.msg(str(ml) + ' nt:', x[0])
+            else:
+                Log.wrn('FASTQ file(s) contain reads longer than ' +
+                        str(MAX_READ_LEN_ILLUMINA) + ' bp, blacklisting:',
+                        x[0])
+                for f_to_blacklist in x[1]:
+                    if ope(f_to_blacklist):
+                        move(f_to_blacklist, f_to_blacklist.replace(
+                            '.fastq', '_blacklisted.fastq'))
         else:
             Log.msg(' ?' + ' nt:', x[0])
             ml = low
 
         if x[3] == 'se':
+
+            if ml >= MAX_READ_LEN_ILLUMINA:
+                del se_fastq_files[x[0]]
+                continue
+
             se_fastq_files[x[0]]['min_acc_len'] = ml
 
         elif x[3] == 'pe':
+
+            if ml >= MAX_READ_LEN_ILLUMINA:
+                del pe_fastq_files[x[0]]
+                continue
+
             pe_fastq_files[x[0]]['min_acc_len'] = ml
 
         with open(__, 'wb') as f:
