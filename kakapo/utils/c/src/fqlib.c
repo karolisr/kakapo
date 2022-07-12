@@ -23,6 +23,9 @@ unsigned long long int fq_avg_read_len(char *path) {
     while ((read = getline(&line, &len, stream)) != -1) {
         totalLines++;
         if (totalLines % 4 == 2) {
+            if (read - 1 > 1023) {
+                return 1023;
+            }
             totalSeqLen += read - 1;
         }
     }
@@ -54,6 +57,9 @@ unsigned long long int fq_avg_read_len_gz(char *path) {
     while ((read = gzgetline(&line, &len, stream)) != -1) {
         totalLines++;
         if (totalLines % 4 == 2) {
+            if (read - 1 > 1023) {
+                return 1023;
+            }
             totalSeqLen += read - 1;
         }
     }
