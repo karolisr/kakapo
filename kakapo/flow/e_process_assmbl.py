@@ -32,6 +32,9 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
         fq_path = se_fastq_files[se]['vsearch_results_path' + '__' + ss]
         se_fastq_files[se]['spades_assembly' + '__' + ss] = None
 
+        if fq_path is None:
+            continue
+
         if ope(dir_results):
             Log.msg('SPAdes assembly already exists:', se)
         else:
@@ -59,6 +62,9 @@ def run_spades(se_fastq_files, pe_fastq_files, dir_spades_assemblies,
         dir_results = opj(dir_spades_assemblies, pe + '__' + ss)
         fq_paths = pe_fastq_files[pe]['vsearch_results_path' + '__' + ss]
         pe_fastq_files[pe]['spades_assembly' + '__' + ss] = None
+
+        if fq_paths is None:
+            continue
 
         if ope(dir_results):
             Log.msg('SPAdes assembly already exists:', pe)

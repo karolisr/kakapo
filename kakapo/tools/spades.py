@@ -35,12 +35,16 @@ def run_spades_pe(spades, out_dir, input_files, threads, memory, rna):
 
     cmd = [spades,
            '-o', out_dir,
-           '--pe1-1', input_files[0],  # paired_1.fastq
-           '--pe1-2', input_files[1],  # paired_2.fastq
            '--only-assembler',
            '--threads', str(threads),
            '--memory', memory,
            '--phred-offset', '33']
+
+    if stat(input_files[0]).st_size > 512 and stat(input_files[1]).st_size > 512:
+        cmd.append('--pe1-1')      # paired_1.fastq
+        cmd.append(input_files[0])
+        cmd.append('--pe1-2')      # paired_2.fastq
+        cmd.append(input_files[1])
 
     if stat(input_files[2]).st_size > 512:  # unpaired_1.fastq
         cmd.append('--s1')
