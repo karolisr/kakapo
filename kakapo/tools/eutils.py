@@ -280,7 +280,7 @@ def search(db: str, term: str) -> dict:
     esearchresult = None
     for i in range(5):
         json = esearch(db=db, term=term, usehistory=True)
-        if json is not None:
+        if json is not None and 'esearchresult' in json:
             esearchresult = json['esearchresult']
             if 'count' not in esearchresult:
                 esearchresult = None
