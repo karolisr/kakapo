@@ -30,7 +30,7 @@ if OS_ID == 'mac':
         OS_INFO += ' (' + RELEASE_NAME + ')'
 
 _, PY_V_STR = python_version()
-THREADS = cpu_count()
+NCPU = cpu_count()
 RAM = sys_ram(OS_ID)
 
 os.environ['KKP_OS_ID'] = OS_ID
@@ -59,4 +59,4 @@ SCRIPT_INFO = ('\n' +
                'Python version: {pv}\n'.format(pv=PY_V_STR) +
                'Operating system: {os}\n'.format(os=OS_INFO) +
                'System info: {cpus} CPUs, {ram} GB RAM ({mt})\n'.format(
-                   cpus=THREADS, ram='{0:.2f}'.format(RAM), mt=MACHINE_TYPE))
+                   cpus=NCPU, ram='{0:.2f}'.format(RAM), mt=MACHINE_TYPE))

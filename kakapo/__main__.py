@@ -41,7 +41,7 @@ from kakapo.tools.config import MACHINE_TYPE
 from kakapo.tools.config import OS_ID, DIST_ID, DEBIAN_DISTS, REDHAT_DISTS
 from kakapo.tools.config import RELEASE_NAME
 from kakapo.tools.config import SCRIPT_INFO
-from kakapo.tools.config import THREADS, RAM
+from kakapo.tools.config import NCPU, RAM
 from kakapo.tools.config_file_parse import config_file_parse
 from kakapo.tools.config_file_parse import ss_file_parse
 from kakapo.tools.config_file_parse import use_colors
@@ -121,6 +121,14 @@ PARSER.add_argument(
     help='Path to a {} search strategies file.'.format(__script_name__))
 
 PARSER.add_argument(
+    '--ncpu',
+    type=int,
+    metavar='count',
+    required=False,
+    dest='NCPU_ARG',
+    help='Number of CPUs to use.')
+
+PARSER.add_argument(
     '--stop-after-filter',
     action='store_true',
     required=False,
@@ -180,6 +188,7 @@ ARGS = PARSER.parse_args()
 CLEAN_DATA_DIR = ARGS.CLEAN_DATA_DIR
 CONFIG_FILE_PATH = ARGS.CONFIG_FILE_PATH
 SS_FILE_PATH = ARGS.SS_FILE_PATH
+NCPU_ARG = ARGS.NCPU_ARG
 STOP_AFTER_FILTER = ARGS.STOP_AFTER_FILTER
 FORCE_DEPS = ARGS.FORCE_DEPS
 INSTALL_DEPS = ARGS.INSTALL_DEPS
@@ -230,6 +239,15 @@ else:
     pass
 
 print(SCRIPT_INFO)
+
+if NCPU_ARG is not None:
+    if NCPU_ARG > NCPU:
+        print(CONSRED + 'The number of CPUs requested is larger '
+              'than is available on the system. Will use ' + str(NCPU) +
+              ' instead.' + CONSDFL)
+        NCPU_ARG = NCPU
+    else:
+        NCPU = NCPU_ARG
 
 COLORS = False
 if CONFIG_FILE_PATH is not None:
@@ -423,12 +441,9 @@ def main():
     sra_runs_info, sras_acceptable = dnld_sra_info(sras, dir_cache_prj)
 
     # Download SRA run FASTQ files if needed ---------------------------------
-    x, y, z = dnld_sra_fastq_files(sras_acceptable, sra_runs_info, dir_fq_data,
-                                   fasterq_dump, THREADS, dir_temp)
-
-    se_fastq_files_sra = x
-    pe_fastq_files_sra = y
-    sra_runs_info = z
+    se_fastq_files_sra, pe_fastq_files_sra = dnld_sra_fastq_files(
+        sras_acceptable, sra_runs_info, dir_fq_data, fasterq_dump, NCPU,
+        dir_temp)
 
     # User provided FASTQ files ----------------------------------------------
     se_fastq_files_usr, pe_fastq_files_usr = user_fastq_files(fq_se, fq_pe)
@@ -491,33 +506,33 @@ def main():
     if rcorrector_before_trimmomatic is True:
         # Run Rcorrector -----------------------------------------------------
         run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data,
-                       rcorrector, THREADS, dir_temp, pe_trim_fq_file_patterns,
+                       rcorrector, NCPU, dir_temp, pe_trim_fq_file_patterns,
                        should_run_rcorrector, rcorrector_before_trimmomatic)
 
         # Run Trimmomatic ----------------------------------------------------
         run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
                         trimmomatic, adapters, pe_trim_fq_file_patterns,
-                        THREADS, rcorrector_before_trimmomatic)
+                        NCPU, rcorrector_before_trimmomatic)
     else:
         # Run Trimmomatic ----------------------------------------------------
         run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
                         trimmomatic, adapters, pe_trim_fq_file_patterns,
-                        THREADS, rcorrector_before_trimmomatic)
+                        NCPU, rcorrector_before_trimmomatic)
 
         # Run Rcorrector -----------------------------------------------------
         run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data,
-                       rcorrector, THREADS, dir_temp, pe_trim_fq_file_patterns,
+                       rcorrector, NCPU, dir_temp, pe_trim_fq_file_patterns,
                        should_run_rcorrector, rcorrector_before_trimmomatic)
 
     # Run Bowtie 2 -----------------------------------------------------------
     run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_bt2_data,
-               bowtie2, bowtie2_build, THREADS, dir_temp, bt2_order,
+               bowtie2, bowtie2_build, NCPU, dir_temp, bt2_order,
                pe_trim_fq_file_patterns, tax, dir_cache_refseqs,
                rcorrector_before_trimmomatic)
 
     # Run Kraken 2 -----------------------------------------------------------
     run_kraken2(krkn_order, kraken2_dbs, se_fastq_files, pe_fastq_files,
-                dir_fq_filter_krkn2_data, kraken_confidence, kraken2, THREADS,
+                dir_fq_filter_krkn2_data, kraken_confidence, kraken2, NCPU,
                 dir_temp, pe_trim_fq_file_patterns)
 
     se_fastq_files = OrderedDict(se_fastq_files)
@@ -540,10 +555,39 @@ def main():
                       pe_trim_fa_file_patterns)
 
     # Run makeblastdb on reads -----------------------------------------------
-    makeblastdb_fq(se_fastq_files, pe_fastq_files, dir_blast_fa_trim,
-                   makeblastdb, pe_blast_db_file_patterns)
+    if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
+        print()
+        Log.inf('Building BLAST databases for reads.')
+        if makeblastdb is None:
+            Log.err('makeblastdb is not available. Cannot continue. Exiting.')
+            exit(0)
 
-    print()
+    parallel_run_count = NCPU
+
+    def makeblastdb_fq_se_parallel(se_fastq_files_local):
+        makeblastdb_fq(se_fastq_files_local, dict(), dir_blast_fa_trim,
+                       makeblastdb, pe_blast_db_file_patterns)
+
+        se_fastq_files.update(se_fastq_files_local)
+
+    if parallel_run_count > 0:
+        _ = se_fastq_files.keys()
+        Parallel(n_jobs=parallel_run_count, verbose=0, require='sharedmem')(
+            delayed(makeblastdb_fq_se_parallel)({k: se_fastq_files[k]}) for k in _)
+
+    def makeblastdb_fq_pe_parallel(pe_fastq_files_local):
+        makeblastdb_fq(dict(), pe_fastq_files_local, dir_blast_fa_trim,
+                       makeblastdb, pe_blast_db_file_patterns)
+
+        pe_fastq_files.update(pe_fastq_files_local)
+
+    if parallel_run_count > 0:
+        _ = pe_fastq_files.keys()
+        Parallel(n_jobs=parallel_run_count, verbose=0, require='sharedmem')(
+            delayed(makeblastdb_fq_pe_parallel)({k: pe_fastq_files[k]}) for k in _)
+
+    if len(sss) > 0:
+        print()
 
     # Resolve descending taxonomy nodes --------------------------------------
     tax_ids = tax.all_descending_taxids_for_taxids([tax_group])
@@ -560,7 +604,6 @@ def main():
     for ss in sss:
         aa_uniprot_files[ss] = opj(dir_prj_queries, 'aa_uniprot__' + ss +
                                    '.fasta')
-        # ToDo: add support for the requery_after parameter.
         dnld_pfam_uniprot_seqs(ss, pfam_uniprot_acc[ss], aa_uniprot_files[ss],
                                dir_cache_prj)
 
@@ -591,8 +634,6 @@ def main():
                                            dir_cache_prj)
 
     # User provided protein sequences ----------------------------------------
-    if len(sss) == 0:
-        print()
     aa_prot_user_files = OrderedDict()
     for ss in sss:
         user_queries = sss[ss]['fasta_files_aa']
@@ -602,8 +643,6 @@ def main():
         print()
 
     # Combine all AA queries -------------------------------------------------
-    if len(sss) == 0:
-        print()
     aa_queries_files = OrderedDict()
     for ss in sss:
         aa_queries_files[ss] = opj(dir_prj_queries, 'aa_all__' + ss + '.fasta')
@@ -642,13 +681,15 @@ def main():
     for ss in sss:
         if stat(aa_queries_files[ss]).st_size == 0:
             continue
+
+        ss_organelle = sss[ss]['organelle']
         changed_blast_1 = run_tblastn_on_reads(
             se_fastq_files, pe_fastq_files, aa_queries_files[ss], tblastn,
             blast_1_evalue, blast_1_max_hsps, blast_1_qcov_hsp_perc,
             blast_1_best_hit_overhang, blast_1_best_hit_score_edge,
             blast_1_max_target_seqs, dir_prj_blast_results_fa_trim,
-            pe_blast_results_file_patterns, ss, THREADS, seqtk, vsearch,
-            dir_cache_prj)
+            pe_blast_results_file_patterns, ss, NCPU, seqtk, vsearch,
+            dir_cache_prj, ss_organelle)
 
         if changed_blast_1 is True:
             if ope(dir_prj_vsearch_results_fa_trim):
@@ -688,7 +729,7 @@ def main():
         print()
         Log.inf('Checking if SPAdes should be run:', ss)
         run_spades(se_fastq_files, pe_fastq_files, dir_prj_spades_assemblies,
-                   spades, dir_temp, ss, THREADS, RAM)
+                   spades, dir_temp, ss, NCPU, RAM)
 
     # Combine SPAdes and user provided assemblies ----------------------------
     assemblies = combine_assemblies(se_fastq_files, pe_fastq_files,
@@ -698,6 +739,7 @@ def main():
     makeblastdb_assemblies(assemblies, dir_prj_blast_assmbl, makeblastdb)
 
     if any_queries is False:
+        print()
         Log.wrn('No query sequences were provided.')
 
     # Run tblastn on assemblies ----------------------------------------------
@@ -749,7 +791,7 @@ def main():
                                   blast_2_qcov_hsp_perc_ss,
                                   blast_2_best_hit_overhang_ss,
                                   blast_2_best_hit_score_edge_ss,
-                                  blast_2_max_target_seqs_ss, THREADS,
+                                  blast_2_max_target_seqs_ss, NCPU,
                                   dir_cache_prj, dir_prj_ips)
 
     # Prepare BLAST hits for analysis: find ORFs, translate ------------------
@@ -760,7 +802,7 @@ def main():
 
         min_target_orf_len_ss = sss[ss]['min_target_orf_length']
         max_target_orf_len_ss = sss[ss]['max_target_orf_length']
-        organelle = sss[ss]['organelle']
+        ss_organelle = sss[ss]['organelle']
 
         blast_2_qcov_hsp_perc_ss = sss[ss]['blast_2_qcov_hsp_perc']
 
@@ -772,7 +814,7 @@ def main():
                             max_target_orf_len_ss, allow_non_aug,
                             allow_no_strt_cod,
                             allow_no_stop_cod, tax, tax_group, tax_ids_user,
-                            blast_2_qcov_hsp_perc_ss, organelle)
+                            blast_2_qcov_hsp_perc_ss, ss_organelle)
 
     # GFF3 files from kakapo results JSON files ------------------------------
     for ss in sss:
@@ -842,7 +884,7 @@ def main():
 
         # --------------------------------------------------------------------
 
-        parallel_run_count = THREADS
+        parallel_run_count = NCPU
 
         def produce_final_gff(ss):
             if stat(aa_queries_files[ss]).st_size == 0:

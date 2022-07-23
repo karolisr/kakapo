@@ -2,7 +2,7 @@
 
 import fileinput
 import pickle
-import random
+# import random
 import re
 
 from collections import OrderedDict
@@ -179,14 +179,24 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
     pe_fastq_files = {}
 
     for sra in sras:
-        sra_run_info = sra_runs_info[sra]
-        sra_lib_layout = sra_run_info['LibraryLayout'].lower()
-        sra_lib_layout_k = sra_run_info['KakapoLibraryLayout'].lower()
-        sample_base_name = sra_run_info['KakapoSampleBaseName']
-        sra_taxid = int(sra_run_info['TaxID'])
-        avg_len = int(sra_run_info['avgLength'])
+        run_info = sra_runs_info[sra]
+        sra_lib_layout = run_info['LibraryLayout'].lower()
+        sra_lib_layout_k = run_info['KakapoLibraryLayout'].lower()
+        sample_base_name = run_info['KakapoSampleBaseName']
+        sra_taxid = int(run_info['TaxID'])
+        avg_len = int(run_info['avgLength'])
 
         sra_dnld_needed = False
+
+        se_file = None
+
+        pe_file_1 = None
+        pe_file_2 = None
+        pe_file_3 = None
+
+        pe_file_1_renamed = None
+        pe_file_2_renamed = None
+        pe_file_3_renamed = None
 
         if sra_lib_layout == 'single' or sra_lib_layout_k == 'single':
             se_file = opj(dir_fq_data, sra + '.fastq')
@@ -200,6 +210,7 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
             se_fastq_files[sample_base_name]['src'] = 'sra'
             se_fastq_files[sample_base_name]['avg_len'] = avg_len
             se_fastq_files[sample_base_name]['tax_id'] = sra_taxid
+            se_fastq_files[sample_base_name]['organelle'] = None
             if not ope(se_file):
                 sra_dnld_needed = True
 
@@ -221,6 +232,7 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
             pe_fastq_files[sample_base_name]['src'] = 'sra'
             pe_fastq_files[sample_base_name]['avg_len'] = avg_len // 2
             pe_fastq_files[sample_base_name]['tax_id'] = sra_taxid
+            pe_fastq_files[sample_base_name]['organelle'] = None
             if sra_lib_layout_k == 'paired_unp':
                 pe_file_3 = opj(dir_fq_data, sra + '.fastq')
                 pe_file_3_renamed = opj(dir_fq_data, sra + '_R3.fastq')
@@ -249,7 +261,7 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
             Log.msg('Downloading FASTQ reads for:', sample_base_name)
 
             cmd = [fasterq_dump,
-                   '--threads', str(threads * 2),
+                   '--threads', str(min(8, threads)),
                    '--split-3',
                    '--bufsize', '819200',
                    '--outdir', dir_fq_data,
@@ -262,7 +274,6 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
                     continue
 
             elif sra_lib_layout == 'paired':
-
                 if not ope(pe_file_1) or not ope(pe_file_2):
                     continue
                 else:
@@ -304,6 +315,7 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
                     Log.msg('Renaming FASTQ reads in:', pe_file_2_renamed)
                     read_2_count = rename_fq_seqs(pe_file_2_renamed, sra,
                                                   '2:N:0')
+                    assert read_1_count == read_2_count
 
                 if sra_lib_layout_k == 'paired_unp':
                     if ope(pe_file_3_renamed):
@@ -328,7 +340,7 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
                              pe_file_3_renamed.replace('.fastq',
                                                        '_blacklisted.fastq'))
 
-    return se_fastq_files, pe_fastq_files, sra_runs_info
+    return se_fastq_files, pe_fastq_files
 
 
 def user_fastq_files(fq_se, fq_pe):
@@ -355,6 +367,7 @@ def user_fastq_files(fq_se, fq_pe):
         se_fastq_files[sample_base_name]['src'] = 'usr'
         se_fastq_files[sample_base_name]['avg_len'] = None
         se_fastq_files[sample_base_name]['tax_id'] = tax_id
+        se_fastq_files[sample_base_name]['organelle'] = None
         Log.msg(sample_base_name + ':', basename(path))
 
     for pe in fq_pe:
@@ -374,6 +387,7 @@ def user_fastq_files(fq_se, fq_pe):
         pe_fastq_files[sample_base_name]['src'] = 'usr'
         pe_fastq_files[sample_base_name]['avg_len'] = None
         pe_fastq_files[sample_base_name]['tax_id'] = tax_id
+        pe_fastq_files[sample_base_name]['organelle'] = None
         Log.msg(sample_base_name + ':', basename(path[0]) + '\n' +
                 ' ' * (len(sample_base_name) + 2) + basename(path[1]))
 
@@ -591,7 +605,9 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
                 out_f = opj(dir_fq_trim_data_sample, 'unpaired.fastq' + ext)
                 stats_f = opj(dir_fq_trim_data_sample, pe + '_unpaired.txt')
 
-                Log.msg('SE mode (Paired-read SRA run contains unpaired reads):', pe)
+                Log.msg(
+                    'SE mode (Paired-read SRA run contains unpaired reads):',
+                    pe)
 
                 trimmomatic_se(
                     trimmomatic=trimmomatic,
@@ -628,7 +644,8 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
             Log.inf('Running Rcorrector.')
 
             if rcorrector is None:
-                Log.err('Rcorrector is not available. Cannot continue. Exiting.')
+                Log.err('Rcorrector is not available. Cannot continue. '
+                        'Exiting.')
                 exit(0)
 
     for se in se_fastq_files:
@@ -737,7 +754,9 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
             remove(fq_cor_path_2)
 
             # unpaired 1
-            if fq_path_3 is not None and ope(fq_path_3) and stat(fq_path_3).st_size > 512:
+            if fq_path_3 is not None and ope(fq_path_3) and \
+                    stat(fq_path_3).st_size > 512:
+
                 run_rcorrector_se(rcorrector=rcorrector,
                                   in_file=fq_path_3,
                                   out_dir=dir_fq_cor_data_sample,
@@ -746,12 +765,15 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
 
                 fq_base_path_3 = opj(dir_fq_cor_data_sample,
                                      basename(fq_path_3))
-                fq_cor_path_3 = splitext_gz(fq_base_path_3)[0] + '.cor.fq' + ext
+                fq_cor_path_3 = splitext_gz(fq_base_path_3)[0] + \
+                                '.cor.fq' + ext
 
                 if fq_path_4 is None:
-                    log_f_3 = opj(dir_fq_cor_data_sample, pe + '_unpaired.txt')
+                    log_f_3 = opj(dir_fq_cor_data_sample, pe +
+                                  '_unpaired.txt')
                 else:
-                    log_f_3 = opj(dir_fq_cor_data_sample, pe + '_unpaired_1.txt')
+                    log_f_3 = opj(dir_fq_cor_data_sample, pe +
+                                  '_unpaired_1.txt')
 
                 filter_unc_se(in_file=fq_cor_path_3, out_file=out_fs[2],
                               log_file=log_f_3)
@@ -763,7 +785,9 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
                         f.write('')
 
             # unpaired 2
-            if fq_path_4 is not None and ope(fq_path_4) and stat(fq_path_4).st_size > 512:
+            if fq_path_4 is not None and ope(fq_path_4) and \
+                    stat(fq_path_4).st_size > 512:
+
                 run_rcorrector_se(rcorrector=rcorrector,
                                   in_file=fq_path_4,
                                   out_dir=dir_fq_cor_data_sample,
@@ -772,8 +796,10 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
 
                 fq_base_path_4 = opj(dir_fq_cor_data_sample,
                                      basename(fq_path_4))
-                fq_cor_path_4 = splitext_gz(fq_base_path_4)[0] + '.cor.fq' + ext
-                log_f_4 = opj(dir_fq_cor_data_sample, pe + '_unpaired_2.txt')
+                fq_cor_path_4 = splitext_gz(fq_base_path_4)[0] + \
+                                '.cor.fq' + ext
+                log_f_4 = opj(dir_fq_cor_data_sample,
+                              pe + '_unpaired_2.txt')
 
                 filter_unc_se(in_file=fq_cor_path_4, out_file=out_fs[3],
                               log_file=log_f_4)
@@ -787,33 +813,38 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
 
 def dnld_refseqs_for_taxid(taxid, filter_term, taxonomy, dir_cache_refseqs,
                            query='', db='nuccore'):
-    ft = None
+
     if filter_term == 'plastid':
         ft = '("chloroplast"[filter] OR "plastid"[filter])'
     else:
         ft = '("' + filter_term + '"[filter])'
 
     tax_terms = tuple(reversed(taxonomy.lineage_for_taxid(taxid)['names']))
+    tax_term = ''
+    accs = set()
     for tax_term in tax_terms:
         if tax_term is None:
             tax_term = taxonomy.scientific_name_for_taxid(taxid)
-        term = '"RefSeq"[Keyword] AND "{}"[Primary Organism] AND {}'.format(tax_term, ft)
-        term = query + term
+        term = '"RefSeq"[Keyword] AND "{}"[Primary Organism] AND {}'
+        term = query + term.format(tax_term, ft)
         accs = set(accs_eutil(search_eutil(db, term)))
         if len(accs) > 0:
             plural = 'sequences'
             if len(accs) == 1:
                 plural = 'sequence'
-            Log.msg('Found {} RefSeq {} {} for'.format(len(accs), filter_term, plural), tax_term)
+            Log.msg('Found {} RefSeq {} {} for'.format(len(accs), filter_term,
+                                                       plural), tax_term)
+            # ToDo: Using a random sample of X RefSeq sequences.
             # Random sample ###################################################
-            if len(accs) > 10:
-                Log.wrn('Using a random sample of ten RefSeq sequences.')
-                random.seed(a=len(accs), version=2)
-                accs = set(random.sample(accs, 10))
+            # if len(accs) > 10:
+            #     Log.wrn('Using a random sample of ten RefSeq sequences.')
+            #     random.seed(a=len(accs), version=2)
+            #     accs = set(random.sample(population=accs, k=10))
             ###################################################################
             break
         else:
-            Log.wrn('No RefSeq {} sequences were found for'.format(filter_term), tax_term)
+            Log.wrn('No RefSeq {} sequences were found for'.format(
+                filter_term), tax_term)
 
     cache_path = opj(dir_cache_refseqs, filter_term + '__' +
                      tax_term.replace(' ', '_') + '.fasta')
@@ -910,12 +941,13 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
             Log.inf('Running Bowtie2.')
             msg_printed = True
 
+        dir_fq_bt_data_sample_un = opj(dir_fq_filter_data, se)
+
         for i, db in enumerate(dbs):
 
             db_path = dbs[db]
 
             dir_fq_bt_data_sample = opj(dir_fq_filter_data, se, db)
-            dir_fq_bt_data_sample_un = opj(dir_fq_filter_data, se)
 
             new_se = se + '_' + db
 
@@ -930,12 +962,15 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
             new_se_fastq_files[new_se]['trim_path_fq'] = None
             taxid = new_se_fastq_files[new_se]['tax_id']
             gc = new_se_fastq_files[new_se]['gc_id']
+            new_se_fastq_files[new_se]['organelle'] = None
             if db == MT:
                 gc = taxonomy.mito_genetic_code_for_taxid(taxid)
                 new_se_fastq_files[new_se]['gc_id'] = gc
+                new_se_fastq_files[new_se]['organelle'] = MT
             elif db == PT:
                 gc = taxonomy.plastid_genetic_code_for_taxid(taxid)
                 new_se_fastq_files[new_se]['gc_id'] = gc
+                new_se_fastq_files[new_se]['organelle'] = PT
             new_se_fastq_files[new_se]['gc_tt'] = TranslationTable(gc)
             new_se_fastq_files[new_se]['filter_path_fq'] = out_f
             if ope(dir_fq_bt_data_sample):
@@ -945,8 +980,6 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
                 Log.msg('SE mode:', new_se)
                 make_dirs(dir_fq_bt_data_sample)
 
-                db_fasta_path = None
-                bt2_idx_path = None
                 if db_path in (MT, PT):
                     db_fasta_path = dnld_refseqs_for_taxid(
                         taxid, db, taxonomy, dir_cache_refseqs, query='',
@@ -1006,12 +1039,13 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
             Log.inf('Running Bowtie2.')
             msg_printed = True
 
+        dir_fq_bt_data_sample_un = opj(dir_fq_filter_data, pe)
+
         for i, db in enumerate(dbs):
 
             db_path = dbs[db]
 
             dir_fq_bt_data_sample = opj(dir_fq_filter_data, pe, db)
-            dir_fq_bt_data_sample_un = opj(dir_fq_filter_data, pe)
 
             new_pe = pe + '_' + db
 
@@ -1019,7 +1053,8 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
             out_fs = [x.replace('@N@', new_pe) for x in out_fs]
 
             out_fs_un = [x.replace('@D@', dir_temp) for x in fpatt]
-            out_fs_un = [x.replace('@N@', new_pe + '_bt2_unaligned') for x in out_fs_un]
+            out_fs_un = [x.replace('@N@', new_pe + '_bt2_unaligned')
+                         for x in out_fs_un]
 
             sam_f = opj(dir_fq_bt_data_sample, new_pe + '.sam')
             new_pe_fastq_files[new_pe] = deepcopy(pe_fastq_files[pe])
@@ -1028,24 +1063,26 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
             new_pe_fastq_files[new_pe]['trim_path_fq'] = None
             taxid = new_pe_fastq_files[new_pe]['tax_id']
             gc = new_pe_fastq_files[new_pe]['gc_id']
+            new_pe_fastq_files[new_pe]['organelle'] = None
             if db == MT:
                 gc = taxonomy.mito_genetic_code_for_taxid(taxid)
                 new_pe_fastq_files[new_pe]['gc_id'] = gc
+                new_pe_fastq_files[new_pe]['organelle'] = MT
             elif db == PT:
                 gc = taxonomy.plastid_genetic_code_for_taxid(taxid)
                 new_pe_fastq_files[new_pe]['gc_id'] = gc
+                new_pe_fastq_files[new_pe]['organelle'] = PT
             new_pe_fastq_files[new_pe]['gc_tt'] = TranslationTable(gc)
             new_pe_fastq_files[new_pe]['filter_path_fq'] = out_fs
             if ope(dir_fq_bt_data_sample):
                 Log.msg('Bowtie2 filtered FASTQ files already exist:', new_pe)
-                in_fs = [x.replace('@D@', dir_fq_bt_data_sample_un) for x in fpatt]
+                in_fs = [x.replace('@D@', dir_fq_bt_data_sample_un)
+                         for x in fpatt]
                 in_fs = [x.replace('@N@', pe) for x in in_fs]
             else:
                 Log.msg('PE mode:', new_pe)
                 make_dirs(dir_fq_bt_data_sample)
 
-                db_fasta_path = None
-                bt2_idx_path = None
                 if db_path in (MT, PT):
                     db_fasta_path = dnld_refseqs_for_taxid(
                         taxid, db, taxonomy, dir_cache_refseqs, query='',
@@ -1231,12 +1268,6 @@ def filtered_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
 
 def makeblastdb_fq(se_fastq_files, pe_fastq_files, dir_blast_fa_trim,
                    makeblastdb, fpatt):
-    if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
-        print()
-        Log.inf('Building BLAST databases for reads.')
-        if makeblastdb is None:
-            Log.err('makeblastdb is not available. Cannot continue. Exiting.')
-            exit(0)
     for se in se_fastq_files:
         dir_blast_fa_trim_sample = opj(dir_blast_fa_trim, se)
         fa_path = se_fastq_files[se]['filter_path_fa']

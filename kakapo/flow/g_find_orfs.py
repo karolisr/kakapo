@@ -22,7 +22,7 @@ def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,
                         dir_temp, prepend_assmbl, min_target_orf_len,
                         max_target_orf_len, allow_non_aug, allow_no_strt_cod,
                         allow_no_stop_cod, tax, tax_group, tax_ids_user,
-                        min_overlap, organelle):
+                        min_overlap, ss_organelle):
 
     if len(assemblies) > 0:
         if seqtk is None:
@@ -43,10 +43,10 @@ def find_orfs_translate(ss, assemblies, dir_prj_transcripts, seqtk,
 
         gc_tt = a['gc_tt']
         if tax.is_eukaryote(tax_id) is True:
-            if organelle == 'mitochondrion':
+            if ss_organelle == 'mitochondrion':
                 gc_tt = a['gc_tt_mito']
             if tax.contains_plastid(tax_id) is True:
-                if organelle == 'plastid':
+                if ss_organelle == 'plastid':
                     gc_tt = a['gc_tt_plastid']
 
         transcripts_nt_fasta_file = opj(

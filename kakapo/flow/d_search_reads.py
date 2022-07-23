@@ -22,12 +22,17 @@ from kakapo.utils.misc import keep_unique_lines_in_file
 from kakapo.utils.misc import make_dirs
 
 
+MT = 'mitochondrion'
+PT = 'plastid'
+ORGANELLES = (MT, PT)
+
+
 def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                          tblastn, blast_1_evalue, blast_1_max_hsps,
                          blast_1_qcov_hsp_perc, blast_1_best_hit_overhang,
                          blast_1_best_hit_score_edge, blast_1_max_target_seqs,
                          dir_blast_results_fa_trim, fpatt, ss, threads,
-                         seqtk, vsearch, dir_cache_prj):
+                         seqtk, vsearch, dir_cache_prj, ss_organelle):
 
     changed_blast_1 = False
 
@@ -78,6 +83,7 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
         out_f_fasta = out_f.replace('.txt', '.fasta')
         se_fastq_files[se]['blast_results_path' + '__' + ss] = out_f_fasta
         genetic_code = se_fastq_files[se]['gc_id']
+        fq_organelle = se_fastq_files[se]['organelle']
 
         if ope(out_f_fasta) and ope(cache_file):
             with open(cache_file, 'rb') as f:
@@ -89,6 +95,14 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
             Log.msg('BLAST results already exist:', se)
 
         else:
+            if fq_organelle is not None:
+                if fq_organelle != ss_organelle:
+                    se_fastq_files[se]['blast_results_path' + '__' + ss] = None
+                    continue
+            else:
+                if ss_organelle in ORGANELLES:
+                    se_fastq_files[se]['blast_results_path' + '__' + ss] = None
+                    continue
             changed_blast_1 = True
             make_dirs(dir_results)
             Log.msg('Running tblastn on:', basename(blast_db_path))
@@ -107,7 +121,7 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                       db_genetic_code=genetic_code,
                       out_cols=BLST_RES_COLS_1)
 
-            Log.inf('Extracting unique BLAST hits using Seqtk.')
+            # Log.inf('Extracting unique BLAST hits using Seqtk.')
 
             keep_unique_lines_in_file(out_f)
 
@@ -134,6 +148,7 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
         out_f_fasta = opj(dir_results, pe + '__' + ss + '.fasta')
         pe_fastq_files[pe]['blast_results_path' + '__' + ss] = out_f_fasta
         genetic_code = pe_fastq_files[pe]['gc_id']
+        fq_organelle = pe_fastq_files[pe]['organelle']
 
         if ope(out_f_fasta) and ope(cache_file):
             with open(cache_file, 'rb') as f:
@@ -145,6 +160,14 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
             Log.msg('BLAST results already exist:', pe)
 
         else:
+            if fq_organelle is not None:
+                if fq_organelle != ss_organelle:
+                    pe_fastq_files[pe]['blast_results_path' + '__' + ss] = None
+                    continue
+            else:
+                if ss_organelle in ORGANELLES:
+                    pe_fastq_files[pe]['blast_results_path' + '__' + ss] = None
+                    continue
             changed_blast_1 = True
             make_dirs(dir_results)
             pe_trim_files = zip(blast_db_paths, out_fs, fq_paths, out_fs_fastq,
@@ -166,7 +189,7 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                           db_genetic_code=genetic_code,
                           out_cols=BLST_RES_COLS_1)
 
-                Log.msg('Extracting unique BLAST hits using Seqtk.')
+                # Log.msg('Extracting unique BLAST hits using Seqtk.')
 
                 keep_unique_lines_in_file(x[1])
 
@@ -215,6 +238,10 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
         out_f_fastq = out_f.replace('.txt', '.fastq')
         se_fastq_files[se]['vsearch_results_path' + '__' + ss] = out_f_fastq
 
+        if blast_results_fa_path is None:
+            se_fastq_files[se]['vsearch_results_path' + '__' + ss] = None
+            continue
+
         if ope(out_f_fastq):
             Log.msg('Vsearch results already exist:', se)
         else:
@@ -227,7 +254,7 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
                         out_file=out_f,
                         minlen=min_acc_len)
 
-            Log.msg('Extracting unique vsearch hits using Seqtk.')
+            # Log.msg('Extracting unique vsearch hits using Seqtk.')
             keep_unique_lines_in_file(out_f)
             seqtk_extract_reads(seqtk, fq_path, out_f_fastq, out_f)
             osremove(out_f)
@@ -242,6 +269,10 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
         out_fs = [x.replace('@Q@', ss) for x in out_fs]
         out_fs_fastq = [x.replace('.txt', '.fastq') for x in out_fs]
         pe_fastq_files[pe]['vsearch_results_path' + '__' + ss] = out_fs_fastq
+
+        if blast_results_fa_path is None:
+            pe_fastq_files[pe]['vsearch_results_path' + '__' + ss] = None
+            continue
 
         if ope(out_fs_fastq[0]) and ope(out_fs_fastq[1]) and \
            ope(out_fs_fastq[2]) and ope(out_fs_fastq[3]):
@@ -258,8 +289,8 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
                             out_file=x[1],
                             minlen=min_acc_len)
 
-            Log.msg('Extracting unique vsearch hits from paired files '
-                    'using Seqtk.')
+            # Log.msg('Extracting unique vsearch hits from paired files '
+            #         'using Seqtk.')
 
             p1txt = out_fs[0]
             p2txt = out_fs[1]
@@ -282,8 +313,8 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
             osremove(p2txt)
             osremove(p12txt_temp)
 
-            Log.msg('Extracting unique vsearch hits from unpaired files '
-                    'using Seqtk.')
+            # Log.msg('Extracting unique vsearch hits from unpaired files '
+            #         'using Seqtk.')
 
             u1txt = out_fs[2]
             u2txt = out_fs[3]
