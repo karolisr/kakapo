@@ -71,7 +71,7 @@ def read_fasta(f, seq_type, upper=True, def_to_first_space=False,
             if len(defn_split) != 2:
                 defn_split = defn.split(sep=' ', maxsplit=1)
             if len(defn_split) == 2:
-                acc_ver = defn_split[0]
+                acc_ver = defn_split[0].strip()
                 acc_ver_split = acc_ver.split('.', maxsplit=1)
 
                 if len(acc_ver_split) == 1:
