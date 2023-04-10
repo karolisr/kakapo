@@ -662,17 +662,6 @@ def dep_check_kraken2(dir_dep, os_id, release_name, machine_type, force):
                     dir_libomp_i = opj(dir_libomp, v, 'include')
 
                     if os_id == 'mac':
-                        # Changes the shared library identification name of a
-                        # dynamic shared library.
-                        dylib_f = opj(dir_libomp_l, 'libomp.dylib')
-
-                        chmod(dylib_f, stat.S_IRWXU | stat.S_IRUSR |
-                              stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP |
-                              stat.S_IROTH | stat.S_IWOTH)
-
-                        cmd = ['install_name_tool', '-id', dylib_f, dylib_f]
-                        run(cmd)
-
                         cxx_flags = ('CXXFLAGS = -L{} -I{} -Xpreprocessor '
                                      '-fopenmp -lomp -Wall -std=c++11 -O3')
 
@@ -689,6 +678,14 @@ def dep_check_kraken2(dir_dep, os_id, release_name, machine_type, force):
                                          ' -O3', cxx_flags)
 
                     run(['./install_kraken2.sh', 'bin'], cwd=dir_bin)
+
+                    if os_id == 'mac':
+                        dylib_f = opj(dir_libomp_l, 'libomp.dylib')
+                        cmd = ['install_name_tool',
+                               '-change',
+                               '@@HOMEBREW_PREFIX@@/opt/libomp/lib/libomp.dylib',
+                               dylib_f, classify_bin]
+                        run(cmd, do_not_raise=True)
 
                     _ = run([classify_bin], do_not_raise=True)
                     if not _.stderr.startswith('classify: mandatory filename'):
