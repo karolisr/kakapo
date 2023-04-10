@@ -260,10 +260,16 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
 
             Log.msg('Downloading FASTQ reads for:', sample_base_name)
 
+            _threads = min(6, threads)
+            _bufsize = 100
+            # ToDo: Check the line below if _mem is NOT above RAM available.
+            _mem = _threads * 2 * 100
+
             cmd = [fasterq_dump,
-                   '--threads', str(min(8, threads)),
+                   '--threads', str(_threads),
                    '--split-3',
-                   '--bufsize', '819200',
+                   '--bufsize', str(_bufsize) + 'M',
+                   '--mem', str(_mem) + 'M',
                    '--outdir', dir_fq_data,
                    '--temp', dir_temp, sra]
 
