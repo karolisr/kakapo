@@ -157,6 +157,9 @@ class _Seq(object):
     def __add__(self, other):
         return type(self)(str(self) + str(other))
 
+    def __lt__(self, other):
+        return self.length < other.length
+
     def __getitem__(self, key):
         s = str(self._seq)
         if isinstance(key, int) and key >= 0:
@@ -356,6 +359,9 @@ class SeqRecord(object):
 
     def __str__(self):
         return self._seq.__str__()
+
+    def __lt__(self, other):
+        return self.length < other.length
 
     @property
     def seq(self):
