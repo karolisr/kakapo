@@ -203,7 +203,8 @@ def _ensure_vdb_cfg(dir_bin):
 
     """
     vdb_config = opj(dir_bin, 'bin', 'vdb-config')
-    run([vdb_config, '--interactive'], in_txt='x', do_not_raise=True)
+    # run([vdb_config, '--interactive'], in_txt='x', do_not_raise=True)
+    run([vdb_config, '--restore-defaults'], do_not_raise=True)
 
 
 def dep_check_sra_toolkit(dir_dep, os_id, dist_id, debian_dists, redhat_dists,
