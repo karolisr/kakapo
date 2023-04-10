@@ -403,7 +403,7 @@ def user_fastq_files(fq_se, fq_pe):
 def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
                         dir_cache_fq_minlen):
     # lowest allowable
-    low = 35
+    low = 25
 
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
         print()
@@ -455,7 +455,7 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
             ml = avg_read_len_fq(x[1][0])
 
             if ml < MAX_READ_LEN_ILLUMINA:
-                ml = max(int(ml) // 3, low)
+                ml = max(int(ml) // 5, low)
             else:
                 ml = MAX_READ_LEN_ILLUMINA
 
