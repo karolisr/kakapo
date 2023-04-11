@@ -288,13 +288,20 @@ def split_mixed_fq(in_file, out_file_1, out_file_2):
                 out_f_2.write('{}\n'.format(entry_str))
 
 
-def rename_fq_seqs(in_file, prefix, suffix):
-    r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(in_file)
+def rename_fq_seqs(in_file, prefix, suffix, gz_out=True):
+    r_mode, _, _, fqopen_in, ext_in = plain_or_gzip(in_file)
 
-    out_file_temp = in_file + '.temp'
+    ext_out = ext_in
+    if gz_out is True:
+        ext_out = '.gz'
+
+    out_file = splitext_gz(in_file)[0] + '.fastq' + ext_out
+    _, w_mode, _, fqopen_out, _ = plain_or_gzip(out_file)
+
+    out_file_temp = out_file + '.temp'
     i = 1
-    with fqopen(in_file, r_mode) as in_f, \
-            fqopen(out_file_temp, w_mode) as out_f:
+    with fqopen_in(in_file, r_mode) as in_f, \
+         fqopen_out(out_file_temp, w_mode) as out_f:
         entries = grouper(in_f, 4)
         for entry in entries:
             head, seq, plhld, qual = [x.strip() for x in entry]
@@ -304,7 +311,7 @@ def rename_fq_seqs(in_file, prefix, suffix):
             out_f.write('{}\n'.format(entry_str))
             i += 1
     remove(in_file)
-    move(out_file_temp, in_file)
+    move(out_file_temp, out_file)
     return i
 
 

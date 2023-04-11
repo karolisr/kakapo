@@ -200,18 +200,19 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
 
         if sra_lib_layout == 'single' or sra_lib_layout_k == 'single':
             se_file = opj(dir_fq_data, sra + '.fastq')
+            se_file_gz = se_file + '.gz'
 
-            se_file_blacklisted = opj(dir_fq_data, sra + '_blacklisted.fastq')
-            if ope(se_file_blacklisted):
+            se_file_blacklisted_gz = opj(dir_fq_data, sra + '_blacklisted.fastq.gz')
+            if ope(se_file_blacklisted_gz):
                 Log.wrn('Ignoring blacklisted SRA:', sra)
                 continue
 
-            se_fastq_files[sample_base_name] = {'path': se_file}
+            se_fastq_files[sample_base_name] = {'path': se_file_gz}
             se_fastq_files[sample_base_name]['src'] = 'sra'
             se_fastq_files[sample_base_name]['avg_len'] = avg_len
             se_fastq_files[sample_base_name]['tax_id'] = sra_taxid
             se_fastq_files[sample_base_name]['organelle'] = None
-            if not ope(se_file):
+            if not ope(se_file_gz):
                 sra_dnld_needed = True
 
         elif sra_lib_layout == 'paired':
@@ -220,15 +221,18 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
             pe_file_1_renamed = opj(dir_fq_data, sra + '_R1.fastq')
             pe_file_2_renamed = opj(dir_fq_data, sra + '_R2.fastq')
 
-            pe_file_1_renamed_blacklisted = opj(dir_fq_data,
-                                                sra + '_R1_blacklisted.fastq')
+            pe_file_1_renamed_gz = pe_file_1_renamed + '.gz'
+            pe_file_2_renamed_gz = pe_file_2_renamed + '.gz'
 
-            if ope(pe_file_1_renamed_blacklisted):
+            pe_file_1_renamed_blacklisted_gz = opj(
+                dir_fq_data, sra + '_R1_blacklisted.fastq.gz')
+
+            if ope(pe_file_1_renamed_blacklisted_gz):
                 Log.wrn('Ignoring blacklisted SRA:', sra)
                 continue
 
-            pe_fastq_files[sample_base_name] = {'path': [pe_file_1_renamed,
-                                                         pe_file_2_renamed]}
+            pe_fastq_files[sample_base_name] = {'path': [pe_file_1_renamed_gz,
+                                                         pe_file_2_renamed_gz]}
             pe_fastq_files[sample_base_name]['src'] = 'sra'
             pe_fastq_files[sample_base_name]['avg_len'] = avg_len // 2
             pe_fastq_files[sample_base_name]['tax_id'] = sra_taxid
@@ -236,9 +240,10 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
             if sra_lib_layout_k == 'paired_unp':
                 pe_file_3 = opj(dir_fq_data, sra + '.fastq')
                 pe_file_3_renamed = opj(dir_fq_data, sra + '_R3.fastq')
+                pe_file_3_renamed_gz = pe_file_3_renamed + '.gz'
                 pe_fastq_files[sample_base_name]['path'].append(
-                    pe_file_3_renamed)
-            if not ope(pe_file_1_renamed) or not ope(pe_file_2_renamed):
+                    pe_file_3_renamed_gz)
+            if not ope(pe_file_1_renamed_gz) or not ope(pe_file_2_renamed_gz):
                 sra_dnld_needed = True
 
         if not sra_dnld_needed:
@@ -304,8 +309,9 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
                                 str(MIN_READ_COUNT_SRA) +
                                 ' reads, blacklisting:', sra)
                         del se_fastq_files[sample_base_name]
-                        move(se_file, se_file.replace('.fastq',
-                                                      '_blacklisted.fastq'))
+                        move(se_file_gz, se_file_gz.replace(
+                            '.fastq',
+                            '_blacklisted.fastq'))
 
             elif sra_lib_layout == 'paired':
 
@@ -335,16 +341,16 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
                             sra)
 
                     del pe_fastq_files[sample_base_name]
-                    move(pe_file_1_renamed,
-                         pe_file_1_renamed.replace('.fastq',
-                                                   '_blacklisted.fastq'))
-                    move(pe_file_2_renamed,
-                         pe_file_2_renamed.replace('.fastq',
-                                                   '_blacklisted.fastq'))
-                    if ope(pe_file_3_renamed):
-                        move(pe_file_3_renamed,
-                             pe_file_3_renamed.replace('.fastq',
-                                                       '_blacklisted.fastq'))
+                    move(pe_file_1_renamed_gz,
+                         pe_file_1_renamed_gz.replace('.fastq',
+                                                      '_blacklisted.fastq'))
+                    move(pe_file_2_renamed_gz,
+                         pe_file_2_renamed_gz.replace('.fastq',
+                                                      '_blacklisted.fastq'))
+                    if ope(pe_file_3_renamed_gz):
+                        move(pe_file_3_renamed_gz,
+                             pe_file_3_renamed_gz.replace('.fastq',
+                                                          '_blacklisted.fastq'))
 
     return se_fastq_files, pe_fastq_files
 
