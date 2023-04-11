@@ -536,7 +536,7 @@ def file_name_patterns():
 
 def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
                     trimmomatic, adapters, fpatt, threads,
-                    rcorrector_before_trimmomatic):
+                    rcorrector_before_trimmomatic, gz_out=True):
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
         print()
         Log.inf('Running Trimmomatic.')
@@ -551,10 +551,15 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
         else:
             fq_path = se_fastq_files[se]['path']
 
-        r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(fq_path)
+        _, _, _, _, ext_in = plain_or_gzip(fq_path)
+
+        ext_out = ext_in
+        if gz_out is True:
+            ext_out = '.gz'
+
         min_acc_len = se_fastq_files[se]['min_acc_len']
         stats_f = opj(dir_fq_trim_data_sample, se + '.txt')
-        out_f = opj(dir_fq_trim_data_sample, se + '.fastq' + ext)
+        out_f = opj(dir_fq_trim_data_sample, se + '.fastq' + ext_out)
         se_fastq_files[se]['trim_path_fq'] = out_f
 
         if ope(dir_fq_trim_data_sample):
@@ -585,13 +590,17 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
         if len(pe_fastq_files[pe][pe_key]) == 3:
             fq_path_3 = pe_fastq_files[pe][pe_key][2]
 
-        r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(fq_path_1)
+        _, _, _, _, ext_in = plain_or_gzip(fq_path_1)
+
+        ext_out = ext_in
+        if gz_out is True:
+            ext_out = '.gz'
 
         min_acc_len = pe_fastq_files[pe]['min_acc_len']
         stats_f = opj(dir_fq_trim_data_sample, pe + '.txt')
         out_fs = [x.replace('@D@', dir_fq_trim_data_sample) for x in fpatt]
         out_fs = [x.replace('@N@', pe) for x in out_fs]
-        out_fs = [x + ext for x in out_fs]
+        out_fs = [x + ext_out for x in out_fs]
         pe_fastq_files[pe]['trim_path_fq'] = out_fs
 
         if ope(dir_fq_trim_data_sample):
@@ -614,7 +623,7 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
 
             if fq_path_3 is not None:
 
-                out_f = opj(dir_fq_trim_data_sample, 'unpaired.fastq' + ext)
+                out_f = opj(dir_fq_trim_data_sample, 'unpaired.fastq' + ext_out)
                 stats_f = opj(dir_fq_trim_data_sample, pe + '_unpaired.txt')
 
                 Log.msg(
@@ -630,8 +639,9 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
                     threads=threads,
                     minlen=min_acc_len)
 
-                _ = opj(dir_fq_trim_data_sample, 'temp.fastq' + ext)
-                f_temp = fqopen(_, w_mode)
+                p_temp = opj(dir_fq_trim_data_sample, 'temp.fastq' + ext_out)
+                _, w_mode, _, fqopen, _ = plain_or_gzip(p_temp)
+                f_temp = fqopen(p_temp, w_mode)
                 with fileinput.FileInput(
                         files=[out_fs[2], out_f],
                         openhook=fileinput.hook_compressed) as f:
@@ -641,8 +651,8 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
 
                 remove(out_fs[2])
                 remove(out_f)
-                copyfile(_, out_fs[2])
-                remove(_)
+                copyfile(p_temp, out_fs[2])
+                remove(p_temp)
 
 
 def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
