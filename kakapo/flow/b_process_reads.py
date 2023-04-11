@@ -943,12 +943,16 @@ def _should_run_bt2(taxid, taxonomy, bt2_order, bowtie2, bowtie2_build):
 def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
                bowtie2, bowtie2_build, threads, dir_temp, bt2_order,
                fpatt, taxonomy, dir_cache_refseqs,
-               rcorrector_before_trimmomatic):
+               rcorrector_before_trimmomatic, gz_out=True):
 
     new_se_fastq_files = dict()
     new_pe_fastq_files = dict()
 
     msg_printed = False
+
+    ext_out = ''
+    if gz_out is True:
+        ext_out = '.gz'
 
     # SE
     for se in se_fastq_files:
@@ -983,9 +987,9 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
 
             new_se = se + '_' + db
 
-            out_f = opj(dir_fq_bt_data_sample, new_se + '.fastq')
+            out_f = opj(dir_fq_bt_data_sample, new_se + '.fastq' + ext_out)
 
-            out_f_un = opj(dir_temp, new_se + '_bt2_unaligned' + '.fastq')
+            out_f_un = opj(dir_temp, new_se + '_bt2_unaligned' + '.fastq' + ext_out)
 
             sam_f = opj(dir_fq_bt_data_sample, new_se + '.sam')
             new_se_fastq_files[new_se] = deepcopy(se_fastq_files[se])
@@ -1007,7 +1011,7 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
             new_se_fastq_files[new_se]['filter_path_fq'] = out_f
             if ope(dir_fq_bt_data_sample):
                 Log.msg('Bowtie2 filtered FASTQ file already exists:', new_se)
-                in_f = opj(dir_fq_bt_data_sample_un, se + '.fastq')
+                in_f = opj(dir_fq_bt_data_sample_un, se + '.fastq' + ext_out)
             else:
                 Log.msg('SE mode:', new_se)
                 make_dirs(dir_fq_bt_data_sample)
@@ -1033,14 +1037,15 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
                                sam_output_file=sam_f,
                                index=bt2_idx_path,
                                threads=threads,
-                               dir_temp=dir_temp)
+                               dir_temp=dir_temp,
+                               gz_out=gz_out)
 
                 if i > 0:
                     remove(in_f)
 
                 in_f = out_f_un
 
-        out_f_un = opj(dir_fq_bt_data_sample_un, se + '.fastq')
+        out_f_un = opj(dir_fq_bt_data_sample_un, se + '.fastq' + ext_out)
         se_fastq_files[se]['filter_path_fq'] = out_f_un
 
         if in_f != in_f_orig:
@@ -1083,10 +1088,12 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
 
             out_fs = [x.replace('@D@', dir_fq_bt_data_sample) for x in fpatt]
             out_fs = [x.replace('@N@', new_pe) for x in out_fs]
+            out_fs = [x + ext_out for x in out_fs]
 
             out_fs_un = [x.replace('@D@', dir_temp) for x in fpatt]
             out_fs_un = [x.replace('@N@', new_pe + '_bt2_unaligned')
                          for x in out_fs_un]
+            out_fs_un = [x + ext_out for x in out_fs_un]
 
             sam_f = opj(dir_fq_bt_data_sample, new_pe + '.sam')
             new_pe_fastq_files[new_pe] = deepcopy(pe_fastq_files[pe])
@@ -1111,6 +1118,7 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
                 in_fs = [x.replace('@D@', dir_fq_bt_data_sample_un)
                          for x in fpatt]
                 in_fs = [x.replace('@N@', pe) for x in in_fs]
+                in_fs = [x + ext_out for x in in_fs]
             else:
                 Log.msg('PE mode:', new_pe)
                 make_dirs(dir_fq_bt_data_sample)
@@ -1147,7 +1155,8 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
                                sam_output_file=sam_f,
                                index=bt2_idx_path,
                                threads=threads,
-                               dir_temp=dir_temp)
+                               dir_temp=dir_temp,
+                               gz_out=gz_out)
 
                 if i > 0:
                     remove(in_fs[0])
@@ -1159,6 +1168,7 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
 
         out_fs_un = [x.replace('@D@', dir_fq_bt_data_sample_un) for x in fpatt]
         out_fs_un = [x.replace('@N@', pe) for x in out_fs_un]
+        out_fs_un = [x + ext_out for x in out_fs_un]
         pe_fastq_files[pe]['filter_path_fq'] = out_fs_un
 
         if tuple(in_fs) != in_fs_orig:
