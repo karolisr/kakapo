@@ -67,7 +67,7 @@ def run_kraken_pe(kraken, db, in_file_1, in_file_2, out_class_file,
 
 
 def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,
-                       kraken2, threads, dir_temp):
+                       kraken2, threads, dir_temp, gz_out=True):
 
     dbs_ordered = OrderedDict()
     for dbn in order:
@@ -77,17 +77,21 @@ def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,
         else:
             Log.wrn('Kraken2 database not found:', db_name)
 
+    ext_out = ''
+    if gz_out is True:
+        ext_out = '.gz'
+
     # SE
     if isinstance(in_files, (str, bytes)):
         in_file = in_files
-        _, in_file_ext, _ = splitext_gz(in_file)
+        _, ext_in, _ = splitext_gz(in_file)
         for i, db in enumerate(dbs_ordered):
             Log.msg('Filtering SE reads using Kraken2 database:', db)
             dir_out_db = opj(dir_out, db)
             make_dirs(dir_out_db)
             report_file = opj(dir_out_db, base_name + '.txt')
-            out_class_file = opj(dir_out_db, base_name + in_file_ext)
-            out_unclass_file = opj(dir_temp, base_name + '_' + db + '_kraken2_unclassified' + in_file_ext)
+            out_class_file = opj(dir_out_db, base_name + ext_in)
+            out_unclass_file = opj(dir_temp, base_name + '_' + db + '_kraken2_unclassified' + ext_in)
 
             if stat(in_file).st_size > 0:  # Kraken2 freaks out if the file is empty.
                 run_kraken_se(
@@ -100,22 +104,30 @@ def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,
                     confidence=confidence,
                     threads=threads,
                     dir_temp=dir_temp)
+
+                if gz_out is True:
+                    try:
+                        run(['pigz', out_class_file], cwd=dir_temp, do_not_raise=True)
+                        run(['pigz', out_unclass_file], cwd=dir_temp, do_not_raise=True)
+                    except Exception:
+                        run(['gzip', out_class_file], cwd=dir_temp, do_not_raise=True)
+                        run(['gzip', out_unclass_file], cwd=dir_temp, do_not_raise=True)
             else:
-                copyfile(in_file, out_class_file)
-                copyfile(in_file, out_unclass_file)
+                copyfile(in_file, out_class_file + ext_out)
+                copyfile(in_file, out_unclass_file + ext_out)
 
             if i > 0:
                 remove(in_file)
-            in_file = out_unclass_file
+            in_file = out_unclass_file + ext_out
 
-        move(in_file, opj(dir_out, base_name + in_file_ext))
+        move(in_file, opj(dir_out, base_name + ext_in + ext_out))
 
     # PE
     elif isinstance(in_files, (list, tuple)):
 
         assert len(in_files) > 1
 
-        _, in_file_ext, _ = splitext_gz(in_files[0])
+        _, ext_in, _ = splitext_gz(in_files[0])
 
         in_file_R1 = in_files[0]
         in_file_R2 = in_files[1]
@@ -128,8 +140,8 @@ def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,
                 dir_out_db = opj(dir_out, db)
                 make_dirs(dir_out_db)
                 report_file = opj(dir_out_db, base_name + '_unpaired_1.txt')
-                out_class_file = opj(dir_out_db, base_name + '_unpaired_1' + in_file_ext)
-                out_unclass_file = opj(dir_temp, base_name + '_' + db + '_kraken2_unclassified' + in_file_ext)
+                out_class_file = opj(dir_out_db, base_name + '_unpaired_1' + ext_in)
+                out_unclass_file = opj(dir_temp, base_name + '_' + db + '_kraken2_unclassified' + ext_in)
 
                 if stat(in_file).st_size > 0:
                     run_kraken_se(
@@ -142,15 +154,23 @@ def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,
                         confidence=confidence,
                         threads=threads,
                         dir_temp=dir_temp)
+
+                    if gz_out is True:
+                        try:
+                            run(['pigz', out_class_file], cwd=dir_temp, do_not_raise=True)
+                            run(['pigz', out_unclass_file], cwd=dir_temp, do_not_raise=True)
+                        except Exception:
+                            run(['gzip', out_class_file], cwd=dir_temp, do_not_raise=True)
+                            run(['gzip', out_unclass_file], cwd=dir_temp, do_not_raise=True)
                 else:
-                    copyfile(in_file, out_class_file)
-                    copyfile(in_file, out_unclass_file)
+                    copyfile(in_file, out_class_file + ext_out)
+                    copyfile(in_file, out_unclass_file + ext_out)
 
                 if i > 0:
                     remove(in_file)
-                in_file = out_unclass_file
+                in_file = out_unclass_file + ext_out
 
-            move(in_file, opj(dir_out, base_name + '_unpaired_1' + in_file_ext))
+            move(in_file, opj(dir_out, base_name + '_unpaired_1' + ext_in + ext_out))
 
         if len(in_files) == 4:
             in_file = in_files[3]
@@ -160,8 +180,8 @@ def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,
                 dir_out_db = opj(dir_out, db)
                 make_dirs(dir_out_db)
                 report_file = opj(dir_out_db, base_name + '_unpaired_2.txt')
-                out_class_file = opj(dir_out_db, base_name + '_unpaired_2' + in_file_ext)
-                out_unclass_file = opj(dir_temp, base_name + '_' + db + '_kraken2_unclassified' + in_file_ext)
+                out_class_file = opj(dir_out_db, base_name + '_unpaired_2' + ext_in)
+                out_unclass_file = opj(dir_temp, base_name + '_' + db + '_kraken2_unclassified' + ext_in)
 
                 if stat(in_file).st_size > 0:
                     run_kraken_se(
@@ -174,24 +194,32 @@ def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,
                         confidence=confidence,
                         threads=threads,
                         dir_temp=dir_temp)
+
+                    if gz_out is True:
+                        try:
+                            run(['pigz', out_class_file], cwd=dir_temp, do_not_raise=True)
+                            run(['pigz', out_unclass_file], cwd=dir_temp, do_not_raise=True)
+                        except Exception:
+                            run(['gzip', out_class_file], cwd=dir_temp, do_not_raise=True)
+                            run(['gzip', out_unclass_file], cwd=dir_temp, do_not_raise=True)
                 else:
-                    copyfile(in_file, out_class_file)
-                    copyfile(in_file, out_unclass_file)
+                    copyfile(in_file, out_class_file + ext_out)
+                    copyfile(in_file, out_unclass_file + ext_out)
 
                 if i > 0:
                     remove(in_file)
-                in_file = out_unclass_file
+                in_file = out_unclass_file + ext_out
 
             move(in_file, opj(dir_out, base_name + '_unpaired_2' +
-                              in_file_ext))
+                              ext_in + ext_out))
 
         for i, db in enumerate(dbs_ordered):
             Log.msg('Filtering paired reads using Kraken2 database:', db)
             dir_out_db = opj(dir_out, db)
             make_dirs(dir_out_db)
             report_file = opj(dir_out_db, base_name + '_paired.txt')
-            out_class_file = opj(dir_out_db, base_name + '_paired#' + in_file_ext)
-            out_unclass_file = opj(dir_temp, base_name + '_' + db + '_kraken2_unclassified' + '_paired#' + in_file_ext)
+            out_class_file = opj(dir_out_db, base_name + '_paired#' + ext_in)
+            out_unclass_file = opj(dir_temp, base_name + '_' + db + '_kraken2_unclassified' + '_paired#' + ext_in)
 
             if stat(in_file_R1).st_size > 0 and stat(in_file_R2).st_size > 0:
                 run_kraken_pe(
@@ -205,18 +233,31 @@ def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,
                     confidence=confidence,
                     threads=threads,
                     dir_temp=dir_temp)
+
+                if gz_out is True:
+                    try:
+                        run(['pigz', out_class_file.replace('#', '_1')], cwd=dir_temp, do_not_raise=True)
+                        run(['pigz', out_class_file.replace('#', '_2')], cwd=dir_temp, do_not_raise=True)
+                        run(['pigz', out_unclass_file.replace('#', '_1')], cwd=dir_temp, do_not_raise=True)
+                        run(['pigz', out_unclass_file.replace('#', '_2')], cwd=dir_temp, do_not_raise=True)
+                    except Exception:
+                        run(['gzip', out_class_file.replace('#', '_1')], cwd=dir_temp, do_not_raise=True)
+                        run(['gzip', out_class_file.replace('#', '_2')], cwd=dir_temp, do_not_raise=True)
+                        run(['gzip', out_unclass_file.replace('#', '_1')], cwd=dir_temp, do_not_raise=True)
+                        run(['gzip', out_unclass_file.replace('#', '_2')], cwd=dir_temp, do_not_raise=True)
             else:
-                copyfile(in_file_R1, copyfile(in_file_R1, out_class_file.replace('#', '_1')))
-                copyfile(in_file_R2, copyfile(in_file_R2, out_class_file.replace('#', '_2')))
-                copyfile(in_file_R1, copyfile(in_file_R1, out_unclass_file.replace('#', '_1')))
-                copyfile(in_file_R2, copyfile(in_file_R2, out_unclass_file.replace('#', '_2')))
+                # ToDo: Why am I doing copyfile twice? Hmmm...
+                copyfile(in_file_R1, copyfile(in_file_R1, out_class_file.replace('#', '_1') + ext_out))
+                copyfile(in_file_R2, copyfile(in_file_R2, out_class_file.replace('#', '_2') + ext_out))
+                copyfile(in_file_R1, copyfile(in_file_R1, out_unclass_file.replace('#', '_1') + ext_out))
+                copyfile(in_file_R2, copyfile(in_file_R2, out_unclass_file.replace('#', '_2') + ext_out))
 
             if i > 0:
                 remove(in_file_R1)
                 remove(in_file_R2)
 
-            in_file_R1 = out_unclass_file.replace('#', '_1')
-            in_file_R2 = out_unclass_file.replace('#', '_2')
+            in_file_R1 = out_unclass_file.replace('#', '_1') + ext_out
+            in_file_R2 = out_unclass_file.replace('#', '_2') + ext_out
 
-        move(in_file_R1, opj(dir_out, base_name + '_paired_1' + in_file_ext))
-        move(in_file_R2, opj(dir_out, base_name + '_paired_2' + in_file_ext))
+        move(in_file_R1, opj(dir_out, base_name + '_paired_1' + ext_in + ext_out))
+        move(in_file_R2, opj(dir_out, base_name + '_paired_2' + ext_in + ext_out))

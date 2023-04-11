@@ -1181,7 +1181,7 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
 
 
 def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
-                confidence, kraken2, threads, dir_temp, fpatt):
+                confidence, kraken2, threads, dir_temp, fpatt, gz_out=True):
 
     if (len(se_fastq_files) > 0 or len(pe_fastq_files) > 0) and len(order) > 0:
         print()
@@ -1196,6 +1196,10 @@ def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
             nuclear = nuc[0]
             break
 
+    ext_out = ''
+    if gz_out is True:
+        ext_out = '.gz'
+
     for se in se_fastq_files:
 
         if len(order) == 0:
@@ -1208,9 +1212,9 @@ def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
         dir_fq_filter_data_sample = opj(dir_fq_filter_data, se)
 
         if nuclear is None:
-            out_f = opj(dir_fq_filter_data_sample, se + '.fastq')
+            out_f = opj(dir_fq_filter_data_sample, se + '.fastq' + ext_out)
         else:
-            out_f = opj(dir_fq_filter_data_sample, nuclear, se + '.fastq')
+            out_f = opj(dir_fq_filter_data_sample, nuclear, se + '.fastq' + ext_out)
 
         se_fastq_files[se]['filter_path_fq'] = out_f
 
@@ -1229,7 +1233,8 @@ def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
                 confidence=confidence,
                 kraken2=kraken2,
                 threads=threads,
-                dir_temp=dir_temp)
+                dir_temp=dir_temp,
+                gz_out=True)
 
     for pe in pe_fastq_files:
 
@@ -1249,6 +1254,7 @@ def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
 
         out_fs = [x.replace('@D@', dir_name_nuclear) for x in fpatt]
         out_fs = [x.replace('@N@', pe) for x in out_fs]
+        out_fs = [x + ext_out for x in out_fs]
 
         pe_fastq_files[pe]['filter_path_fq'] = out_fs
 
@@ -1267,7 +1273,8 @@ def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
                 confidence=confidence,
                 kraken2=kraken2,
                 threads=threads,
-                dir_temp=dir_temp)
+                dir_temp=dir_temp,
+                gz_out=True)
 
 
 def filtered_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
