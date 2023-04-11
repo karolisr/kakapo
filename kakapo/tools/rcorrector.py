@@ -39,13 +39,15 @@ def run_rcorrector_pe(rcorrector, in_file_1, in_file_2, out_dir, threads,
 # https://github.com/harvardinformatics/TranscriptomeAssemblyTools
 def filter_unc_se(in_file, out_file, log_file=None):
 
-    r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(in_file)
+    r_mode, _, _, fqopen_in, _ = plain_or_gzip(in_file)
+    _, w_mode, _, fqopen_out, _ = plain_or_gzip(out_file)
 
     counter = 0
     cor_count = 0
     unc_count = 0
 
-    with fqopen(in_file, r_mode) as in_f, fqopen(out_file, w_mode) as out_f:
+    with fqopen_in(in_file, r_mode) as in_f, \
+         fqopen_out(out_file, w_mode) as out_f:
         entries = grouper(in_f, 4)
         for entry in entries:
             counter += 1
@@ -83,7 +85,8 @@ def filter_unc_se(in_file, out_file, log_file=None):
 
 def filter_unc_pe(in_file_1, in_file_2, out_file_1, out_file_2, log_file=None):
 
-    r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(in_file_1)
+    r_mode, _, _, fqopen_in, _ = plain_or_gzip(in_file_1)
+    _, w_mode, _, fqopen_out, _ = plain_or_gzip(out_file_1)
 
     counter = 0
     cor_1_count = 0
@@ -91,10 +94,10 @@ def filter_unc_pe(in_file_1, in_file_2, out_file_1, out_file_2, log_file=None):
     cor_12_count = 0
     unc_count = 0
 
-    with fqopen(in_file_1, r_mode) as in_f_1, \
-            fqopen(in_file_2, r_mode) as in_f_2, \
-            fqopen(out_file_1, w_mode) as out_f_1, \
-            fqopen(out_file_2, w_mode) as out_f_2:
+    with fqopen_in(in_file_1, r_mode) as in_f_1, \
+         fqopen_in(in_file_2, r_mode) as in_f_2, \
+         fqopen_out(out_file_1, w_mode) as out_f_1, \
+         fqopen_out(out_file_2, w_mode) as out_f_2:
 
         entries_1 = grouper(in_f_1, 4)
         entries_2 = grouper(in_f_2, 4)

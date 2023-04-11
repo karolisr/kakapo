@@ -647,7 +647,7 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
 
 def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
                    threads, dir_temp, fpatt, should_run,
-                   rcorrector_before_trimmomatic):
+                   rcorrector_before_trimmomatic, gz_out=True):
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
         print()
         if should_run is False:
@@ -668,9 +668,14 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
         else:
             fq_path = se_fastq_files[se]['trim_path_fq']
 
-        r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(fq_path)
+        _, _, _, _, ext_in = plain_or_gzip(fq_path)
+
+        ext_out = ext_in
+        if gz_out is True:
+            ext_out = '.gz'
+
         log_f = opj(dir_fq_cor_data_sample, se + '.txt')
-        out_f = opj(dir_fq_cor_data_sample, se + '.fastq' + ext)
+        out_f = opj(dir_fq_cor_data_sample, se + '.fastq' + ext_out)
 
         se_fastq_files[se]['cor_path_fq'] = out_f
 
@@ -690,7 +695,7 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
                               dir_temp=dir_temp)
 
             fq_base_path = opj(dir_fq_cor_data_sample, basename(fq_path))
-            fq_cor_path = splitext_gz(fq_base_path)[0] + '.cor.fq' + ext
+            fq_cor_path = splitext_gz(fq_base_path)[0] + '.cor.fq' + ext_in
 
             filter_unc_se(in_file=fq_cor_path, out_file=out_f, log_file=log_f)
 
@@ -712,12 +717,17 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
             fq_path_3 = pe_fastq_files[pe]['trim_path_fq'][2]
             fq_path_4 = pe_fastq_files[pe]['trim_path_fq'][3]
 
-        r_mode, w_mode, a_mode, fqopen, ext = plain_or_gzip(fq_path_1)
+        _, _, _, _, ext_in = plain_or_gzip(fq_path_1)
+
+        ext_out = ext_in
+        if gz_out is True:
+            ext_out = '.gz'
+
         log_f = opj(dir_fq_cor_data_sample, pe + '_paired.txt')
 
         out_fs = [x.replace('@D@', dir_fq_cor_data_sample) for x in fpatt]
         out_fs = [x.replace('@N@', pe) for x in out_fs]
-        out_fs = [x + ext for x in out_fs]
+        out_fs = [x + ext_out for x in out_fs]
 
         if fq_path_3 is None:
             out_fs = [out_fs[0], out_fs[1]]
@@ -752,9 +762,9 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
                               dir_temp=dir_temp)
 
             fq_base_path_1 = opj(dir_fq_cor_data_sample, basename(fq_path_1))
-            fq_cor_path_1 = splitext_gz(fq_base_path_1)[0] + '.cor.fq' + ext
+            fq_cor_path_1 = splitext_gz(fq_base_path_1)[0] + '.cor.fq' + ext_in
             fq_base_path_2 = opj(dir_fq_cor_data_sample, basename(fq_path_2))
-            fq_cor_path_2 = splitext_gz(fq_base_path_2)[0] + '.cor.fq' + ext
+            fq_cor_path_2 = splitext_gz(fq_base_path_2)[0] + '.cor.fq' + ext_in
 
             filter_unc_pe(in_file_1=fq_cor_path_1,
                           in_file_2=fq_cor_path_2,
@@ -778,7 +788,7 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
                 fq_base_path_3 = opj(dir_fq_cor_data_sample,
                                      basename(fq_path_3))
                 fq_cor_path_3 = splitext_gz(fq_base_path_3)[0] + \
-                                '.cor.fq' + ext
+                    '.cor.fq' + ext_in
 
                 if fq_path_4 is None:
                     log_f_3 = opj(dir_fq_cor_data_sample, pe +
@@ -809,7 +819,7 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
                 fq_base_path_4 = opj(dir_fq_cor_data_sample,
                                      basename(fq_path_4))
                 fq_cor_path_4 = splitext_gz(fq_base_path_4)[0] + \
-                                '.cor.fq' + ext
+                    '.cor.fq' + ext_in
                 log_f_4 = opj(dir_fq_cor_data_sample,
                               pe + '_unpaired_2.txt')
 
