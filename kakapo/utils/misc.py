@@ -22,9 +22,7 @@ from itertools import zip_longest
 from operator import itemgetter
 from os import listdir
 from os import makedirs
-from os import popen
 from os import remove
-from os import sysconf
 from os.path import abspath
 from os.path import exists as ope
 from os.path import expanduser
@@ -51,28 +49,6 @@ def python_version():
     py_v_str = '{v0}.{v1}.{v2}'.format(v0=py_v_1, v1=py_v_2, v2=py_v_3)
 
     return py_v_hex, py_v_str
-
-
-def sys_ram(os_id):
-    try:
-        page_size = sysconf('SC_PAGE_SIZE')
-        page_count = sysconf('SC_PHYS_PAGES')
-        if page_size < 0 or page_count < 0:
-            raise SystemError
-        ram_b = sysconf('SC_PAGE_SIZE') * sysconf('SC_PHYS_PAGES')
-
-    except ValueError:
-
-        if os_id == 'mac':
-            ram_b = int(
-                float(popen("sysctl hw.memsize").readlines()[0].split()[1]))
-        elif os_id == 'linux':
-            ram_b = int(float(popen("free").readlines()[1].split()[1]) * 1024)
-        else:
-            raise NotImplementedError
-
-    ram_g = ram_b / (1024 ** 3)
-    return ram_g
 
 
 def make_dirs(path):

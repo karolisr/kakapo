@@ -241,11 +241,12 @@ else:
 
 print(SCRIPT_INFO)
 
+NCPU = NCPU - 2
 if NCPU_ARG is not None:
     if NCPU_ARG > NCPU:
-        print(CONSRED + 'The number of CPUs requested is larger '
-              'than is available on the system. Will use ' + str(NCPU) +
-              ' instead.' + CONSDFL)
+        print(CONSRED + 'The number of CPU cores requested is larger '
+              'than is available on the system (minus two). Will use ' +
+              str(NCPU) + ' instead.' + CONSDFL)
         NCPU_ARG = NCPU
     else:
         NCPU = NCPU_ARG

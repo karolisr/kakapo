@@ -1,6 +1,11 @@
 """Differences between operating systems."""
 
+import os
 import sys
+
+from os import popen
+from os import sysconf
+
 from platform import mac_ver
 from platform import machine
 
@@ -111,3 +116,40 @@ def check_os():
 # "ubuntu"        Ubuntu
 # "xenserver"     XenServer
 # ==============  =========================================
+
+
+def cpu_count():
+    os_id = check_os()['os_id']
+    n_cores = 0
+    n_threads = 0
+    if os_id == 'linux':
+        import psutil
+        n_cores = psutil.cpu_count(logical=False)
+        n_threads = psutil.cpu_count(logical=True)
+    elif os_id == 'mac':
+        n_cores = os.cpu_count()
+        n_threads = os.cpu_count()
+
+    return (n_cores, n_threads)
+
+
+def sys_ram():
+    os_id = check_os()['os_id']
+    try:
+        page_size = sysconf('SC_PAGE_SIZE')
+        page_count = sysconf('SC_PHYS_PAGES')
+        if page_size < 0 or page_count < 0:
+            raise SystemError
+        ram_b = sysconf('SC_PAGE_SIZE') * sysconf('SC_PHYS_PAGES')
+
+    except ValueError:
+        if os_id == 'mac':
+            ram_b = int(
+                float(popen("sysctl hw.memsize").readlines()[0].split()[1]))
+        elif os_id == 'linux':
+            ram_b = int(float(popen("free").readlines()[1].split()[1]) * 1024)
+        else:
+            raise NotImplementedError
+
+    ram_g = ram_b / (1024 ** 3)
+    return ram_g

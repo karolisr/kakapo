@@ -2,11 +2,9 @@
 
 import os
 
-from os import cpu_count
-
 from kakapo import __script_name__, __version__
-from kakapo.utils.misc import sys_ram, python_version
-from kakapo.utils.os_diffs import check_os
+from kakapo.utils.misc import python_version
+from kakapo.utils.os_diffs import check_os, cpu_count, sys_ram
 
 DEBUG_MODE = False
 DEBUG_PROCESSES = False
@@ -30,8 +28,9 @@ if OS_ID == 'mac':
         OS_INFO += ' (' + RELEASE_NAME + ')'
 
 _, PY_V_STR = python_version()
-NCPU = cpu_count()
-RAM = sys_ram(OS_ID)
+NCPU = cpu_count()[0]
+NCPUL = cpu_count()[1]
+RAM = sys_ram()
 
 os.environ['KKP_OS_ID'] = OS_ID
 os.environ['KKP_MACHINE_TYPE'] = MACHINE_TYPE
@@ -39,6 +38,7 @@ os.environ['KKP_MACHINE_TYPE'] = MACHINE_TYPE
 # Other ----------------------------------------------------------------------
 PICKLE_PROTOCOL = 2
 
+# Color support --------------------------------------------------------------
 CONSRED = '\033[0;91m'
 CONGREE = '\033[0;92m'
 CONYELL = '\033[0;93m'
@@ -58,5 +58,6 @@ SCRIPT_INFO = ('\n' +
                                            v=__version__) +
                'Python version: {pv}\n'.format(pv=PY_V_STR) +
                'Operating system: {os}\n'.format(os=OS_INFO) +
-               'System info: {cpus} CPUs, {ram} GB RAM ({mt})\n'.format(
-                   cpus=NCPU, ram='{0:.2f}'.format(RAM), mt=MACHINE_TYPE))
+               'System info: {cores} physical and {threads} logical cores, {ram} GB RAM ({mt})\n'.format(
+                   cores=NCPU, threads=NCPUL, ram='{0:.2f}'.format(RAM),
+                   mt=MACHINE_TYPE))
