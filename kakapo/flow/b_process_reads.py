@@ -145,7 +145,11 @@ def dnld_sra_info(sras, dir_cache_prj):
                     sra_runs_info[sra]['KakapoLibraryLayout'] = 'PAIRED_UNP'
                     Log.wrn('      Note:', 'Listed as containing '
                             'paired-end reads, but not all reads are paired.')
-
+                # ToDo: Align the colons, example below:
+                # 2023-04-10 17:42:13 Downloading SRA run information.
+                # 2023-04-10 17:42:14 SRR14839289: RNA-Seq paired-end library (Transcriptomic).
+                #                         Source: Chelonia mydas (TaxID: 8469).
+                #                     Technology: Illumina platform / Illumina NovaSeq 6000.
                 Log.msg('    Source:',
                         '{species} (TaxID: {txid}).'.format(
                             species=sra_species,
