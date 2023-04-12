@@ -7,6 +7,8 @@ from collections import Counter
 from collections import OrderedDict
 from operator import itemgetter
 
+from kakapo.utils.misc import plain_or_gzip
+from kakapo.utils.misc import gzip_open
 from kakapo.utils.subp import run
 
 BLST_RES_COLS_1 = ['sseqid']
@@ -16,13 +18,22 @@ BLST_RES_COLS_2 = ['sseqid', 'evalue', 'qcovhsp', 'sframe', 'sstart', 'send',
 
 def make_blast_db(exec_file, in_file, out_file, title, dbtype='nucl'):
     """Wrap makeblastdb."""
-    cmd = [exec_file,
-           '-in', in_file,
-           '-out', out_file,
-           '-title', title,
-           '-dbtype', dbtype]
+    if plain_or_gzip(in_file)[4] == '':
+        cmd = [exec_file,
+               '-in', in_file,
+               '-out', out_file,
+               '-title', title,
+               '-dbtype', dbtype]
 
-    run(cmd, do_not_raise=True)
+        run(cmd, do_not_raise=True)
+    else:
+        cmd = [exec_file,
+               '-out', out_file,
+               '-title', title,
+               '-dbtype', dbtype]
+
+        with gzip_open(in_file) as f:
+            run(cmd, in_txt=f.buffer.read(), do_not_raise=True, text=None)
 
 
 def run_blast(exec_file, task, threads, db_path, queries_file, out_file,

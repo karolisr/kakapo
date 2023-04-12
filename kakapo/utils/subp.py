@@ -5,9 +5,10 @@ import re
 from subprocess import run as subp_run
 
 
-def run(cmd, in_txt=None, capture=True, cwd=None, do_not_raise=False):
+def run(cmd, in_txt=None, capture=True, cwd=None, do_not_raise=False,
+        text=True):
     out = subp_run(cmd, input=in_txt, capture_output=capture,
-                   cwd=cwd, text=True)
+                   cwd=cwd, text=text)
     if do_not_raise is False and out.returncode > 0:
         raise Exception(out.stderr)
     return out

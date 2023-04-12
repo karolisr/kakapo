@@ -1287,32 +1287,38 @@ def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
 
 
 def filtered_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
-                      fpatt):
+                      fpatt, threads, gzip, pigz, gz_out=True):
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
         print()
         Log.inf('Converting FASTQ to FASTA using Seqtk.')
         if seqtk is None:
             Log.err('seqtk is not available. Cannot continue. Exiting.')
             exit(0)
+
+    ext_out = ''
+    if gz_out is True:
+        ext_out = '.gz'
+
     for se in se_fastq_files:
         dir_fa_trim_data_sample = opj(dir_fa_trim_data, se)
         fq_path = se_fastq_files[se]['filter_path_fq']
         out_f = opj(dir_fa_trim_data_sample, se + '.fasta')
-        se_fastq_files[se]['filter_path_fa'] = out_f
+        se_fastq_files[se]['filter_path_fa'] = out_f + ext_out
 
         if ope(dir_fa_trim_data_sample):
             Log.msg('Filtered FASTA files already exist:', se)
         else:
             make_dirs(dir_fa_trim_data_sample)
             Log.msg(basename(fq_path))
-            seqtk_fq_to_fa(seqtk, fq_path, out_f)
+            seqtk_fq_to_fa(seqtk, fq_path, out_f, threads, gzip, pigz,
+                           gz_out=gz_out)
 
     for pe in pe_fastq_files:
         dir_fa_trim_data_sample = opj(dir_fa_trim_data, pe)
         fq_paths = pe_fastq_files[pe]['filter_path_fq']
         out_fs = [x.replace('@D@', dir_fa_trim_data_sample) for x in fpatt]
         out_fs = [x.replace('@N@', pe) for x in out_fs]
-        pe_fastq_files[pe]['filter_path_fa'] = out_fs
+        pe_fastq_files[pe]['filter_path_fa'] = [x + ext_out for x in out_fs]
 
         if ope(dir_fa_trim_data_sample):
             Log.msg('Filtered FASTA files already exist:', pe)
@@ -1321,7 +1327,8 @@ def filtered_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
             pe_trim_files = zip(fq_paths, out_fs)
             for x in pe_trim_files:
                 Log.msg(basename(x[0]))
-                seqtk_fq_to_fa(seqtk, x[0], x[1])
+                seqtk_fq_to_fa(seqtk, x[0], x[1], threads, gzip, pigz,
+                               gz_out=gz_out)
 
 
 def makeblastdb_fq(se_fastq_files, pe_fastq_files, dir_blast_fa_trim,

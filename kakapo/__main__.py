@@ -575,7 +575,7 @@ def main():
 
     # Convert filtered FASTQ files to FASTA ----------------------------------
     filtered_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
-                      pe_trim_fa_file_patterns)
+                      pe_trim_fa_file_patterns, NCPU, gzip, pigz)
 
     # Run makeblastdb on reads -----------------------------------------------
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:

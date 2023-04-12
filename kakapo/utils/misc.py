@@ -210,8 +210,8 @@ def splitext_gz(path):
     return base, ext1, ext_gz
 
 
-def _gzip_open(filename, mode='rt', compresslevel=5, encoding=None,
-               errors=None, newline=None):
+def gzip_open(filename, mode='rt', compresslevel=5, encoding=None,
+              errors=None, newline=None):
     return gzip.open(filename, mode, compresslevel, encoding, errors, newline)
 
 
@@ -227,7 +227,7 @@ def plain_or_gzip(in_file):
         read_mode = 'rt'
         write_mode = 'wt'
         append_mode = 'at'
-        fqopen = _gzip_open
+        fqopen = gzip_open
         ext = ext_info[2]
 
     return read_mode, write_mode, append_mode, fqopen, ext
