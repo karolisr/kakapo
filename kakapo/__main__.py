@@ -281,6 +281,16 @@ def main():
     Log.inf('Checking for dependencies.')
     make_dirs(DIR_DEP)
     make_dirs(DIR_KRK)
+
+    gzip = deps.dep_check_gzip()
+    pigz = deps.dep_check_pigz()
+    if (gzip is None) and (pigz is None):
+        Log.err('Could not find either "gzip" or "pigz". Cannot continue.')
+        exit(0)
+    if pigz is None:
+        Log.wrn('Will be using slower "gzip" program for compression. '
+                'For much faster compression, please install "pigz".')
+
     seqtk = deps.dep_check_seqtk(DIR_DEP, FORCE_DEPS)
     trimmomatic, adapters = deps.dep_check_trimmomatic(DIR_DEP)
     fasterq_dump = deps.dep_check_sra_toolkit(DIR_DEP, OS_ID, DIST_ID,
@@ -546,7 +556,7 @@ def main():
     # Run Kraken 2 -----------------------------------------------------------
     run_kraken2(krkn_order, kraken2_dbs, se_fastq_files, pe_fastq_files,
                 dir_fq_filter_krkn2_data, kraken_confidence, kraken2, NCPU,
-                dir_temp, pe_trim_fq_file_patterns)
+                dir_temp, pe_trim_fq_file_patterns, gzip, pigz)
 
     se_fastq_files = OrderedDict(se_fastq_files)
     pe_fastq_files = OrderedDict(pe_fastq_files)

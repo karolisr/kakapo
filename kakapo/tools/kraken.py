@@ -67,7 +67,8 @@ def run_kraken_pe(kraken, db, in_file_1, in_file_2, out_class_file,
 
 
 def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,
-                       kraken2, threads, dir_temp, gz_out=True):
+                       kraken2, threads, dir_temp, gzip='gzip', pigz=None,
+                       gz_out=True):
 
     dbs_ordered = OrderedDict()
     for dbn in order:
@@ -81,6 +82,11 @@ def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,
     if gz_out is True:
         ext_out = '.gz'
 
+    if pigz is not None:
+        gz_cmd = [pigz, '-p', str(threads)]
+    else:
+        gz_cmd = [gzip]
+
     # SE
     if isinstance(in_files, (str, bytes)):
         in_file = in_files
@@ -91,7 +97,8 @@ def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,
             make_dirs(dir_out_db)
             report_file = opj(dir_out_db, base_name + '.txt')
             out_class_file = opj(dir_out_db, base_name + ext_in)
-            out_unclass_file = opj(dir_temp, base_name + '_' + db + '_kraken2_unclassified' + ext_in)
+            out_unclass_file = opj(dir_temp, base_name + '_' + db +
+                                   '_kraken2_unclassified' + ext_in)
 
             if stat(in_file).st_size > 0:  # Kraken2 freaks out if the file is empty.
                 run_kraken_se(
@@ -106,12 +113,10 @@ def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,
                     dir_temp=dir_temp)
 
                 if gz_out is True:
-                    try:
-                        run(['pigz', out_class_file], cwd=dir_temp, do_not_raise=True)
-                        run(['pigz', out_unclass_file], cwd=dir_temp, do_not_raise=True)
-                    except Exception:
-                        run(['gzip', out_class_file], cwd=dir_temp, do_not_raise=True)
-                        run(['gzip', out_unclass_file], cwd=dir_temp, do_not_raise=True)
+                    run(gz_cmd + [out_class_file], cwd=dir_temp,
+                        do_not_raise=True)
+                    run(gz_cmd + [out_unclass_file], cwd=dir_temp,
+                        do_not_raise=True)
             else:
                 copyfile(in_file, out_class_file + ext_out)
                 copyfile(in_file, out_unclass_file + ext_out)
@@ -156,12 +161,10 @@ def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,
                         dir_temp=dir_temp)
 
                     if gz_out is True:
-                        try:
-                            run(['pigz', out_class_file], cwd=dir_temp, do_not_raise=True)
-                            run(['pigz', out_unclass_file], cwd=dir_temp, do_not_raise=True)
-                        except Exception:
-                            run(['gzip', out_class_file], cwd=dir_temp, do_not_raise=True)
-                            run(['gzip', out_unclass_file], cwd=dir_temp, do_not_raise=True)
+                        run(gz_cmd + [out_class_file], cwd=dir_temp,
+                            do_not_raise=True)
+                        run(gz_cmd + [out_unclass_file], cwd=dir_temp,
+                            do_not_raise=True)
                 else:
                     copyfile(in_file, out_class_file + ext_out)
                     copyfile(in_file, out_unclass_file + ext_out)
@@ -196,12 +199,10 @@ def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,
                         dir_temp=dir_temp)
 
                     if gz_out is True:
-                        try:
-                            run(['pigz', out_class_file], cwd=dir_temp, do_not_raise=True)
-                            run(['pigz', out_unclass_file], cwd=dir_temp, do_not_raise=True)
-                        except Exception:
-                            run(['gzip', out_class_file], cwd=dir_temp, do_not_raise=True)
-                            run(['gzip', out_unclass_file], cwd=dir_temp, do_not_raise=True)
+                        run(gz_cmd + [out_class_file], cwd=dir_temp,
+                            do_not_raise=True)
+                        run(gz_cmd + [out_unclass_file], cwd=dir_temp,
+                            do_not_raise=True)
                 else:
                     copyfile(in_file, out_class_file + ext_out)
                     copyfile(in_file, out_unclass_file + ext_out)
@@ -235,16 +236,14 @@ def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,
                     dir_temp=dir_temp)
 
                 if gz_out is True:
-                    try:
-                        run(['pigz', out_class_file.replace('#', '_1')], cwd=dir_temp, do_not_raise=True)
-                        run(['pigz', out_class_file.replace('#', '_2')], cwd=dir_temp, do_not_raise=True)
-                        run(['pigz', out_unclass_file.replace('#', '_1')], cwd=dir_temp, do_not_raise=True)
-                        run(['pigz', out_unclass_file.replace('#', '_2')], cwd=dir_temp, do_not_raise=True)
-                    except Exception:
-                        run(['gzip', out_class_file.replace('#', '_1')], cwd=dir_temp, do_not_raise=True)
-                        run(['gzip', out_class_file.replace('#', '_2')], cwd=dir_temp, do_not_raise=True)
-                        run(['gzip', out_unclass_file.replace('#', '_1')], cwd=dir_temp, do_not_raise=True)
-                        run(['gzip', out_unclass_file.replace('#', '_2')], cwd=dir_temp, do_not_raise=True)
+                    run(gz_cmd + [out_class_file.replace('#', '_1')],
+                        cwd=dir_temp, do_not_raise=True)
+                    run(gz_cmd + [out_class_file.replace('#', '_2')],
+                        cwd=dir_temp, do_not_raise=True)
+                    run(gz_cmd + [out_unclass_file.replace('#', '_1')],
+                        cwd=dir_temp, do_not_raise=True)
+                    run(gz_cmd + [out_unclass_file.replace('#', '_2')],
+                        cwd=dir_temp, do_not_raise=True)
             else:
                 # ToDo: Why am I doing copyfile twice? Hmmm...
                 copyfile(in_file_R1, copyfile(in_file_R1, out_class_file.replace('#', '_1') + ext_out))

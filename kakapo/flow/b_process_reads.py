@@ -1185,7 +1185,8 @@ def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
 
 
 def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
-                confidence, kraken2, threads, dir_temp, fpatt, gz_out=True):
+                confidence, kraken2, threads, dir_temp, fpatt, gzip, pigz,
+                gz_out=True):
 
     if (len(se_fastq_files) > 0 or len(pe_fastq_files) > 0) and len(order) > 0:
         print()
@@ -1238,6 +1239,8 @@ def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
                 kraken2=kraken2,
                 threads=threads,
                 dir_temp=dir_temp,
+                gzip=gzip,
+                pigz=pigz,
                 gz_out=True)
 
     for pe in pe_fastq_files:
@@ -1278,6 +1281,8 @@ def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
                 kraken2=kraken2,
                 threads=threads,
                 dir_temp=dir_temp,
+                gzip=gzip,
+                pigz=pigz,
                 gz_out=True)
 
 

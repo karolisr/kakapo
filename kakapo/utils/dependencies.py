@@ -59,6 +59,34 @@ def get_dep_dir(path, pattern):
             return ''
 
 
+# gzip
+def dep_check_gzip():
+    try:
+        gz = which('gzip')
+        cmd = [gz, '-V']
+        run(cmd, do_not_raise=True)
+    except Exception:
+        Log.msg('gzip was not found on this system.')
+        return None
+    v = get_dep_version([gz, '-V'], r'.*')
+    Log.msg('gzip is available:', v + ' ' + gz)
+    return gz
+
+
+# pigz
+def dep_check_pigz():
+    try:
+        gz = which('pigz')
+        cmd = [gz, '-V']
+        run(cmd, do_not_raise=True)
+    except Exception:
+        Log.msg('pigz was not found on this system.')
+        return None
+    v = get_dep_version([gz, '-V'], r'.*')
+    Log.msg('pigz is available:', v + ' ' + gz)
+    return gz
+
+
 # Seqtk
 def dep_check_seqtk(dir_dep, force):
     url = 'https://github.com/lh3/seqtk/archive/master.zip'
