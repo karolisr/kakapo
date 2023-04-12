@@ -21,6 +21,7 @@ from io import StringIO
 from os import stat
 from os.path import exists as ope
 from os.path import join as opj
+from shutil import copyfile
 from shutil import rmtree
 from sys import exit
 
@@ -259,7 +260,7 @@ if CONFIG_FILE_PATH is not None:
 def main():
     """Run the script."""
     # Prepare initial logger (before we know the log file path) --------------
-    prj_log_file_suffix = time_stamp() + '.log'
+    prj_log_file_suffix = time_stamp()
     log_stream = StringIO()
 
     Log.set_colors(COLORS)
@@ -426,8 +427,19 @@ def main():
     dir_prj_ips = _['dir_prj_ips']
     dir_prj_transcripts_combined = _['dir_prj_transcripts_combined']
 
+    # Archive the configuration and search strategies files used -------------
+    run_cfg_file = opj(dir_prj_logs, prj_name + '_' + prj_log_file_suffix +
+                       '.cfg.ini')
+    copyfile(CONFIG_FILE_PATH, run_cfg_file)
+
+    if SS_FILE_PATH is not None:
+        run_ss_file = opj(dir_prj_logs, prj_name + '_' + prj_log_file_suffix +
+                          '.ss.ini')
+        copyfile(SS_FILE_PATH, run_ss_file)
+
     # Prepare logger ---------------------------------------------------------
-    prj_log_file = opj(dir_prj_logs, prj_name + '_' + prj_log_file_suffix)
+    prj_log_file = opj(dir_prj_logs, prj_name + '_' + prj_log_file_suffix +
+                       '.log')
     with open(prj_log_file, 'w') as f:
         f.write(SCRIPT_INFO.strip() + '\n\n' + log_stream.getvalue())
 
