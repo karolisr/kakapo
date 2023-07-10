@@ -126,7 +126,7 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
             keep_unique_lines_in_file(out_f)
 
             seqtk_extract_reads(seqtk, fq_path, out_f_fastq, out_f)
-            seqtk_fq_to_fa(seqtk, out_f_fastq, out_f_fasta)
+            seqtk_fq_to_fa(seqtk, out_f_fastq, out_f_fasta, gz_out=False)
 
             osremove(out_f)
             osremove(out_f_fastq)
@@ -194,7 +194,7 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                 keep_unique_lines_in_file(x[1])
 
                 seqtk_extract_reads(seqtk, x[2], x[3], x[1])
-                seqtk_fq_to_fa(seqtk, x[3], x[4])
+                seqtk_fq_to_fa(seqtk, x[3], x[4], gz_out=False)
 
                 osremove(x[1])
                 osremove(x[3])
