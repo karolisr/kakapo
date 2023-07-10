@@ -5,7 +5,7 @@
 import requests
 
 from requests.adapters import HTTPAdapter
-# from requests.exceptions import HTTPError
+from requests.exceptions import HTTPError
 from urllib3.util import Retry
 
 # Possible values for the Accept request-header field:
@@ -43,7 +43,7 @@ def retry_session(retries=5, backoff_factor=1,
     return session
 
 
-def get(url, params=None, response_format='json'):
+def get(url, params=None, response_format='json') -> requests.Response:
     """
     Wrap requests.get.
 
@@ -56,8 +56,8 @@ def get(url, params=None, response_format='json'):
     :param response_format: 'json', etc.
     :type response_format: str
 
-    :returns: parsed response
-    :rtype: dict or list
+    :returns: requests.Response
+    :rtype: requests.Response
     """
     if type(response_format) in (dict, ):
         headers = response_format
@@ -65,36 +65,37 @@ def get(url, params=None, response_format='json'):
         assert response_format in _valid_response_formats()
         headers = ACC_HEAD[response_format]
 
-    response = None
+    # response = None
 
     with retry_session() as session:
         response = session.get(url=url, params=params, headers=headers)
 
-    # try:
-    #     response.raise_for_status()
+    try:
+        response.raise_for_status()
     # except Exception as e:
     #     print(e)
-    # except HTTPError as e:
-    #     print(e)
+    except HTTPError as e:
+        print(e)
 
     return response
 
 
-def post(url, data, response_format):
+def post(url, data, response_format) -> requests.Response:
     """Wrap requests.post."""
     assert response_format in _valid_response_formats()
     headers = ACC_HEAD[response_format]
 
-    response = None
+    # response = None
+
     with retry_session() as session:
         response = session.post(url=url, data=data, headers=headers)
 
-    # try:
-    #     response.raise_for_status()
+    try:
+        response.raise_for_status()
     # except Exception as e:
     #     print(e)
-    # except HTTPError as e:
-    #     print(e)
+    except HTTPError as e:
+        print(e)
 
     return response
 
