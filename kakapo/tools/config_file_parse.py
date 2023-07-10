@@ -19,6 +19,7 @@ from configparser import NoSectionError
 from configparser import NoOptionError
 
 from kakapo.tools.ebi_domain_search import pfam_entry
+from kakapo.tools.eutils import find_api_key
 from kakapo.utils.misc import list_of_files_at_path
 from kakapo.utils.misc import replace_line_in_file
 from kakapo.utils.logging import Log
@@ -246,6 +247,13 @@ def config_file_parse(file_path, taxonomy=None, err_on_missing=True,
         should_use_colors = cfg.getboolean('General', 'use_colors')
 
         entrez_api_key = cfg.get('General', 'entrez_api_key')
+        if entrez_api_key == '':
+            entrez_api_key = find_api_key()
+            if entrez_api_key is None:
+                entrez_api_key = ''
+        if entrez_api_key != '':
+            # Log.inf('Using Entrez API Key:', entrez_api_key)
+            print(f'\n\tUsing Entrez API Key: {entrez_api_key}\n')
 
         should_run_ipr = cfg.getboolean('General', 'run_inter_pro_scan')
         should_run_rcorrector = cfg.getboolean('General', 'run_rcorrector')
