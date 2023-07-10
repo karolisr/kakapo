@@ -257,6 +257,9 @@ Temporary Items
 *.sublime-project
 *.sublime-workspace
 
+# VS Code
+*.code-workspace
+
 # Compiled C binaries
 kakapo/utils/c/fq
 kakapo/utils/c/fqgz
