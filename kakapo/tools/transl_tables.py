@@ -3,8 +3,9 @@
 from collections import OrderedDict
 from difflib import SequenceMatcher
 
+from kakapo.tools.iupac import DNA_UNAMBIGUOUS, DNA_AMBIGUOUS
 from kakapo.tools.iupac import IUPAC_AMBIGUOUS_SECOND_ORDER_DNA_DICT_REVERSE
-from kakapo.tools.iupac import IUPAC_DNA_DICT
+from kakapo.tools.iupac import IUPAC_DNA_DICT, IUPAC_DNA_DICT_REVERSE
 from kakapo.utils.misc import invert_dict
 
 GC_ID_NAME_MAP = {
@@ -164,33 +165,41 @@ def get_stop_codons(gc_id):
     return stop_codons
 
 
+def _ac(_codons):
+    match_dict = dict()
+    for i in range(1, len(_codons)):
+        a = _codons[i - 1]
+        b = _codons[i]
+        sm = SequenceMatcher(a=a, b=b)
+        match = sm.find_longest_match(0, 2, 0, 2)
+        if match.a == 0 and match.b == 0 and match.size == 2:
+            matching_prefix = a[0:2]
+            if matching_prefix not in match_dict:
+                match_dict[matching_prefix] = set()
+            match_dict[matching_prefix].add(a[2])
+            match_dict[matching_prefix].add(b[2])
+
+    codons_amb = list()
+    for prefix in match_dict:
+        chars = match_dict[prefix]
+        unamb_chars = chars.intersection(DNA_UNAMBIGUOUS)
+        ambig_chars = chars.intersection(DNA_AMBIGUOUS) - unamb_chars
+        if len(ambig_chars) > 0:
+            for suffixes_ambig in ambig_chars:
+                unamb_chars = unamb_chars.union(
+                    set(IUPAC_DNA_DICT_REVERSE[suffixes_ambig]))
+        suffixes_unamb = ''.join(sorted(unamb_chars))
+        suffix_amb = IUPAC_DNA_DICT[suffixes_unamb]
+        codons_amb.append(prefix + suffix_amb)
+    return codons_amb
+
+
 def ambiguous_codons(codons):
     iasoddr = IUPAC_AMBIGUOUS_SECOND_ORDER_DNA_DICT_REVERSE
-
-    def _ac(_codons):
-        match_dict = dict()
-        for i in range(1, len(_codons)):
-            a = _codons[i - 1]
-            b = _codons[i]
-            sm = SequenceMatcher(a=a, b=b)
-            match = sm.find_longest_match(0, 2, 0, 2)
-            if match.a == 0 and match.b == 0 and match.size == 2:
-                matching_prefix = a[0:2]
-                if matching_prefix not in match_dict:
-                    match_dict[matching_prefix] = set()
-                match_dict[matching_prefix].add(a[2])
-                match_dict[matching_prefix].add(b[2])
-
-        codons_amb = list()
-        for prefix in match_dict:
-            suffixes = ''.join(sorted(match_dict[prefix]))
-            suffix_amb = IUPAC_DNA_DICT[suffixes]
-            codons_amb.append(prefix + suffix_amb)
-        return codons_amb
-
+    codons = sorted([x.upper() for x in codons])
     c1 = _ac(codons)
     # repeat with each codon reversed
-    codons_reversed = tuple(map(lambda x: x[::-1], codons))
+    codons_reversed = sorted(tuple(map(lambda x: x[::-1], codons)))
     c2_rev = _ac(codons_reversed)
     # reverse each codon back
     c2 = list(map(lambda x: x[::-1], c2_rev))
