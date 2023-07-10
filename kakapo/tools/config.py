@@ -28,8 +28,10 @@ if OS_ID == 'mac':
         OS_INFO += ' (' + RELEASE_NAME + ')'
 
 _, PY_V_STR = python_version()
-NCPU = cpu_count()[0]
-NCPUL = cpu_count()[1]
+
+_ = cpu_count()
+NCPU = 2 if _[0] is None else _[0]
+NCPUL = 2 if _[1] is None else _[1]
 RAM = sys_ram()
 
 os.environ['KKP_OS_ID'] = OS_ID
@@ -53,11 +55,12 @@ DIR_TAX = os.path.join(DIR_DAT, 'ncbi-taxonomy')
 DIR_KRK = os.path.join(DIR_DAT, 'kraken2_dbs')
 
 # Script Info ----------------------------------------------------------------
-SCRIPT_INFO = ('\n' +
-               '{s} version: {v}\n'.format(s=__script_name__.title(),
-                                           v=__version__) +
-               'Python version: {pv}\n'.format(pv=PY_V_STR) +
-               'Operating system: {os}\n'.format(os=OS_INFO) +
-               'System info: {cores} physical and {threads} logical cores, {ram} GB RAM ({mt})\n'.format(
-                   cores=NCPU, threads=NCPUL, ram='{0:.2f}'.format(RAM),
-                   mt=MACHINE_TYPE))
+SCRIPT_INFO = ('\n'
+               + '{s} version: {v}\n'.format(s=__script_name__.title(),
+                                             v=__version__)
+               + 'Python version: {pv}\n'.format(pv=PY_V_STR)
+               + 'Operating system: {os}\n'.format(os=OS_INFO)
+               + 'System info: {cores} physical and {threads} logical cores, '
+                 '{ram} GB RAM ({mt})\n'.format(cores=NCPU, threads=NCPUL,
+                                                ram='{0:.2f}'.format(RAM),
+                                                mt=MACHINE_TYPE))
