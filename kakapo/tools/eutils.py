@@ -13,6 +13,7 @@ Valid values of &retmode and &rettype for EFetch (null = empty string):
     ._valid_values_of__retmode_and/?report=objectonly
 """
 
+from copy import deepcopy
 import os
 
 from collections.abc import Iterable
@@ -24,6 +25,7 @@ from typing import Iterable as IterableT
 from xml.etree import ElementTree
 
 from multipledispatch import dispatch
+# from requests.exceptions import HTTPError
 from requests.models import Response
 
 from kakapo.tools.bioio import read_fasta
@@ -31,7 +33,7 @@ from kakapo.tools.parsers import eutils_loc_str
 from kakapo.tools.parsers import parse_efetch_sra_xml_text
 from kakapo.tools.parsers import parse_esummary_xml_text
 from kakapo.tools.parsers import seq_records_gb
-from kakapo.tools.seq import SEQ_TYPE_NT, SEQ_TYPE_AA
+from kakapo.tools.seq import SEQ_TYPE_NT, SEQ_TYPE_AA, SeqRecord
 from kakapo.utils.http import post
 from kakapo.utils.logging import Log
 
@@ -175,7 +177,8 @@ def epost(db: str, ids: IterableT[str] = None, web_env: str = None,
     return {'db': db, 'query_keys': query_keys, 'web_env': web_env}
 
 
-def esummary(db: str, ids: IterableT[str] = None, **kwargs) -> dict:
+def esummary(db: str, ids: IterableT[str | int] = None, **kwargs) -> dict:
+    ids = [str(id) for id in ids]
     r = eutil(util='esummary.fcgi', db=db, ids=ids, version='1.0',
               retmode='xml', **kwargs)
     if r is not None:
@@ -186,6 +189,12 @@ def efetch(db: str, ids: IterableT[str] = None, rettype: str = None,
            retmode: str = None, **kwargs) -> str:
     r = eutil(util='efetch.fcgi', db=db, ids=ids, rettype=rettype,
               retmode=retmode, **kwargs)
+    # try:
+    #     r.raise_for_status()
+    # except HTTPError as e:
+    #     print(e)
+    #     raise
+    # print(r.text)
     if r is not None:
         return r.text
 
@@ -245,6 +254,8 @@ def _elink_parse(db: str, dbfrom: str, linksets: IterableT[dict]) -> tuple:
     ids_from = []
     ids_to = []
     for ls in linksets:
+        # if 'linksetdbs' not in ls:
+        #     continue
         if dbfrom == ls['dbfrom']:
             ids_from += ls['ids']
             linksetdbs = ls['linksetdbs']
@@ -309,7 +320,7 @@ def summary(data: dict) -> list:
 
 
 @dispatch(str, Iterable, namespace=EUTILS_NS)
-def summary(db: str, ids: IterableT[str]) -> list:
+def summary(db: str, ids: IterableT[str | int]) -> list:
     txt = esummary(db=db, ids=ids)
     return parse_esummary_xml_text(txt)
 
@@ -356,7 +367,8 @@ def taxids(db: str, ids: IterableT[str]) -> dict:
     dbfrom = db
     db = 'taxonomy'
     ids_from, ids_to = _elink_runner(db=db, dbfrom=dbfrom, ids=ids)
-    ids_to = [int(x) for x in ids_to]
+    # ToDo: check if this works everywhere, changed from int(x) -> x
+    ids_to = [x for x in ids_to]
     return dict(zip(ids_from, ids_to))
 
 
@@ -383,7 +395,7 @@ def _process_downloaded_seq_data(efetch_txt: str, db: str, rettype: str,
 
 @dispatch(dict, namespace=EUTILS_NS)
 @with_history
-def seqs(data: dict, rettype: str = 'gb', retmode: str = 'xml') -> list:
+def seqs(data: dict, rettype: str = 'gb', retmode: str = 'xml') -> list[SeqRecord]:
     ok = _history_server_data_ok(data)
     if ok is False:
         return list()
@@ -394,7 +406,7 @@ def seqs(data: dict, rettype: str = 'gb', retmode: str = 'xml') -> list:
 
 @dispatch(str, Iterable, namespace=EUTILS_NS)
 def seqs(db: str, ids: IterableT[str], rettype: str = 'gb',
-         retmode: str = 'xml', location: dict = None) -> list:
+         retmode: str = 'xml', location: dict = None) -> list[SeqRecord]:
     if location is None:
         ids_requested = set(ids)
         r_temp = list()
@@ -408,6 +420,19 @@ def seqs(db: str, ids: IterableT[str], rettype: str = 'gb',
             # END DEBUG
             ids_dnld = set([x.accession_version for x in r_temp])
             ids_remaining = ids_requested - ids_dnld
+
+            # ----------------------------------------------------------------
+            # Check if accession is actually in the specified database,
+            #   otherwise this would recurse to infinity!
+            # Examples:
+            # eutils.seqs('protein', ['QYF06680.1'])  # OK
+            # eutils.seqs('nuccore', ['QYF06680.1'])  # KO
+            for id in deepcopy(ids_remaining):
+                check_id = len(summary(search(db=db, term=id))) == 1
+                if check_id is False:
+                    print(f'Record {id} was not found in the database "{db}".')
+                    ids_remaining.remove(id)
+            # ----------------------------------------------------------------
             r = seqs(db, list(ids_remaining), rettype=rettype, retmode=retmode)
             r_temp += r
             return r_temp
@@ -470,6 +495,7 @@ def sra_run_info(ids_srr: IterableT[str]) -> list:
     ret_list = parse_efetch_sra_xml_text(efetch_xml_txt)
     ret_list = [x for x in ret_list if x['Run'] in ids_srr]
     return ret_list
+
 
 @dispatch(str, namespace=EUTILS_NS)
 def sra_run_info(id_srr: str) -> list:
