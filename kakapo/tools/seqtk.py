@@ -3,7 +3,8 @@
 from kakapo.utils.subp import run
 
 
-def seqtk_fq_to_fa(seqtk, in_file, out_file, threads, gzip, pigz, gz_out=True):
+def seqtk_fq_to_fa(seqtk, in_file, out_file, threads=2, gzip='gzip', pigz=None,
+                   gz_out=True):
     cmd = [seqtk, 'seq', '-A', in_file]
     # out is stored in memory, could use a lot of RAM
     out = run(cmd, do_not_raise=True)
