@@ -98,6 +98,8 @@ def dep_check_seqtk(dir_dep, force):
     fp.seek(0)
     cmd = ['', 'seq', '-r', fp.name]
 
+    seqtk = ''
+
     try:
         if force is True:
             raise
