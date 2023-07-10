@@ -18,12 +18,14 @@ from collections import defaultdict
 from collections import OrderedDict
 from datetime import datetime
 from ftplib import FTP
+from functools import reduce
 from itertools import zip_longest
-from operator import itemgetter
+from operator import itemgetter, add
 from os import listdir
 from os import makedirs
 from os import remove
 from os.path import abspath
+from os.path import basename
 from os.path import exists as ope
 from os.path import expanduser
 from os.path import isdir
@@ -68,7 +70,7 @@ def list_of_items_at_path(path):
             li = [opj(path, x) for x in listdir(path)]
         except FileNotFoundError:
             e = 'Directory "{}" does not exist.'.format(path)
-    return li, e
+    return sorted(li), e
 
 
 def list_of_dirs_at_path(path):
@@ -79,12 +81,30 @@ def list_of_dirs_at_path(path):
     return ld, e
 
 
-def list_of_files_at_path(path):
+def list_of_dirs_at_path_recursive(path):
+    ld, e = list_of_dirs_at_path(path)
+    if e is not None:
+        print(e)
+    ld += reduce(add, map(list_of_dirs_at_path_recursive, ld), [])
+    return sorted(ld)
+
+
+def list_of_files_at_path(path, regexp=None):
     li, e = list_of_items_at_path(path)
     lf = li
     if li is not None:
         lf = [x for x in li if isfile(x)]
+    if regexp is not None:
+        regexp = f'.*{regexp}.*'
+        # lf = reduce(add, map(lambda s: re.findall(regexp, basename(s)), lf), [])
+        lf = list(filter(lambda s: True if len(re.findall(regexp, basename(s))) == 1 else False, lf))
     return lf, e
+
+
+def list_of_files_at_path_recursive(path, regexp=None):
+    ld = [path] + list_of_dirs_at_path_recursive(path)
+    lf = reduce(add, map(lambda x: list_of_files_at_path(x, regexp=regexp)[0], ld), [])
+    return sorted(lf)
 
 
 def download_file(url, local_path, protocol='http'):
