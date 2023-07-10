@@ -15,4 +15,4 @@ __copyright__ = 'Copyright \u00A9 ' + __author__ + ', ' + y
 __license__ = 'GNU General Public License Version 3'
 __url__ = 'https://github.com/karolisr/kakapo'
 
-__all__ = []
+__all__ = ['__author__', '__author_email__', '__description__', '__script_name__', '__url__', '__version__']
