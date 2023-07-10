@@ -8,15 +8,17 @@ from io import StringIO
 from math import ceil
 from operator import add
 from multipledispatch import dispatch
-from kakapo.tools.seq import Seq, SeqRecord
+from kakapo.tools.seq import Seq, SeqRecord, SeqRecordCDS
 from kakapo.tools.seq import SEQ_TYPES
+
+from typing import List
 
 BIOIO_NS = dict()
 HANDLE_TYPES = (io.IOBase, StringIO)
 
 
 def read_fasta(f, seq_type, upper=True, def_to_first_space=False,
-               parse_def=False) -> list:
+               parse_def=False) -> List[SeqRecord]:
     """Read a FASTA file."""
     assert seq_type.upper() in SEQ_TYPES
 
@@ -111,25 +113,29 @@ def dict_to_fasta(d, max_line_len=None):
     return fasta
 
 
-def seq_records_to_dict(records, prepend_acc=False):
+def seq_records_to_dict(records, prepend_acc=False, prepend_org=False):
     d = dict()
     for rec in records:
-        if type(rec) == SeqRecord:
+        if type(rec) in (SeqRecord, SeqRecordCDS):
             dfn = rec.definition
+            if prepend_org is True:
+                org = rec.organism
+                if org is not None:
+                    dfn = org.replace(' ', '_') + ' ' + dfn
             if prepend_acc is True:
                 acc_ver = rec.accession_version
                 if acc_ver is not None:
-                    dfn = rec.accession_version + ' ' + dfn
-            d[dfn] = str(rec.seq)
+                    dfn = acc_ver + ' ' + dfn
+            d[dfn] = str(rec)
     return d
 
 
-def seq_records_to_fasta(records, max_line_len=None, prepend_acc=False):
-    d = seq_records_to_dict(records, prepend_acc)
+def seq_records_to_fasta(records, max_line_len=None, prepend_acc=False, prepend_org=False):
+    d = seq_records_to_dict(records, prepend_acc, prepend_org)
     return dict_to_fasta(d, max_line_len)
 
 
-def write_fasta(data, f, max_line_len=None, prepend_acc=False):
+def write_fasta(data, f, max_line_len=None, prepend_acc=False, prepend_org=False):
     """Write a FASTA file."""
     handle = False
     if isinstance(f, HANDLE_TYPES):
@@ -142,7 +148,7 @@ def write_fasta(data, f, max_line_len=None, prepend_acc=False):
         f.write(text)
 
     if type(data) in (list, tuple):
-        text = seq_records_to_fasta(data, max_line_len, prepend_acc)
+        text = seq_records_to_fasta(data, max_line_len, prepend_acc, prepend_org)
         f.write(text)
 
     if handle is False:
@@ -178,7 +184,7 @@ def trim_desc_to_first_space_in_fasta_text(text, seq_type):
     return parsed_fasta
 
 
-def filter_fasta_by_length(f, seq_type, min_len, max_len):
+def filter_fasta_by_length(f, seq_type, min_len, max_len) -> List[SeqRecord]:
     parsed_fasta = read_fasta(f, seq_type)
     recs = filter(lambda y: min_len <= y.length <= max_len, parsed_fasta)
     return list(recs)
