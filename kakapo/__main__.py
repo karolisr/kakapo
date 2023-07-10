@@ -2,15 +2,17 @@
 
 """Kakapo main file."""
 
-import inspect
 import os
-import sys
 
 ##############################################################################
-SCRIPT_FILE_PATH = inspect.getfile(inspect.currentframe())
-SCRIPT_DIR_PATH = os.path.dirname(os.path.abspath(SCRIPT_FILE_PATH))
-KAKAPO_DIR_PATH = os.path.sep.join(SCRIPT_DIR_PATH.split(os.path.sep)[0:-1])
-sys.path.insert(0, KAKAPO_DIR_PATH)
+# Uncomment to allow running this file without installing kakapo with pip ####
+##############################################################################
+# import inspect
+# import sys
+# SCRIPT_FILE_PATH = inspect.getfile(inspect.currentframe())
+# SCRIPT_DIR_PATH = os.path.dirname(os.path.abspath(SCRIPT_FILE_PATH))
+# KAKAPO_DIR_PATH = os.path.sep.join(SCRIPT_DIR_PATH.split(os.path.sep)[0:-1])
+# sys.path.insert(0, KAKAPO_DIR_PATH)
 ##############################################################################
 
 import argparse
@@ -94,7 +96,7 @@ logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 # Command line arguments -----------------------------------------------------
 USAGE = CONBLUE + '{} --cfg project_configuration_file ' \
-        '--ss search_strategies_file'.format(__script_name__) + CONSDFL
+    '--ss search_strategies_file'.format(__script_name__) + CONSDFL
 
 PARSER = argparse.ArgumentParser(
     prog=__script_name__,
@@ -207,32 +209,37 @@ if PRINT_VERSION is True:
     exit(0)
 
 if CLEAN_DATA_DIR is True and ope(DIR_DAT):
-    print(CONSRED + 'Removing ' + __script_name__ + ' data directory: ' + CONSDFL + DIR_DAT)
+    print(CONSRED + 'Removing ' + __script_name__ + ' data directory: '
+          + CONSDFL + DIR_DAT)
     rmtree(DIR_DAT)
     exit(0)
 elif CLEAN_DATA_DIR is True:
-    print(CONSRED + 'The data directory does not exist. Nothing to do.' + CONSDFL)
+    print(CONSRED + 'The data directory does not exist. Nothing to do.'
+          + CONSDFL)
     exit(0)
 
 if CLEAN_DATA_DIR is False and CONFIG_FILE_PATH is not None:
     if not ope(CONFIG_FILE_PATH):
-        print(CONSRED + 'Configuration file ' + CONFIG_FILE_PATH + ' does not exist.' + CONSDFL)
+        print(CONSRED + 'Configuration file ' + CONFIG_FILE_PATH
+              + ' does not exist.' + CONSDFL)
         exit(0)
 elif INSTALL_DEPS is True or DNLD_KRAKEN_DBS is True:
     pass
 else:
     print(SCRIPT_INFO)
-    print(CONSRED + 'Configuration file was not provided. Nothing to do.' + CONSDFL)
+    print(CONSRED + 'Configuration file was not provided. Nothing to do.'
+          + CONSDFL)
     print()
-    print('-' * 78)
+    # print('-' * 78)
     PARSER.print_help()
-    print('-' * 78)
-    print()
+    # print('-' * 78)
+    # print()
     exit(0)
 
 if CLEAN_DATA_DIR is False and SS_FILE_PATH is not None:
     if not ope(SS_FILE_PATH):
-        print(CONSRED + 'Search strategies file ' + SS_FILE_PATH + ' does not exist.' + CONSDFL)
+        print(CONSRED + 'Search strategies file ' + SS_FILE_PATH
+              + ' does not exist.' + CONSDFL)
         exit(0)
 elif INSTALL_DEPS is True or DNLD_KRAKEN_DBS is True or SS_FILE_PATH is None:
     pass
@@ -241,12 +248,12 @@ else:
 
 print(SCRIPT_INFO)
 
-NCPU = NCPU - 2
+NCPU = NCPU - 1
 if NCPU_ARG is not None:
     if NCPU_ARG > NCPU:
         print(CONSRED + 'The number of CPU cores requested is larger '
-              'than is available on the system (minus two). Will use ' +
-              str(NCPU) + ' instead.' + CONSDFL)
+              'than is available on the system (minus one). Will use '
+              + str(NCPU) + ' instead.' + CONSDFL)
         NCPU_ARG = NCPU
     else:
         NCPU = NCPU_ARG
@@ -378,8 +385,8 @@ def main():
         Log.inf('Reading search strategies file:', SS_FILE_PATH)
         sss = ss_file_parse(SS_FILE_PATH)
     else:
-        Log.wrn('Search strategies file was not provided.\n' +
-                'Will process reads, assemblies and then stop.')
+        Log.wrn('Search strategies file was not provided.\n'
+                + 'Will process reads, assemblies and then stop.')
         sss = dict()
 
     print()
@@ -400,12 +407,12 @@ def main():
         with open(version_file, 'r') as f:
             version_prev = f.read().strip()
             if __version__ != version_prev:
-                Log.wrn('The output directory contains data produced by a ' +
-                        'different version of Kakapo: ' + version_prev +
-                        '.\nThe currently running version is: ' + __version__ +
-                        '.\n' +
-                        'Delete "kakapo_version.txt" file located in the ' +
-                        'output directory if you would like to continue.')
+                Log.wrn('The output directory contains data produced by a '
+                        + 'different version of Kakapo: ' + version_prev
+                        + '.\nThe currently running version is: ' + __version__
+                        + '.\n'
+                        + 'Delete "kakapo_version.txt" file located in the '
+                        + 'output directory if you would like to continue.')
                 exit(0)
 
     with open(version_file, 'w') as f:
@@ -439,18 +446,18 @@ def main():
     dir_prj_transcripts_combined = _['dir_prj_transcripts_combined']
 
     # Archive the configuration and search strategies files used -------------
-    run_cfg_file = opj(dir_prj_logs, prj_name + '_' + prj_log_file_suffix +
-                       '.cfg.ini')
+    run_cfg_file = opj(dir_prj_logs, prj_name + '_' + prj_log_file_suffix
+                       + '.cfg.ini')
     copyfile(CONFIG_FILE_PATH, run_cfg_file)
 
     if SS_FILE_PATH is not None:
-        run_ss_file = opj(dir_prj_logs, prj_name + '_' + prj_log_file_suffix +
-                          '.ss.ini')
+        run_ss_file = opj(dir_prj_logs, prj_name + '_' + prj_log_file_suffix
+                          + '.ss.ini')
         copyfile(SS_FILE_PATH, run_ss_file)
 
     # Prepare logger ---------------------------------------------------------
-    prj_log_file = opj(dir_prj_logs, prj_name + '_' + prj_log_file_suffix +
-                       '.log')
+    prj_log_file = opj(dir_prj_logs, prj_name + '_' + prj_log_file_suffix
+                       + '.log')
     with open(prj_log_file, 'w') as f:
         f.write(SCRIPT_INFO.strip() + '\n\n' + log_stream.getvalue())
 
@@ -477,13 +484,13 @@ def main():
     pe_fastq_files = pe_fastq_files_sra.copy()
     pe_fastq_files.update(pe_fastq_files_usr)
 
-    def gc_tt(k, d, tax):
-        taxid = d[k]['tax_id']
+    def gc_tt(k, d_local, tax_local):
+        taxid = d_local[k]['tax_id']
 
-        gc = tax.genetic_code_for_taxid(taxid)
+        gc = tax_local.genetic_code_for_taxid(taxid)
 
-        d[k]['gc_id'] = gc
-        d[k]['gc_tt'] = TranslationTable(gc)
+        d_local[k]['gc_id'] = gc
+        d_local[k]['gc_tt'] = TranslationTable(gc)
 
         gc_mito = None
         tt_mito = None
@@ -491,21 +498,21 @@ def main():
         gc_plastid = None
         tt_plastid = None
 
-        if tax.is_eukaryote(taxid) is True:
-            gc_mito = tax.mito_genetic_code_for_taxid(taxid)
+        if tax_local.is_eukaryote(taxid) is True:
+            gc_mito = tax_local.mito_genetic_code_for_taxid(taxid)
             if gc_mito != '0':
                 tt_mito = TranslationTable(gc_mito)
 
-            if tax.contains_plastid(taxid) is True:
-                gc_plastid = tax.plastid_genetic_code_for_taxid(taxid)
+            if tax_local.contains_plastid(taxid) is True:
+                gc_plastid = tax_local.plastid_genetic_code_for_taxid(taxid)
                 if gc_plastid != '0':
                     tt_plastid = TranslationTable(gc_plastid)
 
-        d[k]['gc_id_mito'] = gc_mito
-        d[k]['gc_tt_mito'] = tt_mito
+        d_local[k]['gc_id_mito'] = gc_mito
+        d_local[k]['gc_tt_mito'] = tt_mito
 
-        d[k]['gc_id_plastid'] = gc_plastid
-        d[k]['gc_tt_plastid'] = tt_plastid
+        d_local[k]['gc_id_plastid'] = gc_plastid
+        d_local[k]['gc_tt_plastid'] = tt_plastid
 
     for se in se_fastq_files:
         gc_tt(se, se_fastq_files, tax)
@@ -625,8 +632,8 @@ def main():
     # Download Pfam uniprot sequences if needed ------------------------------
     aa_uniprot_files = OrderedDict()
     for ss in sss:
-        aa_uniprot_files[ss] = opj(dir_prj_queries, 'aa_uniprot__' + ss +
-                                   '.fasta')
+        aa_uniprot_files[ss] = opj(dir_prj_queries, 'aa_uniprot__' + ss
+                                   + '.fasta')
         dnld_pfam_uniprot_seqs(ss, pfam_uniprot_acc[ss], aa_uniprot_files[ss],
                                dir_cache_prj)
 
@@ -642,16 +649,16 @@ def main():
     prot_acc_user = OrderedDict()
     for ss in sss:
         print()
-        prot_acc_all = sorted(set(sss[ss]['ncbi_accessions_aa'] +
-                                  prot_acc_user_from_query[ss]))
+        prot_acc_all = sorted(set(sss[ss]['ncbi_accessions_aa']
+                                  + prot_acc_user_from_query[ss]))
         prot_acc_user[ss] = user_protein_accessions(ss, prot_acc_all,
                                                     dir_cache_prj, tax)
 
     # Download from NCBI if needed -------------------------------------------
     aa_prot_ncbi_files = OrderedDict()
     for ss in sss:
-        aa_prot_ncbi_files[ss] = opj(dir_prj_queries, 'aa_prot_ncbi__' + ss +
-                                     '.fasta')
+        aa_prot_ncbi_files[ss] = opj(dir_prj_queries, 'aa_prot_ncbi__' + ss
+                                     + '.fasta')
         prot_acc_user[ss] = dnld_prot_seqs(ss, prot_acc_user[ss],
                                            aa_prot_ncbi_files[ss],
                                            dir_cache_prj)
@@ -660,8 +667,8 @@ def main():
     aa_prot_user_files = OrderedDict()
     for ss in sss:
         user_queries = sss[ss]['fasta_files_aa']
-        aa_prot_user_files[ss] = opj(dir_prj_queries, 'aa_prot_user__' + ss +
-                                     '.fasta')
+        aa_prot_user_files[ss] = opj(dir_prj_queries, 'aa_prot_user__' + ss
+                                     + '.fasta')
         user_aa_fasta(ss, user_queries, aa_prot_user_files[ss])
         print()
 
@@ -909,12 +916,12 @@ def main():
 
         parallel_run_count = NCPU
 
-        def produce_final_gff(ss):
-            if stat(aa_queries_files[ss]).st_size == 0:
+        def produce_final_gff(ss_local):
+            if stat(aa_queries_files[ss_local]).st_size == 0:
                 return
 
             # GFF3 files from kakapo and InterProScan 5 results JSON files
-            gff_from_json(ss, assemblies, dir_prj_ips,
+            gff_from_json(ss_local, assemblies, dir_prj_ips,
                           dir_prj_transcripts_combined, prj_name)
 
         if parallel_run_count > 0:
@@ -924,19 +931,20 @@ def main():
     # Download CDS for NCBI protein queries ----------------------------------
     prot_cds_ncbi_files = OrderedDict()
 
-    def dnld_cds_for_ncbi_prot_acc_parallel(ss):
-        if stat(aa_queries_files[ss]).st_size == 0:
+    def dnld_cds_for_ncbi_prot_acc_parallel(ss_local):
+        if stat(aa_queries_files[ss_local]).st_size == 0:
             return
 
-        if ss not in prot_acc_user_filtered:
+        if ss_local not in prot_acc_user_filtered:
             return
 
-        prot_cds_ncbi_files[ss] = opj(dir_prj_transcripts_combined, prj_name +
-                                      '_ncbi_query_cds__' + ss + '.fasta')
+        prot_cds_ncbi_files[ss_local] = opj(
+            dir_prj_transcripts_combined, prj_name + '_ncbi_query_cds__'
+            + ss_local + '.fasta')
 
-        if len(prot_acc_user_filtered[ss]) > 0:
-            dnld_cds_for_ncbi_prot_acc(ss, prot_acc_user_filtered[ss],
-                                       prot_cds_ncbi_files[ss], tax,
+        if len(prot_acc_user_filtered[ss_local]) > 0:
+            dnld_cds_for_ncbi_prot_acc(ss_local, prot_acc_user_filtered[ss_local],
+                                       prot_cds_ncbi_files[ss_local], tax,
                                        dir_cache_prj)
 
     ss_names = tuple(sss.keys())
