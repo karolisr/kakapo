@@ -51,6 +51,10 @@ def _parse_taxa(taxa, tax_group, taxonomy, config_file_path):
                     name=tax.split(' ')[0], group_tax_id=tax_group)
 
             if txid is None:
+                txid = taxonomy.tax_id_for_name_and_group_tax_id(
+                    name=tax.split('_')[0], group_tax_id=tax_group)
+
+            if txid is None:
                 txids.append(txid)
                 msg = 'NCBI taxonomy ID could not be found for:'
                 Log.wrn(msg, tax)
@@ -334,7 +338,7 @@ def config_file_parse(file_path, taxonomy=None, err_on_missing=True,
             if key.startswith('pe_'):
                 f_name = basename(val[1])
 
-                if not '*' in f_name:
+                if '*' not in f_name:
                     print()
                     Log.err('The "*" character was not found in the PE file pattern:', f_name)
                     Log.err('Stopping.')
