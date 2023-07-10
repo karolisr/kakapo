@@ -390,3 +390,26 @@ def seq_records_gb(gbseq_xml_text: str) -> list:
 
     return records
 
+
+# ToDo: Review; does this function belong here?
+def parse_kraken_output_file(file_path):
+    field_terminator = '\t'
+    # from os.path import basename
+    # file_basename = basename(file_path).strip('.txt')
+    file_basename = file_path
+    with open(file_path, 'r') as f:
+        lines = f.read().splitlines()
+    lines = map(lambda l: l.split(field_terminator), lines)
+    ret_iter = map(lambda l: [file_basename] +
+                   list(map(lambda f: f.strip(), l)), lines)
+    return list(ret_iter)
+
+
+# ToDo: Review; does this function belong here?
+def parse_kraken_output_dir(path):
+    lf = list_of_files_at_path_recursive(path, regexp=r'paired.*\.txt')
+    r = reduce(add, map(parse_kraken_output_file, lf), [])
+    r = list(map(lambda x: '\t'.join(x) + '\n', r))
+    with open('kraken2_summary.txt', 'w') as f:
+        f.writelines(r)
+    return r
