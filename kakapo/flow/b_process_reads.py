@@ -417,7 +417,7 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
 
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
         print()
-        Log.inf('Calculating minimum acceptable read length.')
+        # Log.inf('Calculating minimum acceptable read length.')
     else:
         return None
 
@@ -462,12 +462,14 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
         if x[0] in pickled:
             ml = pickled[x[0]]
         else:
-            ml = avg_read_len_fq(x[1][0])
+            # Do not calculate, default to 25
+            # ml = avg_read_len_fq(x[1][0])
+            ml = low
 
-            if ml < MAX_READ_LEN_ILLUMINA:
-                ml = max(int(ml) // 5, low)
-            else:
-                ml = MAX_READ_LEN_ILLUMINA
+            # if ml < MAX_READ_LEN_ILLUMINA:
+            #     ml = max(int(ml) // 5, low)
+            # else:
+            #     ml = MAX_READ_LEN_ILLUMINA
 
             pickled[x[0]] = ml
 
