@@ -17,7 +17,7 @@ EBI_SEARCH_RECORD_OFFSET_KEY = 'start'
 EBI_SEARCH_PAGE_SIZE_KEY = 'size'
 
 
-def _ebi_search_parse_csv_text(text):
+def _ebi_search_parse_csv_text(text) -> dict[str, list]:
     text_split = text.split('\n')
     text_split.pop()
     parsed_csv = csv.DictReader(text_split)
@@ -27,22 +27,26 @@ def _ebi_search_parse_csv_text(text):
 
 def _ebi_search_paged_get(url, params, page_size, data_key,
                           response_format='json',
-                          record_count_in_header=False):
+                          record_count_in_header=False) -> list:
 
     params[EBI_SEARCH_RECORD_OFFSET_KEY] = 0
     params[EBI_SEARCH_PAGE_SIZE_KEY] = page_size
 
     response = get(url, params, response_format)
 
-    res_parsed = None
+    res_parsed: dict[str, list] = dict()
+    data: list = list()
 
     if response_format == 'csv':
-        res_parsed = _ebi_search_parse_csv_text(response.text)
+        res_parsed: dict[str, list] = _ebi_search_parse_csv_text(response.text)
 
     elif response_format == 'json':
-        res_parsed = response.json()
+        res_parsed: dict[str, list] = response.json()
 
-    data = res_parsed[data_key]
+    if data_key not in res_parsed:
+        return data
+
+    data: list = res_parsed[data_key]
 
     if record_count_in_header:
         total_records = response.headers[EBI_SEARCH_TOTAL_RECORDS_HEADER_KEY]
@@ -56,10 +60,10 @@ def _ebi_search_paged_get(url, params, page_size, data_key,
             params[EBI_SEARCH_RECORD_OFFSET_KEY] = p * page_size
             response = get(url, params, response_format)
             if response_format == 'csv':
-                res_parsed = _ebi_search_parse_csv_text(response.text)
+                res_parsed: dict[str, list] = _ebi_search_parse_csv_text(response.text)
             elif response_format == 'json':
-                res_parsed = response.json()
-            data = data + res_parsed[data_key]
+                res_parsed: dict[str, list] = response.json()
+            data: list = data + res_parsed[data_key]
 
     return data
 
