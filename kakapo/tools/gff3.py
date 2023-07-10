@@ -4,7 +4,12 @@
 # https://useast.ensembl.org/info/website/upload/gff3.html
 # http://gmod.org/wiki/GFF3
 
+import csv
 from collections import OrderedDict
+
+
+GFF3_FIELD_NAMES = ('seqid', 'source', 'type', 'start', 'end', 'score',
+                    'strand', 'phase', 'attributes')
 
 
 def gff_template():
@@ -169,6 +174,53 @@ def gff_from_json_dict(json_dict, gff_path=None):
             f.write(gff)
 
     return gff
+
+
+def parse_gff_list(gff_list):
+    rv = dict()
+    for r in gff_list:
+
+        if 'start' in r:
+            r['start'] = int(r['start'])
+
+        if 'end' in r:
+            r['end'] = int(r['end'])
+
+        if 'phase' in r:
+            if r['phase'] in ('0', '1', '2'):
+                r['phase'] = int(r['phase'])
+
+        attributes = r['attributes']
+        if r['type'] == 'mRNA':
+            r['exons'] = list()
+            r['cds'] = list()
+        # elif r['type'] == 'gene':
+        #     r['mRNA'] = list()
+        rv[attributes['ID']] = r
+        if 'Parent' in attributes:
+            if r['type'] == 'mRNA':
+                rv[attributes['Parent']]['mRNA'] = r
+            elif r['type'] == 'exon':
+                rv[attributes['Parent']]['exons'].append(r)
+            elif r['type'] == 'CDS':
+                rv[attributes['Parent']]['cds'].append(r)
+    return rv
+
+
+def read_gff(gff_path):
+    with open(gff_path, 'r', newline='') as f:
+        f = filter(lambda row: row[0] != '#', f)
+        csv_reader = csv.DictReader(f=f, fieldnames=GFF3_FIELD_NAMES, delimiter='\t', )
+        rv = list()
+        for r in csv_reader:
+            attributes_raw = r['attributes'].split(';')
+            attributes = dict()
+            for at in attributes_raw:
+                at = at.split('=')
+                attributes[at[0]] = at[1]
+            r['attributes'] = attributes
+            rv.append(r)
+        return parse_gff_list(rv)
 
 
 # seqid - name of the chromosome or scaffold; chromosome names can be given
