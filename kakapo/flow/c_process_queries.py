@@ -262,15 +262,15 @@ def filter_queries(ss, aa_queries_file, min_query_length,
     tmp1 = aa_queries_file + '_temp1'
     tmp2 = aa_queries_file + '_temp2'
     for rec in parsed_fasta_1:
-        rec.seq.gc_code = 1
-        rec.seq = rec.seq.untranslate()
+        rec.seq.gc_id = 1
+        rec.seq = rec.untranslate()
     write_fasta(parsed_fasta_1, tmp1)
     run_cluster_fast(vsearch, max_query_identity, tmp1, tmp2)
     parsed_fasta_2 = read_fasta(tmp2, SEQ_TYPE_DNA, parse_def=True)
     prot_acc_user_new = list()
     for rec in parsed_fasta_2:
-        rec.seq.gc_code = 1
-        rec.seq = rec.seq.translate()
+        rec.seq.gc_id = 1
+        rec.seq = rec.translate()
         acc = rec.accession_version
         if acc in prot_acc_user:
             prot_acc_user_new.append(acc)

@@ -1,9 +1,12 @@
 """Parsers."""
 
-import csv
+
 import re
 from xml.etree import ElementTree
+from functools import reduce
+from operator import add
 
+from kakapo.utils.misc import list_of_files_at_path_recursive
 from kakapo.tools.seq import MOL_TO_SEQ_TYPE_MAP
 from kakapo.tools.seq import Seq
 from kakapo.tools.seq import SeqRecord
@@ -31,6 +34,7 @@ def parse_esummary_xml_text(esummary_xml_text):
     return return_value
 
 
+# import csv
 # def parse_efetch_sra_csv_text(efetch_sra_csv_text):
 #     return list(csv.DictReader(efetch_sra_csv_text.splitlines()))
 
@@ -52,6 +56,7 @@ def parse_efetch_sra_xml_text(efetch_sra_xml_text):
     return return_value
 
 
+# ToDo: Requires careful further review.
 def parse_gb_location(s):
     tmp = s
 
@@ -105,6 +110,10 @@ def parse_gb_location(s):
         tmp[-1][-1] = tmp[-1][-1].strip('>')
         trimmed_right = True
 
+    # print('-' * 80)
+    # print(tmp)
+    # print('-' * 80)
+
     tmp = [(int(x[0]), int(x[1])) for x in tmp]
 
     if complement is True:
@@ -138,6 +147,13 @@ def parse_gbseq_xml_text(gbseq_xml_text: str) -> list:
         organism, seq, strandedness, taxid, topology, version
     :rtype: dict
     """
+
+    # -----------------------------------------------
+    # print(gbseq_xml_text)
+    # with open('gbseq_xml_text.xml', 'w') as f:
+    #     f.write(gbseq_xml_text)
+    # -----------------------------------------------
+
     root = ElementTree.fromstring(gbseq_xml_text)
 
     return_value = list()
@@ -186,12 +202,28 @@ def parse_gbseq_xml_text(gbseq_xml_text: str) -> list:
 
         organelle = None
         coded_by = None
-        gc_code = 1
+        gc_id = None
 
         seq = rec.find('GBSeq_sequence')
-        length = rec.find('GBSeq_length')
         if seq is not None:
             seq = seq.text
+
+        # hack, for now. One GB record references another: -------------------
+        # KL402854 has a reference to:
+        #       <GBSeq_contig>join(APNO01005115.1:1..45588)</GBSeq_contig>
+        # run:
+        # eutils.seqs('nuccore', ['KL402854'])
+        contig = rec.find('GBSeq_contig')
+        if contig is not None:
+            contig = parse_gb_location(contig.text)
+            external_ref_acc = contig['external_ref']
+            from kakapo.tools.eutils import seqs
+            seq = seqs('nucleotide', [external_ref_acc])[0].seq
+        # --------------------------------------------------------------------
+
+        length = rec.find('GBSeq_length')
+        if seq is not None:
+            # seq = seq.text
             length = int(length.text)
             if length != len(seq):
                 message = (
@@ -275,7 +307,7 @@ def parse_gbseq_xml_text(gbseq_xml_text: str) -> list:
                             coded_by = parse_gb_location(qualifier_value)
 
                         if fk == 'CDS' and qualifier_name == 'transl_table':
-                            gc_code = int(qualifier_value)
+                            gc_id = int(qualifier_value)
 
                         qualifiers.append({qualifier_name: qualifier_value})
 
@@ -294,6 +326,7 @@ def parse_gbseq_xml_text(gbseq_xml_text: str) -> list:
         record_dict = dict()
 
         record_dict['seq'] = seq
+        record_dict['contig'] = contig
         record_dict['mol_type'] = mol_type
 
         record_dict['db_source'] = dbsource
@@ -314,7 +347,7 @@ def parse_gbseq_xml_text(gbseq_xml_text: str) -> list:
 
         record_dict['organelle'] = organelle
         record_dict['coded_by'] = coded_by
-        record_dict['gc_code'] = gc_code
+        record_dict['gc_id'] = gc_id
 
         record_dict['features'] = features
 
@@ -341,9 +374,9 @@ def seq_records_gb(gbseq_xml_text: str) -> list:
         features = r['features']
         organelle = r['organelle']
         coded_by = r['coded_by']
-        gc_code = r['gc_code']
+        gc_id = r['gc_id']
 
-        seq = Seq(seq_str, MOL_TO_SEQ_TYPE_MAP[mol_type])
+        seq = Seq(seq_str, MOL_TO_SEQ_TYPE_MAP[mol_type], gc_id)
         seq_record = SeqRecord(definition, seq)
         seq_record.accession = accession
         seq_record.version = version
@@ -352,8 +385,8 @@ def seq_records_gb(gbseq_xml_text: str) -> list:
         seq_record.features = features
         seq_record.organelle = organelle
         seq_record.coded_by = coded_by
-        seq_record.gc_code = gc_code
 
         records.append(seq_record)
 
     return records
+
