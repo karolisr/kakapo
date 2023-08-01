@@ -54,7 +54,7 @@ def reverse_complement(seq):
     return reverse(complement(seq))
 
 
-def translate(seq, trans_table, start_codons):
+def translate(seq, trans_table, start_codons, strip_stop_codon=False):
     seq = str(seq).upper()
 
     if 'U' in seq:
@@ -79,6 +79,9 @@ def translate(seq, trans_table, start_codons):
             residue = trans_table[t]
 
         translated = translated + residue
+
+    if strip_stop_codon is True:
+        translated = translated.strip('*')
 
     return translated
 
@@ -240,7 +243,7 @@ class NTSeq(_Seq):
     def __repr__(self):
         return 'NTSeq(\'' + self._seq + '\')'
 
-    def translate(self, start_codons=None):
+    def translate(self, start_codons=None, strip_stop_codon=False):
         if self.transl_table is None:
             translated = None
         else:
@@ -248,7 +251,7 @@ class NTSeq(_Seq):
             if start_codons is None:
                 start_codons = tt.start_codons
             translated = AASeq(
-                translate(self._seq, tt.table, start_codons), tt.gc_id)
+                translate(self._seq, tt.table, start_codons, strip_stop_codon), tt.gc_id)
         return translated
 
     def untranslate(self):
@@ -401,8 +404,8 @@ class SeqRecord(object):
             raise KeyError('Keys must be integers or slices, '
                            'not {}'.format(type(key)))
 
-    def translate(self, start_codons=None):
-        return self.seq.translate(start_codons=start_codons)
+    def translate(self, start_codons=None, strip_stop_codon=False):
+        return self.seq.translate(start_codons=start_codons, strip_stop_codon=strip_stop_codon)
 
     def untranslate(self):
         return self.seq.untranslate()

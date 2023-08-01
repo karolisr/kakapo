@@ -18,7 +18,7 @@ HANDLE_TYPES = (io.IOBase, StringIO)
 
 
 def read_fasta(f, seq_type, upper=True, def_to_first_space=False,
-               parse_def=False) -> List[SeqRecord]:
+               parse_def=False, simple_return=False) -> List[SeqRecord] | List[str]:
     """Read a FASTA file."""
     assert seq_type.upper() in SEQ_TYPES
 
@@ -62,28 +62,31 @@ def read_fasta(f, seq_type, upper=True, def_to_first_space=False,
 
     return_object = list()
     for rec in records:
-        seq_record = SeqRecord(rec[0], Seq(rec[1], seq_type))
-        if parse_def is True:
-            defn = seq_record.definition
-            re_loc_pattern = '^(.*)(\\:)(c*\\d+\\-\\d+,*\\S*)(\\s)(.*$)'
-            defn_re_loc = re.findall(re_loc_pattern, defn)
-            if len(defn_re_loc) > 0 and len(defn_re_loc[0]) == 5:
-                defn = defn_re_loc[0][0] + ' ' + defn_re_loc[0][-1]
-            defn_split = defn.split(sep='|', maxsplit=1)
-            if len(defn_split) != 2:
-                defn_split = defn.split(sep=' ', maxsplit=1)
-            if len(defn_split) == 2:
-                acc_ver = defn_split[0].strip()
-                acc_ver_split = acc_ver.split('.', maxsplit=1)
+        if simple_return is True:
+            seq_record = (rec[0], rec[1])
+        else:
+            seq_record = SeqRecord(rec[0], Seq(rec[1], seq_type))
+            if parse_def is True:
+                defn = seq_record.definition
+                re_loc_pattern = '^(.*)(\\:)(c*\\d+\\-\\d+,*\\S*)(\\s)(.*$)'
+                defn_re_loc = re.findall(re_loc_pattern, defn)
+                if len(defn_re_loc) > 0 and len(defn_re_loc[0]) == 5:
+                    defn = defn_re_loc[0][0] + ' ' + defn_re_loc[0][-1]
+                defn_split = defn.split(sep='|', maxsplit=1)
+                if len(defn_split) != 2:
+                    defn_split = defn.split(sep=' ', maxsplit=1)
+                if len(defn_split) == 2:
+                    acc_ver = defn_split[0].strip()
+                    acc_ver_split = acc_ver.split('.', maxsplit=1)
 
-                if len(acc_ver_split) == 1:
-                    seq_record.definition = defn_split[1]
-                    seq_record.accession = acc_ver_split[0]
+                    if len(acc_ver_split) == 1:
+                        seq_record.definition = defn_split[1]
+                        seq_record.accession = acc_ver_split[0]
 
-                if len(acc_ver_split) == 2:
-                    seq_record.definition = defn_split[1]
-                    seq_record.accession = acc_ver_split[0]
-                    seq_record.version = acc_ver_split[1]
+                    if len(acc_ver_split) == 2:
+                        seq_record.definition = defn_split[1]
+                        seq_record.accession = acc_ver_split[0]
+                        seq_record.version = acc_ver_split[1]
 
         return_object.append(seq_record)
 
