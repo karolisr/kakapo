@@ -12,42 +12,4 @@ Brief overview of kakapo from the Botany 2020 conference: [https://youtu.be/2D04
 
 ## Installation
 
-Kakapo was designed for, and should work on, machines running macOS or Linux. It should be possible to use Kakapo on the [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/install-win10) but I have not tested it. If you choose to try running Kakapo on Windows Subsystem for Linux, I suggest using the latest available Ubuntu distribution.
-
-Kakapo supports Python 3 and will **not** work with Python 2. Use `pip` command below to install. In case you have both Python 2 and Python 3 on your system, or if you are not certain, make sure you have a Python 3 version of `pip` by running the command below:
-
-```bash
-pip -V
-```
-
-This should print the version of `pip` you have and if `pip` is using Python 3. If the output lists Python version 3.6 or higher, you are set.
-
-```
-pip 20.0.2 from .../python3.8/site-packages/pip (python 3.8)
-```
-
-Otherwise you may try:
-
-```bash
-pip3 -V
-```
-
-If `pip3` command works but `pip` does not, replace `pip` with `pip3` in the commands below:
-
-```bash
-pip install --upgrade git+https://github.com/karolisr/kakapo
-```
-
-In case this fails you may try:
-
-```bash
-pip install --user --upgrade git+https://github.com/karolisr/kakapo
-```
-
-or:
-
-```bash
-sudo -H pip install --upgrade git+https://github.com/karolisr/kakapo
-```
-
-In case none of the above commands work, you may not have `pip` installed. One easy way to install `pip` is by installing [Conda or Miniconda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html).
+See [Wiki](https://github.com/karolisr/kakapo/wiki) for the [installation instructions](https://github.com/karolisr/kakapo/wiki/Installation).
