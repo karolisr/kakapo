@@ -178,6 +178,8 @@ def epost(db: str, ids: IterableT[str] = None, web_env: str = None,
 
 
 def esummary(db: str, ids: IterableT[str | int] = None, **kwargs) -> dict:
+    if ids is None:
+        return None
     ids = [str(id) for id in ids]
     r = eutil(util='esummary.fcgi', db=db, ids=ids, version='1.0',
               retmode='xml', **kwargs)
