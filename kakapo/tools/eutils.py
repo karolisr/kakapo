@@ -177,7 +177,10 @@ def epost(db: str, ids: IterableT[str] = None, web_env: str = None,
     return {'db': db, 'query_keys': query_keys, 'web_env': web_env}
 
 
-def esummary(db: str, ids: IterableT[str | int] = None, **kwargs) -> dict:
+# Note: incompatible with Python <=3.9
+# TypeError: unsupported operand type(s) for |: '_GenericAlias' and '_GenericAlias'
+# def esummary(db: str, ids: IterableT[str | int] = None, **kwargs) -> dict:
+def esummary(db: str, ids=None, **kwargs) -> dict:
     if ids is None:
         return None
     ids = [str(id) for id in ids]
@@ -321,8 +324,11 @@ def summary(data: dict) -> list:
     return parse_esummary_xml_text(txt)
 
 
+# Note: incompatible with Python <=3.9
+# TypeError: unsupported operand type(s) for |: '_GenericAlias' and '_GenericAlias'
+# def summary(db: str, ids: IterableT[str | int]) -> list:
 @dispatch(str, Iterable, namespace=EUTILS_NS)
-def summary(db: str, ids: IterableT[str | int]) -> list:
+def summary(db: str, ids) -> list:
     txt = esummary(db=db, ids=ids)
     return parse_esummary_xml_text(txt)
 

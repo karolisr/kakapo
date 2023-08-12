@@ -17,8 +17,11 @@ BIOIO_NS = dict()
 HANDLE_TYPES = (io.IOBase, StringIO)
 
 
+# Note: incompatible with Python <=3.9
+# TypeError: unsupported operand type(s) for |: '_GenericAlias' and '_GenericAlias'
+# parse_def=False, simple_return=False) -> List[SeqRecord] | List[str]:
 def read_fasta(f, seq_type, upper=True, def_to_first_space=False,
-               parse_def=False, simple_return=False) -> List[SeqRecord] | List[str]:
+               parse_def=False, simple_return=False) -> list:
     """Read a FASTA file."""
     assert seq_type.upper() in SEQ_TYPES
 
