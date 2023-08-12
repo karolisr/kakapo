@@ -238,7 +238,9 @@ def config_file_parse(file_path, taxonomy=None, err_on_missing=True,
     try:
         # General
         project_name = cfg.get('General', 'project_name')
-        email = cfg.get('General', 'email')
+
+        # email = cfg.get('General', 'email')
+        email = 'kraman2@uic.edu'
 
         output_directory = cfg.get('General', 'output_directory')
         if editor is False:
