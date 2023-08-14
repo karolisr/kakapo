@@ -314,8 +314,12 @@ def config_file_parse(file_path, taxonomy=None, err_on_missing=True,
 
         for entry in fastq_temp:
 
-            key = entry[0]
-            val = entry[1]
+            key = None
+            val = entry[0]
+
+            if len(entry) == 2 and entry[1] != '':
+                key = entry[0]
+                val = entry[1]
 
             val = val.split(':')
             if len(val) == 1:
@@ -329,7 +333,7 @@ def config_file_parse(file_path, taxonomy=None, err_on_missing=True,
                 else:
                     val = ['', val[0]]
 
-            taxa_temp = [val[0]]
+            taxa_temp = [val[0].replace('_', ' ')]
 
             if taxonomy is not None:
                 # FixMe: It is possible for tax_id to be None!
@@ -345,8 +349,16 @@ def config_file_parse(file_path, taxonomy=None, err_on_missing=True,
             if tax_id is None:
                 tax_id = tax_group
 
+            f_name = basename(val[1])
+
+            if key is None:
+                if '*' in f_name:
+                    key = 'pe_'
+                else:
+                    key = 'se_'
+
             if key.startswith('pe_'):
-                f_name = basename(val[1])
+                # f_name = basename(val[1])
 
                 if '*' not in f_name:
                     print()
@@ -401,7 +413,7 @@ def config_file_parse(file_path, taxonomy=None, err_on_missing=True,
                     fq_pe.append([tax_id, pe])
 
             elif key.startswith('se_'):
-                f_name = basename(val[1])
+                # f_name = basename(val[1])
                 d_path = abspath(expanduser(dirname(val[1])))
                 files, err = list_of_files_at_path(d_path)
 
