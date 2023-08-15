@@ -1,5 +1,9 @@
 # kakapo [![Build Status](https://app.travis-ci.com/karolisr/kakapo.svg?branch=master)](https://app.travis-ci.com/karolisr/kakapo)
 
+## Installation
+
+We added a [Wiki](https://github.com/karolisr/kakapo/wiki) with detailed explanations, including step-by-step, multi-platform [installation instructions](https://github.com/karolisr/kakapo/wiki/Installation).
+
 ## Brief Description
 
 Studies in many fields within the life sciences increasingly rely on RNA sequencing (RNA-seq) data. As a result, RNA-seq datasets deposited to the NCBI Sequence Read Archive (SRA) are proliferating. In addition to serving as an archive for the original studies, these datasets present an opportunity for novel research.
@@ -9,7 +13,3 @@ Studies in many fields within the life sciences increasingly rely on RNA sequenc
 `kakapo` can be flexibly employed to extract arbitrary loci, such as those commonly used for phylogenetic inference in systematics.
 
 A 12-minute overview of `kakapo` from my Botany 2020 conference talk: [https://youtu.be/2D04DQlV6CA](https://youtu.be/2D04DQlV6CA)
-
-## Installation
-
-We added a [Wiki](https://github.com/karolisr/kakapo/wiki) with detailed explanations, including step-by-step, multi-platform [installation instructions](https://github.com/karolisr/kakapo/wiki/Installation).
