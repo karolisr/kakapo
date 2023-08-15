@@ -416,8 +416,9 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
     low = 25
 
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
-        print()
+        # print()
         # Log.inf('Calculating minimum acceptable read length.')
+        pass
     else:
         return None
 
@@ -475,7 +476,8 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
 
         if ml is not None:
             if ml < MAX_READ_LEN_ILLUMINA:
-                Log.msg(str(ml) + ' nt:', x[0])
+                # Log.msg(str(ml) + ' nt:', x[0])
+                pass
             else:
                 Log.wrn('FASTQ file(s) contain reads longer than ' +
                         str(MAX_READ_LEN_ILLUMINA) + ' bp, blacklisting:',
@@ -485,7 +487,7 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
                         move(f_to_blacklist, f_to_blacklist.replace(
                             '.fastq', '_blacklisted.fastq'))
         else:
-            Log.msg(' ?' + ' nt:', x[0])
+            # Log.msg(' ?' + ' nt:', x[0])
             ml = low
 
         if x[3] == 'se':
