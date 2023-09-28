@@ -5,12 +5,10 @@ More information on E-utilities at:
     http://www.ncbi.nlm.nih.gov/books/NBK25497
 
 Entrez Unique Identifiers (UIDs) for selected databases:
-    http://www.ncbi.nlm.nih.gov/books/NBK25497/table/chapter2.T
-    ._entrez_unique_identifiers_ui/?report=objectonly
+    http://www.ncbi.nlm.nih.gov/books/NBK25497/table/chapter2.T._entrez_unique_identifiers_ui/?report=objectonly
 
 Valid values of &retmode and &rettype for EFetch (null = empty string):
-    https://www.ncbi.nlm.nih.gov/books/NBK25499/table/chapter4.T
-    ._valid_values_of__retmode_and/?report=objectonly
+    https://www.ncbi.nlm.nih.gov/books/NBK25499/table/chapter4.T._valid_values_of__retmode_and/?report=objectonly
 """
 
 from copy import deepcopy
@@ -20,13 +18,13 @@ from collections.abc import Iterable
 from functools import wraps
 from io import StringIO
 from time import sleep
-from typing import Callable as CallableT
-from typing import Iterable as IterableT
+from typing import Callable
+from typing import Any
+from typing import Union
 from xml.etree import ElementTree
 
-from multipledispatch import dispatch
 # from requests.exceptions import HTTPError
-from requests.models import Response
+from requests import Response
 
 from kakapo.tools.bioio import read_fasta
 from kakapo.tools.parsers import eutils_loc_str
@@ -41,55 +39,51 @@ EUTILS_NS = dict()
 ENTREZ_BASE_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/'
 
 
-def find_api_key() -> str:
-    global_variables = globals()
+def find_api_key() -> Union[str, None]:
+    api_key: Union[str, None] = None
+    global_variables: dict[str, Any] = globals()
     if 'ENTREZ_KEY' in global_variables:
         api_key = global_variables['ENTREZ_KEY']
+        Log.msg('ENTREZ_KEY found in global_variables', api_key)  # type: ignore
     elif 'ENTREZ_KEY' in os.environ:
         api_key = os.environ['ENTREZ_KEY']
+        Log.msg('ENTREZ_KEY found in os.environ', api_key)  # type: ignore
     else:
-        Log.wrn('Warning:', 'ENTREZ_KEY is not defined.')
-        api_key = None
-
+        Log.wrn('Warning:', 'ENTREZ_KEY is not defined.')  # type: ignore
     return api_key
 
 
-def ncbi_api_key(f: CallableT) -> CallableT:
+def ncbi_api_key(f: Callable) -> Callable:
     @wraps(f)
-    def wrapper(api_key: str = None, *args, **kwargs):
+    def wrapper(api_key: Union[str, None] = None, *args, **kwargs) -> Callable:
         if api_key is None:
             api_key = find_api_key()
         return f(api_key=api_key, *args, **kwargs)
-
     return wrapper
 
 
-def history(f: CallableT) -> CallableT:
+def history(f: Callable) -> Callable:
     @wraps(f)
-    def wrapper(usehistory: bool = False, web_env: str = None,
-                query_key: str = None, *args,
-                **kwargs):
+    def wrapper(usehistory: bool = False, web_env: Union[str, None] = None,
+                query_key: Union[str, None] = None, *args, **kwargs) -> Callable:
+        uh: Union[str, None] = None
         if usehistory is True or web_env is not None:
-            usehistory = 'y'
-        else:
-            usehistory = None
-
-        return f(usehistory=usehistory, web_env=web_env, query_key=query_key,
-                 *args, **kwargs)
-
+            uh = 'y'
+        return f(usehistory=uh, web_env=web_env, query_key=query_key, *args,
+                 **kwargs)
     return wrapper
 
 
-def with_history(f: CallableT) -> CallableT:
+def with_history(f: Callable) -> Callable:
     @wraps(f)
-    def wrapper(data: dict, **kwargs):
-        # def wrapper(data: dict, rettype: str = 'gb', retmode: str = 'xml'):
+    def wrapper(data: dict) -> Any:
 
-        db = data['db']
-        query_keys = data['query_keys']
-        web_env = data['web_env']
+        db: str = data['db']
+        query_keys: list = data['query_keys']
+        web_env: str = data['web_env']
 
-        new_data = {'db': db, 'query_key': None, 'web_env': web_env}
+        new_data = {
+            'db': db, 'query_key': None, 'web_env': web_env}
 
         if len(query_keys) == 0:
             return f(new_data)
@@ -117,16 +111,17 @@ def eutil(util, db, api_key=None, bdata=None, cmd=None, complexity=None,
           reldate=None, retmax=None, retmode=None, retstart=None, rettype=None,
           seq_start=None, seq_stop=None, sort=None, strand=None, term=None,
           tool=None, usehistory=None, version=None, web_env=None) -> Response:
-    url = ENTREZ_BASE_URL + util
+    url: str = ENTREZ_BASE_URL + util
 
+    ids_joined: Union[str, None] = None
     if ids is not None:
-        assert isinstance(ids, IterableT)
-        ids = ','.join(ids)
+        assert isinstance(ids, Iterable)
+        ids_joined = ','.join(ids)
 
     params = {'api_key': api_key, 'bdata': bdata, 'cmd': cmd,
               'complexity': complexity, 'datetype': datetype, 'db': db,
               'dbfrom': dbfrom, 'email': email, 'field': field,
-              'holding': holding, 'id': ids, 'idtype': idtype,
+              'holding': holding, 'id': ids_joined, 'idtype': idtype,
               'linkname': linkname, 'location': location, 'maxdate': maxdate,
               'mindate': mindate, 'query_key': query_key, 'reldate': reldate,
               'retmax': retmax, 'retmode': retmode, 'retstart': retstart,
@@ -143,25 +138,27 @@ def eutil(util, db, api_key=None, bdata=None, cmd=None, complexity=None,
 
 
 # E-utilities ----------------------------------------------------------------
-def einfo(db: str) -> dict:
-    r = eutil(util='einfo.fcgi', db=db, version='2.0', retmode='json')
+def einfo(db: str) -> Union[dict, None]:
+    r: Response = eutil(util='einfo.fcgi', db=db, version='2.0', retmode='json')
     if r is not None:
         return r.json()
 
 
-def esearch(db: str, term: str, usehistory: bool = False, web_env: str = None,
-            query_key: int = None, **kwargs) -> dict:
-    r = eutil(util='esearch.fcgi', rettype='uilist', retmode='json', db=db,
-              term=term, usehistory=usehistory, web_env=web_env,
+def esearch(db: str, term: str, usehistory: bool = False,
+            web_env: Union[str, None] = None,
+            query_key: Union[int, None] = None, **kwargs) -> Union[dict, None]:
+    r = eutil(util='esearch.fcgi', rettype='uilist', retmode='json',
+              db=db, term=term, usehistory=usehistory, web_env=web_env,
               query_key=query_key, **kwargs)
     if r is not None:
         return r.json()
 
 
-def epost(db: str, ids: IterableT[str] = None, web_env: str = None,
+def epost(db: str, ids: Union[Iterable[str], None] = None,
+          web_env: Union[str, None] = None,
           **kwargs) -> dict:
-    r = eutil(util='epost.fcgi', db=db, ids=ids, web_env=web_env,
-              retmode='xml', **kwargs)
+    r: Response = eutil(util='epost.fcgi', db=db, ids=ids, web_env=web_env,
+                        retmode='xml', **kwargs)
 
     query_keys = list()
     web_env = None
@@ -170,6 +167,7 @@ def epost(db: str, ids: IterableT[str] = None, web_env: str = None,
         root = ElementTree.fromstring(r.text)
         for child in root:
             if child.tag == 'QueryKey':
+                assert child.text is not None
                 query_keys.append(int(child.text))
             if child.tag == 'WebEnv':
                 web_env = child.text
@@ -177,23 +175,22 @@ def epost(db: str, ids: IterableT[str] = None, web_env: str = None,
     return {'db': db, 'query_keys': query_keys, 'web_env': web_env}
 
 
-# Note: incompatible with Python <=3.9
-# TypeError: unsupported operand type(s) for |: '_GenericAlias' and '_GenericAlias'
-# def esummary(db: str, ids: IterableT[str | int] = None, **kwargs) -> dict:
-def esummary(db: str, ids=None, **kwargs) -> dict:
+def esummary(db: str, ids: Union[Iterable[Union[str, int]], None] = None,
+             **kwargs) -> Union[str, None]:
     if ids is None:
         return None
     ids = [str(id) for id in ids]
-    r = eutil(util='esummary.fcgi', db=db, ids=ids, version='1.0',
-              retmode='xml', **kwargs)
+    r: Response = eutil(util='esummary.fcgi', db=db, ids=ids, version='1.0',
+                        retmode='xml', **kwargs)
     if r is not None:
         return r.text
 
 
-def efetch(db: str, ids: IterableT[str] = None, rettype: str = None,
-           retmode: str = None, **kwargs) -> str:
-    r = eutil(util='efetch.fcgi', db=db, ids=ids, rettype=rettype,
-              retmode=retmode, **kwargs)
+def efetch(db: str, ids: Union[Iterable[str], None] = None,
+           rettype: Union[str, None] = None,
+           retmode: Union[str, None] = None, **kwargs) -> Union[str, None]:
+    r: Response = eutil(util='efetch.fcgi', db=db, ids=ids, rettype=rettype,
+                        retmode=retmode, **kwargs)
     # try:
     #     r.raise_for_status()
     # except HTTPError as e:
@@ -204,12 +201,14 @@ def efetch(db: str, ids: IterableT[str] = None, rettype: str = None,
         return r.text
 
 
-def elink(db: str, dbfrom: str, cmd: str, ids: IterableT[str] = None,
-          **kwargs) -> list:
+def elink(db: str, dbfrom: str, cmd: str,
+          ids: Union[Iterable[str], None] = None, **kwargs
+          ) -> Union[list, None]:
+    ids_separate = None
     if ids is not None:
-        ids = [('id', x) for x in ids]
-    r = eutil(util='elink.fcgi', db=db, dbfrom=dbfrom, cmd=cmd,
-              ids_separate=ids, retmode='json', **kwargs)
+        ids_separate = [('id', x) for x in ids]
+    r: Response = eutil(util='elink.fcgi', db=db, dbfrom=dbfrom, cmd=cmd,
+                        ids_separate=ids_separate, retmode='json', **kwargs)
 
     if r is not None:
         r_dict = r.json()
@@ -217,8 +216,9 @@ def elink(db: str, dbfrom: str, cmd: str, ids: IterableT[str] = None,
         return linksets
 
 
-def espell(db: str, term: str, **kwargs) -> str:
-    r = eutil(util='espell.fcgi', db=db, term=term, retmode='xml', **kwargs)
+def espell(db: str, term: str, **kwargs) -> Union[str, None]:
+    r: Response = eutil(util='espell.fcgi', db=db, term=term, retmode='xml',
+                        **kwargs)
 
     corrected_query = None
     if r is not None:
@@ -236,26 +236,27 @@ def _strip_split(txt: str) -> list:
     return txt.strip().split('\n')
 
 
-def _elink_ok(dbfrom: str, ids: IterableT[str],
+def _elink_ok(dbfrom: str, ids: Iterable[str],
               linkname: str) -> tuple:
     ids = gis(dbfrom, ids)
-    links_available = elink(db='', dbfrom=dbfrom, cmd='acheck', ids=ids,
-                            linkname=linkname)
+    links_available: Union[list, None] = elink(
+        db='', dbfrom=dbfrom, cmd='acheck', ids=ids, linkname=linkname)
     ret_val = list()
-    for ok in links_available:
-        idchecklist = ok['idchecklist']
-        idlinksets = idchecklist['idlinksets']
-        for idlinkset in idlinksets:
-            acc = idlinkset['id']
-            for linkinfo in idlinkset['linkinfos']:
-                if linkname == linkinfo['linkname']:
-                    ret_val.append(acc)
-                    break
+    if links_available is not None:
+        for ok in links_available:
+            idchecklist = ok['idchecklist']
+            idlinksets = idchecklist['idlinksets']
+            for idlinkset in idlinksets:
+                acc = idlinkset['id']
+                for linkinfo in idlinkset['linkinfos']:
+                    if linkname == linkinfo['linkname']:
+                        ret_val.append(acc)
+                        break
 
     return tuple(ret_val)
 
 
-def _elink_parse(db: str, dbfrom: str, linksets: IterableT[dict]) -> tuple:
+def _elink_parse(db: str, dbfrom: str, linksets: Iterable[dict]) -> tuple:
     ids_from = []
     ids_to = []
     for ls in linksets:
@@ -270,16 +271,19 @@ def _elink_parse(db: str, dbfrom: str, linksets: IterableT[dict]) -> tuple:
     return ids_from, ids_to
 
 
-def _elink_runner(db: str, dbfrom: str,
-                  ids: IterableT[str], linkname: str = None) -> tuple:
+def _elink_runner(db: str, dbfrom: str, ids: Iterable[str],
+                  linkname: Union[str, None] = None) -> tuple:
     if type(db) not in (str, ) or type(dbfrom) not in (str, ):
         raise Exception('Parameters db and dbfrom must be strings.')
     if linkname is None:
         linkname = dbfrom + '_' + db
-    ids_ok = _elink_ok(dbfrom=dbfrom, ids=ids, linkname=linkname)
-    linksets = elink(db=db, dbfrom=dbfrom, cmd='neighbor', linkname=linkname,
-                     ids=ids_ok)
-    ids_from, ids_to = _elink_parse(db, dbfrom, linksets)
+    ids_ok: tuple = _elink_ok(dbfrom=dbfrom, ids=ids, linkname=linkname)
+    ids_from = []
+    ids_to = []
+    linksets: Union[list, None] = elink(db=db, dbfrom=dbfrom, cmd='neighbor',
+                                        linkname=linkname, ids=ids_ok)
+    if linksets is not None:
+        ids_from, ids_to = _elink_parse(db, dbfrom, linksets)
     return ids_from, ids_to
 
 
@@ -314,9 +318,8 @@ def search(db: str, term: str) -> dict:
     return ret_dict
 
 
-@dispatch(dict, namespace=EUTILS_NS)
 @with_history
-def summary(data: dict) -> list:
+def summary_with_data(data: dict) -> list:
     ok = _history_server_data_ok(data)
     if ok is False:
         return list()
@@ -324,54 +327,53 @@ def summary(data: dict) -> list:
     return parse_esummary_xml_text(txt)
 
 
-# Note: incompatible with Python <=3.9
-# TypeError: unsupported operand type(s) for |: '_GenericAlias' and '_GenericAlias'
-# def summary(db: str, ids: IterableT[str | int]) -> list:
-@dispatch(str, Iterable, namespace=EUTILS_NS)
-def summary(db: str, ids) -> list:
+def summary(db: str, ids: Iterable[Union[str, int]]) -> list:
     txt = esummary(db=db, ids=ids)
     return parse_esummary_xml_text(txt)
 
 
-@dispatch(dict, namespace=EUTILS_NS)
 @with_history
-def accs(data: dict) -> list:
+def accs_with_data(data: dict) -> list:
     ok = _history_server_data_ok(data)
     if ok is False:
         return list()
     txt = efetch(rettype='uilist', retmode='text', **data)
-    ret_list = _strip_split(txt)
+    ret_list = []
+    if txt is not None:
+        ret_list = _strip_split(txt)
     return ret_list
 
 
-@dispatch(str, Iterable, namespace=EUTILS_NS)
-def accs(db: str, ids: IterableT[str]) -> list:
+def accs(db: str, ids: Iterable[str]) -> list:
     txt = efetch(db=db, ids=ids, rettype='uilist', retmode='text')
-    ret_list = _strip_split(txt)
+    ret_list = []
+    if txt is not None:
+        ret_list = _strip_split(txt)
     return ret_list
 
 
-@dispatch(dict, namespace=EUTILS_NS)
 @with_history
-def gis(data: dict) -> list:
+def gis_with_data(data: dict) -> list:
     ok = _history_server_data_ok(data)
     if ok is False:
         return list()
     txt = efetch(rettype='uilist', retmode='text', idtype=None, **data)
-    ret_list = _strip_split(txt)
+    ret_list = []
+    if txt is not None:
+        ret_list = _strip_split(txt)
     return ret_list
 
 
-@dispatch(str, Iterable, namespace=EUTILS_NS)
-def gis(db: str, ids: IterableT[str]) -> list:
+def gis(db: str, ids: Iterable[str]) -> list:
     txt = efetch(db=db, ids=ids, rettype='uilist', retmode='text',
                  idtype=None)
-    ret_list = _strip_split(txt)
+    ret_list = []
+    if txt is not None:
+        ret_list = _strip_split(txt)
     return ret_list
 
 
-@dispatch(str, Iterable, namespace=EUTILS_NS)
-def taxids(db: str, ids: IterableT[str]) -> dict:
+def taxids(db: str, ids: Iterable[str]) -> dict:
     dbfrom = db
     db = 'taxonomy'
     ids_from, ids_to = _elink_runner(db=db, dbfrom=dbfrom, ids=ids)
@@ -380,9 +382,8 @@ def taxids(db: str, ids: IterableT[str]) -> dict:
     return dict(zip(ids_from, ids_to))
 
 
-@dispatch(dict, namespace=EUTILS_NS)
-def taxids(data: dict) -> dict:
-    ids = accs(data)
+def taxids_with_data(data: dict) -> dict:
+    ids = accs_with_data(data)
     return taxids(data['db'], ids)
 
 
@@ -397,29 +398,34 @@ def _process_downloaded_seq_data(efetch_txt: str, db: str, rettype: str,
             seq_type = SEQ_TYPE_NT
         elif db == 'protein':
             seq_type = SEQ_TYPE_AA
-        rec_list = read_fasta(StringIO(efetch_txt), seq_type, parse_def=True)
+        rec_list = read_fasta(StringIO(efetch_txt), seq_type,
+                              parse_def=True)
     return rec_list
 
 
-@dispatch(dict, namespace=EUTILS_NS)
 @with_history
-def seqs(data: dict, rettype: str = 'gb', retmode: str = 'xml') -> list[SeqRecord]:
+def seqs_with_data(data: dict, rettype: str = 'gb', retmode: str = 'xml'
+                   ) -> list[SeqRecord]:
+    ret_list = []
     ok = _history_server_data_ok(data)
     if ok is False:
-        return list()
+        return ret_list
     txt = efetch(rettype=rettype, retmode=retmode, **data)
     db = data['db']
-    return _process_downloaded_seq_data(txt, db, rettype, retmode)
+    if txt is not None:
+        ret_list = _process_downloaded_seq_data(txt, db, rettype,
+                                                retmode)
+    return ret_list
 
 
-@dispatch(str, Iterable, namespace=EUTILS_NS)
-def seqs(db: str, ids: IterableT[str], rettype: str = 'gb',
-         retmode: str = 'xml', location: dict = None) -> list[SeqRecord]:
+def seqs(db: str, ids: Iterable[str], rettype: str = 'gb',
+         retmode: str = 'xml', location: Union[str, None] = None
+         ) -> list[SeqRecord]:
     if location is None:
         ids_requested = set(ids)
         r_temp = list()
         epost_r = epost(db, ids)
-        r = seqs(epost_r, rettype=rettype, retmode=retmode)
+        r = seqs_with_data(epost_r, rettype=rettype, retmode=retmode)
         r_temp += r
         if len(r) != len(ids_requested):
             # DEBUG
@@ -436,29 +442,32 @@ def seqs(db: str, ids: IterableT[str], rettype: str = 'gb',
             # eutils.seqs('protein', ['QYF06680.1'])  # OK
             # eutils.seqs('nuccore', ['QYF06680.1'])  # KO
             for id in deepcopy(ids_remaining):
-                check_id = len(summary(search(db=db, term=id))) == 1
+                check_id = len(
+                    summary_with_data(search(db=db, term=id))) == 1
                 if check_id is False:
                     print(f'Record {id} was not found in the database "{db}".')
                     ids_remaining.remove(id)
             # ----------------------------------------------------------------
-            r = seqs(db, list(ids_remaining), rettype=rettype, retmode=retmode)
+            r = seqs(db, list(ids_remaining), rettype=rettype,
+                     retmode=retmode)
             r_temp += r
             return r_temp
         else:
             return r_temp
     else:
-        txt = efetch(db=db, ids=ids, rettype=rettype, retmode=retmode,
-                     location=location)
-        return _process_downloaded_seq_data(txt, db, rettype, retmode)
+        txt = efetch(db=db, ids=ids, rettype=rettype,
+                     retmode=retmode, location=location)
+        if txt is not None:
+            return _process_downloaded_seq_data(txt, db, rettype, retmode)
+        return []
 
 
-@dispatch(Iterable, namespace=EUTILS_NS)
-def cds(ids_protein: IterableT[str]) -> list:
+def cds(ids_protein: Iterable[str]) -> list:
     prot_recs = seqs('protein', ids_protein)
     ret_list = list()
     for prot_rec in prot_recs:
         prot_def = prot_rec.definition
-        prot_acc_ver = prot_rec.accession_version
+        prot_acc_ver: Union[str, None] = prot_rec.accession_version
         if prot_rec.coded_by is not None:
             cds_loc_str = eutils_loc_str(prot_rec.coded_by)
             cds_acc = prot_rec.coded_by['external_ref']
@@ -473,38 +482,39 @@ def cds(ids_protein: IterableT[str]) -> list:
 
             cds_def = cds_rec.definition
             cds_acc_ver = cds_rec.accession_version
-            cds_def_new = 'CDS for: aa_acc[' + prot_acc_ver + '] ' + \
-                          prot_def[0].title() + prot_def[1:] + \
-                          '. Extracted from: nt_acc[' + cds_acc_ver + '] ' + \
-                          cds_def[0].title() + cds_def[1:] + '.'
+
+            assert prot_acc_ver is not None
+            assert cds_acc_ver is not None
+
+            cds_def_new = 'CDS for: aa_acc[' + prot_acc_ver + '] ' \
+                + prot_def[0].title() + prot_def[1:] \
+                + '. Extracted from: nt_acc[' + cds_acc_ver + '] ' \
+                + cds_def[0].title() + cds_def[1:] + '.'
+
             cds_rec.definition = cds_def_new
             cds_rec.accession = prot_rec.accession
             cds_rec.version = prot_rec.version
             ret_list.append(cds_rec)
             sleep(0.5)
+
     return ret_list
 
 
-@dispatch(dict, namespace=EUTILS_NS)
-def cds(data_protein: dict) -> dict:
+def cds_with_data(data_protein: dict) -> list:
     ok = _history_server_data_ok(data_protein)
     if ok is False:
         return list()
     assert data_protein['db'] == 'protein'
-    ids_protein = accs(data_protein)
+    ids_protein = accs_with_data(data_protein)
     return cds(ids_protein)
 
 
-@dispatch(Iterable, namespace=EUTILS_NS)
-def sra_run_info(ids_srr: IterableT[str]) -> list:
+def sra_run_info(srr: Union[Iterable[str], str]) -> list:
+    if type(srr) == str:
+        srr = [srr]
     # CSV output example: https://trace.ncbi.nlm.nih.gov/Traces/sra-db-be/sra-db-be.cgi?rettype=runinfo&acc=SRR13805638,SRR13805642
-    efetch_xml_txt = efetch(db='sra', ids=ids_srr, rettype='runinfo',
+    efetch_xml_txt = efetch(db='sra', ids=srr, rettype='runinfo',
                             retmode='xml')
     ret_list = parse_efetch_sra_xml_text(efetch_xml_txt)
-    ret_list = [x for x in ret_list if x['Run'] in ids_srr]
+    ret_list = [x for x in ret_list if x['Run'] in srr]
     return ret_list
-
-
-@dispatch(str, namespace=EUTILS_NS)
-def sra_run_info(id_srr: str) -> list:
-    return sra_run_info([id_srr])
