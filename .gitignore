@@ -265,3 +265,5 @@ kakapo/utils/c/fq
 kakapo/utils/c/fqgz
 
 bugs/
+
+pyrightconfig.json
