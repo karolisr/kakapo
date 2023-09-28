@@ -419,11 +419,11 @@ def dep_check_vsearch(dir_dep, os_id, dist_id, debian_dists, redhat_dists,
 # SPAdes
 def dep_check_spades(dir_dep, os_id, force):
     if os_id == 'mac':
-        url = ('https://github.com/ablab/spades/releases/download/v3.15.4/'
-               'SPAdes-3.15.4-Darwin.tar.gz')
+        url = ('https://github.com/ablab/spades/releases/download/v3.15.5/'
+               'SPAdes-3.15.5-Darwin.tar.gz')
     elif os_id == 'linux':
-        url = ('https://github.com/ablab/spades/releases/download/v3.15.4/'
-               'SPAdes-3.15.4-Linux.tar.gz')
+        url = ('https://github.com/ablab/spades/releases/download/v3.15.5/'
+               'SPAdes-3.15.5-Linux.tar.gz')
 
     dnld_path = opj(dir_dep, 'SPAdes.tar.gz')
 
