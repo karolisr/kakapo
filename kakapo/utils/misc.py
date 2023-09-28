@@ -135,7 +135,7 @@ def replace_line_in_file(file_path, line_str, replace_str):
             print(line.rstrip())
 
 
-def invert_dict(d, value_iterable_type=tuple):
+def invert_dict(d, value_iterable_type=tuple, force_return_dict_values_iterable=False):
     d_type = type(d)
     d_inv = defaultdict(list)
     iterable_not_str = (set, list, tuple)
@@ -143,15 +143,16 @@ def invert_dict(d, value_iterable_type=tuple):
         if type(v) in iterable_not_str:
             for x in v:
                 d_inv[x].append(k)
-        elif type(v) is str:
+        elif type(v) in [str, int]:
             d_inv[v].append(k)
     v_lengths = {len(x) for x in list(d_inv.values())}
-    if len(v_lengths) == 1:
+    if len(v_lengths) == 1 and force_return_dict_values_iterable is False:
         if v_lengths.pop() == 1:
             for k in d_inv:
                 d_inv[k] = d_inv[k][0]
     else:
         for k in d_inv:
+            d_inv[k] = list(d_inv[k], )
             d_inv[k] = value_iterable_type(d_inv[k])
     d_inv = d_type(d_inv)
     if d_type is OrderedDict:
