@@ -126,12 +126,11 @@ def parse_gb_location(s):
 
 def eutils_loc_str(loc_parsed):
     tmp = ''
-    for l in loc_parsed['location']:
-        tmp += str(l[0]) + ':' + str(l[1])
+    for loc in loc_parsed['location']:
+        tmp += str(loc[0]) + ':' + str(loc[1])
         if loc_parsed['rev_comp'] is True:
             tmp += ':2'
         tmp += ','
-
     return tmp.strip(',')
 
 

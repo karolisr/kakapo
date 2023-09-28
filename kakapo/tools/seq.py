@@ -448,7 +448,7 @@ class SeqRecord(object):
             self._version = int(value)
 
     @property
-    def accession_version(self):
+    def accession_version(self) -> Union[str, None]:
         version = ''
         if self._accession is None:
             return None
