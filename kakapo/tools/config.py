@@ -54,13 +54,57 @@ DIR_DEP = os.path.join(DIR_DAT, 'dependencies')
 DIR_TAX = os.path.join(DIR_DAT, 'ncbi-taxonomy')
 DIR_KRK = os.path.join(DIR_DAT, 'kraken2_dbs')
 
+# Logo -----------------------------------------------------------------------
+
+# D = f'\033[38;2;{69};{121};{40}m'    # Dark Green
+# G = f'\033[38;2;{127};{183};{70}m'   # Green
+# T = f'\033[38;2;{254};{116};{85}m'   # Red
+# X = f'\033[38;2;{240};{110};{85}m'   # Dark Red
+# W = f'\033[38;2;{254};{129};{111}m'  # Light Red
+# Y = f'\033[38;2;{255};{183};{82}m'   # Yellow
+# B = f'\033[38;2;{0};{0};{0}m'        # Black
+# E = '\033[m'                         # Reset
+
+D = '\033[2;92m'  # Dark Green
+G = '\033[0;92m'  # Green
+T = '\033[0;91m'  # Red
+X = '\033[2;91m'  # Dark Red
+W = '\033[0;91m'  # Light Red
+Y = '\033[0;93m'  # Yellow
+B = '\033[2;90m'  # Black
+E = '\033[0m'     # Reset
+
+LOGO = f'''              {D}██████████
+            {D}██{G}██████████{D}████
+          {D}██{G}████████████████{D}██
+        {D}██{G}████████████████████{D}██
+      {D}██{G}██████{B}██{G}████████████{B}██{D}██
+    {D}██{G}████████{B}██{G}██{W}████████{G}██{B}██{G}██{D}██
+    {D}██{G}████████████{W}█{B}█{T}██████{B}█{X}█{G}████{D}██
+  {D}████{G}████████████{W}██{T}██████{X}██{G}██████{D}██
+  {D}██{G}██████████████{W}██{T}██████{X}██{G}████████{D}██
+{D}██{G}████████████████{W}██{T}████{X}████{G}████████{D}██
+{D}██{G}██████████████████{W}██{T}██{X}██{G}██████████{D}██
+{D}██{G}██████████████████{W}██{T}██{X}██{G}██████████{D}██
+  {D}██{G}██████████████████{X}██{G}████████████{D}██
+    {D}██{G}████████████████████████████████{D}██
+    {D}██{G}████████████{Y}████{G}████████████{Y}████{G}█{D}██
+    {D}████{G}███████████{Y}██{G}██████████████{Y}██{G}████{D}████
+    {D}██{G}██{D}██████{G}█████{Y}██{G}█{Y}████{G}█{Y}████{G}████{Y}██{G}█{Y}████{G}█{Y}████{D}█ {Y}██████   ████
+    {D}██{G}████████{D}██{G}███{Y}██{G}██{Y}██{G}█████{Y}██{G}███{Y}██{G}██{Y}██{G}█████{Y}██{D}██{Y}██  ██ ██  ██
+    {D}███████████████{Y}█████{D}███{Y}█████{D}███{Y}█████{D}███{Y}█████{D}██{Y}██{D}█ {Y}██ ██  ██
+                   {Y}██  ██ ███ ██   ██  ██ ███ ██  ██  ██ ██  ██
+                  {Y}████ ███ ██████ ████ ███ ██████ █████   ████
+                                                  ██
+                                                  ██
+                                                 ████{E}'''
+
 # Script Info ----------------------------------------------------------------
-SCRIPT_INFO = ('\n'
-               + '{s} version: {v}\n'.format(s=__script_name__.title(),
-                                             v=__version__)
-               + 'Python version: {pv}\n'.format(pv=PY_V_STR)
-               + 'Operating system: {os}\n'.format(os=OS_INFO)
-               + 'System info: {cores} physical and {threads} logical cores, '
-                 '{ram} GB RAM ({mt})\n'.format(cores=NCPU, threads=NCPUL,
-                                                ram='{0:.2f}'.format(RAM),
-                                                mt=MACHINE_TYPE))
+SCRIPT_INFO = (''
+               # + f'{LOGO}'
+               + '\n'
+               + f'{__script_name__.title()} version: {__version__}\n'
+               + f'Python version: {PY_V_STR}\n'
+               + f'Operating system: {OS_INFO}\n'
+               + f'System info: {NCPU} physical ({NCPUL} logical) cores, '
+                 f'{RAM:.2f} GB RAM ({MACHINE_TYPE})\n')
