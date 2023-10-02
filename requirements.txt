@@ -5,5 +5,5 @@ joblib>=0.16.0
 multipledispatch>=0.6.0
 psutil
 requests==2.31.0
-urllib3==2.0.3
+urllib3==2.0.6
 ncbi-taxonomy-local @ git+https://github.com/karolisr/ncbi-taxonomy-local.git
