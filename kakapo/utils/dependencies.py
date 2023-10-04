@@ -94,6 +94,8 @@ def dep_check_java():
         Log.msg('Java was not found on this system.', '')
         return None
     v = get_dep_version([jv, '--version'], r'(?:java\s*)*(.*)')
+    if v.startswith('Unrecognized option'):
+        v = get_dep_version([jv, '-version'], r'(?:java\s*)*(.*)')
     Log.msg('java is available:', v + ' ' + jv)
     return jv
 
