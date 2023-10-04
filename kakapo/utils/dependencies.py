@@ -87,7 +87,9 @@ def dep_check_java():
     try:
         jv = which('java')
         cmd = [jv, '--version']
-        run(cmd, do_not_raise=True)
+        result = run_then_grep(cmd, "The operation couldn’t be completed.", True)
+        if len(result) > 0:
+            raise Exception()
     except Exception:
         Log.msg('Java was not found on this system.', '')
         return None
