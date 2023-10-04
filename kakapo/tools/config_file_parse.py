@@ -2,28 +2,22 @@
 
 import datetime
 import re
-
 from collections import OrderedDict
-from configparser import ConfigParser
+from configparser import (ConfigParser, MissingSectionHeaderError,
+                          NoOptionError, NoSectionError)
 from copy import copy
-from os.path import abspath
-from os.path import basename
-from os.path import dirname
+from os.path import abspath, basename, dirname
 from os.path import exists as ope
-from os.path import expanduser
-from os.path import join
+from os.path import expanduser, join
 from sys import exit
+from typing import Any, Union
 
-from configparser import MissingSectionHeaderError
-from configparser import NoSectionError
-from configparser import NoOptionError
+from ncbi_taxonomy_local import Taxonomy
 
 from kakapo.tools.ebi_domain_search import pfam_entry
 from kakapo.tools.eutils import find_api_key
-from kakapo.utils.misc import list_of_files_at_path
-from kakapo.utils.misc import replace_line_in_file
 from kakapo.utils.logging import Log
-
+from kakapo.utils.misc import list_of_files_at_path, replace_line_in_file
 
 GROUP_TAX_IDS = {'animals': 33208,
                  'archaea': 2157,
@@ -36,7 +30,7 @@ GROUP_TAX_IDS = {'animals': 33208,
 # FixMe: This needs to be done in a more elegant way.
 #        Should inform the user that the closest taxonomic term should be
 #        provided
-def _parse_taxa(taxa, tax_group, taxonomy, config_file_path):
+def _parse_taxa(taxa, tax_group: int, taxonomy: Taxonomy, config_file_path: str):
     txids = list()
 
     for tax in taxa:
@@ -44,16 +38,15 @@ def _parse_taxa(taxa, tax_group, taxonomy, config_file_path):
             txids.append(int(tax))
         else:
             # tax_orig = tax
-            txid = taxonomy.tax_id_for_name_and_group_tax_id(
-                name=tax, group_tax_id=tax_group)
+            txid = taxonomy.taxid_for_name_and_group_taxid(tax, tax_group)
 
             if txid is None:
-                txid = taxonomy.tax_id_for_name_and_group_tax_id(
-                    name=tax.split(' ')[0], group_tax_id=tax_group)
+                txid = taxonomy.taxid_for_name_and_group_taxid(
+                    tax.split(' ')[0], tax_group)
 
             if txid is None:
-                txid = taxonomy.tax_id_for_name_and_group_tax_id(
-                    name=tax.split('_')[0], group_tax_id=tax_group)
+                txid = taxonomy.taxid_for_name_and_group_taxid(
+                    tax.split('_')[0], tax_group)
 
             if txid is None:
                 txids.append(txid)
@@ -106,7 +99,7 @@ def ss_file_parse(file_path):
 
     cfg = ConfigParser(delimiters=('='), allow_no_value=True,
                        empty_lines_in_values=True)
-    cfg.optionxform = str
+    cfg.optionxform = str  # type: ignore
     cfg.SECTCRE = re.compile(r'\[\s*(?P<header>[^]]+?)\s*\]')
 
     try:
@@ -129,8 +122,8 @@ def ss_file_parse(file_path):
 
         if not required_options <= set(o):
             missing = required_options - (required_options & set(o))
-            Log.err('Missing required option(s):' + ', '.join(missing) +
-                    'for search strategy', s)
+            Log.err('Missing required option(s):' + ', '.join(missing)
+                    + 'for search strategy', s)
             exit(1)
 
         organelle = cfg[s]['organelle']
@@ -185,8 +178,8 @@ def ss_file_parse(file_path):
 
         if cfg.has_option(s, 'ncbi_accessions_aa'):
             ncbi_accessions_aa = str(cfg[s]['ncbi_accessions_aa'])
-            ncbi_accessions_aa = sorted(set(ncbi_accessions_aa.split('\n')) -
-                                        {'', 'None'})
+            ncbi_accessions_aa = sorted(set(ncbi_accessions_aa.split('\n'))
+                                        - {'', 'None'})
 
         if cfg.has_option(s, 'entrez_search_queries'):
             entrez_search_queries = str(cfg[s]['entrez_search_queries'])
@@ -222,16 +215,17 @@ def ss_file_parse(file_path):
     return ret_dict
 
 
-def config_file_parse(file_path, taxonomy=None, err_on_missing=True,
-                      editor=False):
+def config_file_parse(file_path: str, taxonomy: Taxonomy,
+                      err_on_missing: bool = True,
+                      editor: bool = False):
 
     cfg = ConfigParser(delimiters=('='), allow_no_value=True)
-    cfg.optionxform = str
+    cfg.optionxform = str  # type: ignore
 
     try:
         cfg.read(file_path)
     except MissingSectionHeaderError:
-        Log.err('Missing section header(s) in the provided ' +
+        Log.err('Missing section header(s) in the provided '
                 'configuration file:', file_path)
         exit(1)
 
@@ -254,7 +248,6 @@ def config_file_parse(file_path, taxonomy=None, err_on_missing=True,
             if entrez_api_key is None:
                 entrez_api_key = ''
         if entrez_api_key != '':
-            # Log.inf('Using Entrez API Key:', entrez_api_key)
             print(f'\n\tUsing Entrez API Key: {entrez_api_key}\n')
 
         should_run_ipr = cfg.getboolean('General', 'run_inter_pro_scan')
@@ -304,7 +297,7 @@ def config_file_parse(file_path, taxonomy=None, err_on_missing=True,
         sras = cfg.items('Target SRA accessions')
         sras = [x[0] for x in sras]
 
-        all_tax_ids = set()
+        all_tax_ids: set[int] = set()
 
         # Target FASTQ files
         fastq_temp = cfg.items('Target FASTQ files')
@@ -338,12 +331,17 @@ def config_file_parse(file_path, taxonomy=None, err_on_missing=True,
             if taxonomy is not None:
                 # FixMe: It is possible for tax_id to be None!
                 #        What happens then?
-                tax_id = _parse_taxa(taxa=taxa_temp,
-                                     tax_group=tax_group,
-                                     taxonomy=taxonomy,
-                                     config_file_path=file_path)[0]
+                tax_id: Union[int, None] = _parse_taxa(
+                    taxa=taxa_temp,
+                    tax_group=tax_group,
+                    taxonomy=taxonomy,
+                    config_file_path=file_path)[0]
             else:
-                tax_id = taxa_temp[0]
+                try:
+                    tax_id = int(taxa_temp[0])
+                except ValueError as e:
+                    Log.err(f'{taxa_temp[0]} cannot be converted to an integer.', 'Expected TaxID.')
+                    exit(1)
 
             # See FixMe above.
             if tax_id is None:
@@ -363,39 +361,39 @@ def config_file_parse(file_path, taxonomy=None, err_on_missing=True,
                 if '*' not in f_name:
                     print()
                     Log.err('The "*" character was not found in the PE file pattern:', f_name)
-                    Log.err('Stopping.')
+                    Log.err('Stopping.', '')
                     exit(1)
 
                 d_path = abspath(expanduser(dirname(val[1])))
                 pattern = re.escape(f_name).replace('\\*', '.') + '$'
                 files, err = list_of_files_at_path(d_path)
 
-                if err is not None:
-                    Log.err(err)
-                    if err_on_missing is True:
-                        Log.err('Stopping.')
-                        exit(1)
+                if files is None:
+                    assert err is not None
+                    Log.err('Stopping.', err)
+                    exit(1)
 
                 if editor is False:
+                    assert files is not None
                     pe = [f for f in files if re.match(pattern, basename(f)) is not None]
                     pe.sort()
 
                     if len(pe) == 0:
                         print()
                         Log.err('No FASTQ files match the pattern:', f_name)
-                        Log.err('Stopping.')
+                        Log.err('Stopping.', '')
                         exit(1)
 
                     elif len(pe) == 1:
                         print()
                         Log.err('Only one FASTQ file matches the PE file pattern:', f_name)
-                        Log.err('Stopping.')
+                        Log.err('Stopping.', '')
                         exit(1)
 
                     elif len(pe) > 2:
                         print()
                         Log.err(str(len(pe)) + ' FASTQ files match the PE file pattern:', f_name)
-                        Log.err('Stopping.')
+                        Log.err('Stopping.', '')
                         exit(1)
 
                     pe = [join(d_path, f) for f in pe]
@@ -404,7 +402,7 @@ def config_file_parse(file_path, taxonomy=None, err_on_missing=True,
                         if not ope(_):
                             print()
                             Log.err('Cannot find the FASTQ file:', _)
-                            Log.err('Stopping.')
+                            Log.err('Stopping.', '')
                             exit(1)
 
                     fq_pe.append([tax_id, pe])
@@ -418,16 +416,16 @@ def config_file_parse(file_path, taxonomy=None, err_on_missing=True,
                 files, err = list_of_files_at_path(d_path)
 
                 if err is not None:
-                    Log.err(err)
+                    Log.err(err, '')
                     if err_on_missing is True:
-                        Log.err('Stopping.')
+                        Log.err('Stopping.', '')
                         exit(1)
 
                 if editor is False:
                     se = abspath(expanduser(val[1]))
                     if not ope(se):
                         Log.err('Cannot find the FASTQ file:', se)
-                        Log.err('Stopping.')
+                        Log.err('Stopping.', '')
                         exit(1)
                     fq_se.append([tax_id, se])
 
@@ -440,47 +438,52 @@ def config_file_parse(file_path, taxonomy=None, err_on_missing=True,
                 all_tax_ids.add(tax_id)
 
         # Target assemblies: FASTA files (DNA)
-        assmbl_temp = cfg.items('Target assemblies: FASTA files (DNA)')
-        assmbl_temp = [x[0].split(':') for x in assmbl_temp]
+        _ = cfg.items('Target assemblies: FASTA files (DNA)')
+        _ = [x[0].split(':') for x in _]
 
-        for i, val in enumerate(copy(assmbl_temp)):
+        for i, val in enumerate(copy(_)):
             if len(val) == 1:
                 tmp_genus_species = basename(val[0]).split('_')
                 if len(tmp_genus_species) == 1:
                     genus = tmp_genus_species[0]
-                    assmbl_temp[i] = [genus, val[0]]
+                    _[i] = [genus, val[0]]
                 elif len(tmp_genus_species) >= 2:
                     genus_species = tmp_genus_species[0] + ' ' + tmp_genus_species[1]
-                    assmbl_temp[i] = [genus_species, val[0]]
+                    _[i] = [genus_species, val[0]]
                 else:
-                    assmbl_temp[i] = ['', val[0]]
+                    _[i] = ['', val[0]]
 
-        taxa_temp = [x[0] for x in assmbl_temp]
+        taxa_temp = [x[0] for x in _]
         taxa_temp = [x.split('.')[0] for x in taxa_temp]
 
         if taxonomy is not None:
             # FixMe: It is possible for one of the tax_ids to be None!
             #        What happens then?
-            tax_ids = _parse_taxa(taxa=taxa_temp,
-                                  tax_group=tax_group,
-                                  taxonomy=taxonomy,
-                                  config_file_path=file_path)
+            tax_ids_temp: list[Union[int, None]] = _parse_taxa(
+                taxa=taxa_temp,
+                tax_group=tax_group,
+                taxonomy=taxonomy,
+                config_file_path=file_path)
         else:
-            tax_ids = taxa_temp
+            try:
+                tax_ids_temp = [int(x) for x in taxa_temp]
+            except ValueError as e:
+                Log.err(f'Values: {taxa_temp} cannot be converted to an integers.', 'Expected TaxIDs.')
+                exit(1)
 
         if editor is False:
-            assmbl_temp = [abspath(expanduser(x[1])) for x in assmbl_temp]
+            _ = [abspath(expanduser(x[1])) for x in _]
         else:
-            assmbl_temp = [x[1] for x in assmbl_temp]
+            _ = [x[1] for x in _]
 
-        assmbl_temp = list(zip(tax_ids, assmbl_temp))
+        _ = list(zip(tax_ids_temp, _))
+        assmbl_temp = [[x[0], x[1]] for x in _]
 
         assmbl = list()
-        tax_ids = list()
+        tax_ids: list[int] = list()
         all_assemblies_found = True
-        for i, a in enumerate(copy(assmbl_temp)):
+        for i, a in enumerate(assmbl_temp):
             # See FixMe above.
-            a = list(a)
             if a[0] is None:
                 a[0] = tax_group
             tax_ids.append(a[0])
@@ -492,14 +495,13 @@ def config_file_parse(file_path, taxonomy=None, err_on_missing=True,
             assmbl.append(tuple(a))
 
         if all_assemblies_found is False:
-            Log.err('Stopping.')
+            Log.err('Stopping.', '')
             exit(1)
 
         for tax_id in tax_ids:
             # See FixMe above.
             if tax_id != tax_group:
                 all_tax_ids.add(tax_id)
-        all_tax_ids = tuple(sorted(all_tax_ids))
 
         # Bowtie2 filter order
         bt2_sctn = 'Bowtie2 filter order'
@@ -530,13 +532,13 @@ def config_file_parse(file_path, taxonomy=None, err_on_missing=True,
         blast_2_max_target_seqs = cfg.getint('BLAST assemblies', 'max_target_seqs')
 
     except NoSectionError as err:
-        Log.err('Missing required section "' + err.section +
-                '" in configuration file:', file_path)
+        Log.err('Missing required section "' + err.section
+                + '" in configuration file:', file_path)
         exit(1)
 
     except NoOptionError as err:
-        Log.err('Missing required option "' + err.option +
-                '" under section "' + err.section + '" in configuration file:',
+        Log.err('Missing required option "' + err.option
+                + '" under section "' + err.section + '" in configuration file:',
                 file_path)
         exit(1)
 
@@ -588,7 +590,7 @@ def config_file_parse(file_path, taxonomy=None, err_on_missing=True,
 def use_colors(file_path):
 
     cfg = ConfigParser(delimiters=('=',), allow_no_value=True)
-    cfg.optionxform = str
+    cfg.optionxform = str  # type: ignore
 
     try:
         cfg.read(file_path)

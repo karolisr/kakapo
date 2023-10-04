@@ -13,30 +13,24 @@ import gzip
 import hashlib
 import re
 import sys
-
-from collections import defaultdict
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
+from collections.abc import Iterable
 from datetime import datetime
 from ftplib import FTP
 from functools import reduce
 from itertools import zip_longest
-from operator import itemgetter, add
-from os import listdir
-from os import makedirs
-from os import remove
-from os.path import abspath
-from os.path import basename
+from operator import add, itemgetter
+from os import listdir, makedirs, remove
+from os.path import abspath, basename
 from os.path import exists as ope
-from os.path import expanduser
-from os.path import isdir
-from os.path import isfile
+from os.path import expanduser, isdir, isfile
 from os.path import join as opj
 from os.path import splitext
 from shutil import move
+from typing import Any, DefaultDict, Mapping, MutableMapping, TextIO, Union
 from urllib.parse import urlparse
 
-from kakapo.utils.c.kakapolib import fq_avg_read_len
-from kakapo.utils.c.kakapolib import fq_avg_read_len_gz
+from kakapo.utils.c.kakapolib import fq_avg_read_len, fq_avg_read_len_gz
 from kakapo.utils.http import download_file as download_file_http
 
 
@@ -64,13 +58,14 @@ def list_of_items_at_path(path):
     path = abspath(expanduser(path))
     li, e = None, None
     if isfile(path):
-        e = 'Item at path "{}" is not a directory.'.format(path)
+        e = f'Item at path "{path}" is not a directory.'
     else:
         try:
             li = [opj(path, x) for x in listdir(path)]
+            li.sort()
         except FileNotFoundError:
-            e = 'Directory "{}" does not exist.'.format(path)
-    return sorted(li), e
+            e = f'Directory "{path}" does not exist.'
+    return li, e
 
 
 def list_of_dirs_at_path(path):
@@ -85,30 +80,36 @@ def list_of_dirs_at_path_recursive(path):
     ld, e = list_of_dirs_at_path(path)
     if e is not None:
         print(e)
-    ld += reduce(add, map(list_of_dirs_at_path_recursive, ld), [])
-    return sorted(ld)
+    if ld is not None:
+        ld += reduce(add, map(list_of_dirs_at_path_recursive, ld), [])
+        ld.sort()
+    return ld
 
 
-def list_of_files_at_path(path, regexp=None):
+def list_of_files_at_path(path, regexp: Union[str, bytes, None] = None):
     li, e = list_of_items_at_path(path)
     lf = li
     if li is not None:
         lf = [x for x in li if isfile(x)]
-    if regexp is not None:
-        regexp = f'.*{regexp}.*'
-        # lf = reduce(add, map(lambda s: re.findall(regexp, basename(s)), lf), [])
-        lf = list(filter(lambda s: True if len(re.findall(regexp, basename(s))) == 1 else False, lf))
+    if regexp is not None and lf is not None:
+        regexp_new = f'.*{regexp}.*'
+        lf = list(filter(lambda s: True if len(re.findall(regexp_new, basename(s))) == 1 else False, lf))
     return lf, e
 
 
 def list_of_files_at_path_recursive(path, regexp=None):
-    ld = [path] + list_of_dirs_at_path_recursive(path)
-    lf = reduce(add, map(lambda x: list_of_files_at_path(x, regexp=regexp)[0], ld), [])
-    return sorted(lf)
+    ld = list_of_dirs_at_path_recursive(path)
+    lf = ld
+    if ld is not None:
+        ld += [path]
+        lf = reduce(add, map(lambda x: list_of_files_at_path(x, regexp=regexp)[0], ld), [])
+        lf.sort()
+    return lf
 
 
 def download_file(url, local_path, protocol='http'):
     assert protocol in ('http', 'ftp')
+    local_path = expanduser(local_path)
     if protocol == 'http':
         download_file_http(url, local_path)
     elif protocol == 'ftp':
@@ -127,7 +128,7 @@ def download_file(url, local_path, protocol='http'):
 def replace_line_in_file(file_path, line_str, replace_str):
     line_str = re.escape(line_str.strip())
     replace_str = replace_str.strip()
-    for line in fileinput.input(file_path, inplace=1):
+    for line in fileinput.input(file_path, inplace=True):
         r = re.findall('^(\\s*)(' + line_str + ')(\\s*)$', line)
         if len(r) != 0 and len(r[0]) == 3:
             print(r[0][0] + replace_str)
@@ -135,9 +136,10 @@ def replace_line_in_file(file_path, line_str, replace_str):
             print(line.rstrip())
 
 
-def invert_dict(d, value_iterable_type=tuple, force_return_dict_values_iterable=False):
+def invert_dict(d: Mapping, value_iterable_type: type = tuple,
+                force_return_dict_values_iterable: bool = False):
     d_type = type(d)
-    d_inv = defaultdict(list)
+    d_inv: Mapping = defaultdict(list)
     iterable_not_str = (set, list, tuple)
     for k, v in d.items():
         if type(v) in iterable_not_str:
@@ -154,10 +156,13 @@ def invert_dict(d, value_iterable_type=tuple, force_return_dict_values_iterable=
         for k in d_inv:
             d_inv[k] = list(d_inv[k], )
             d_inv[k] = value_iterable_type(d_inv[k])
-    d_inv = d_type(d_inv)
+    rval: Mapping
+    assert d_type in (dict, OrderedDict)
     if d_type is OrderedDict:
-        d_inv = OrderedDict(sorted(d_inv.items(), key=lambda x: x[0]))
-    return d_inv
+        rval = OrderedDict(sorted(d_inv.items(), key=lambda x: x[0]))
+    else:
+        rval = d_type(d_inv)
+    return rval
 
 
 ##############################################################################
@@ -242,8 +247,9 @@ def splitext_gz(path):
 
 
 def gzip_open(filename, mode='rt', compresslevel=5, encoding=None,
-              errors=None, newline=None):
-    return gzip.open(filename, mode, compresslevel, encoding, errors, newline)
+              errors=None, newline=None) -> TextIO:
+    func = gzip.open(filename, mode, compresslevel, encoding, errors, newline)
+    return func  # type: ignore
 
 
 def plain_or_gzip(in_file):
@@ -264,7 +270,7 @@ def plain_or_gzip(in_file):
     return read_mode, write_mode, append_mode, fqopen, ext
 
 
-def grouper(iterable, n, fillvalue=None):
+def grouper(iterable: Iterable, n: int, fillvalue=None):
     """
     Break the data into fixed-length chunks or blocks.
 
@@ -276,7 +282,7 @@ def grouper(iterable, n, fillvalue=None):
     https://github.com/harvardinformatics/TranscriptomeAssemblyTools
     """
     args = [iter(iterable)] * n
-    return zip_longest(fillvalue=fillvalue, *args)
+    return zip_longest(*args, fillvalue=fillvalue)
 
 
 def split_mixed_fq(in_file, out_file_1, out_file_2):

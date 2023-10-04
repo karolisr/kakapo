@@ -1,12 +1,12 @@
 """Spawn new processes."""
 
 import re
-
 from subprocess import run as subp_run
+from typing import Union
 
 
 def run(cmd, in_txt=None, capture=True, cwd=None, do_not_raise=False,
-        text=True):
+        text: Union[bool, None] = True):
     out = subp_run(cmd, input=in_txt, capture_output=capture,
                    cwd=cwd, text=text)
     if do_not_raise is False and out.returncode > 0:

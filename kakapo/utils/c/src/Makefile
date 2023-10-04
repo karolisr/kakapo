@@ -24,12 +24,13 @@ all: $(KAKAPOLIB)
 
 $(KAKAPOLIB): gzlib.o fqlib.o
 	$(CC) $(OPTS) -lz -shared -o $(KAKAPOLIB) gzlib.o fqlib.o
+	@if [ "$(OS)" = "Linux" ]; then ld -lz -shared -o $(KAKAPOLIB) gzlib.o fqlib.o; fi
 
 fqlib.o: fqlib.c
-	$(CC) $(OPTS) -lz -fPIC -c -o fqlib.o fqlib.c
+	$(CC) $(OPTS) -fPIC -c -o fqlib.o fqlib.c
 
 gzlib.o: gzlib.c
-	$(CC) $(OPTS) -lz -fPIC -c -o gzlib.o gzlib.c
+	$(CC) $(OPTS) -fPIC -c -o gzlib.o gzlib.c
 
 fq_avg_read_len: fq_avg_read_len.c gzlib.o fqlib.o
 	$(CC) $(OPTS) -o fq_avg_read_len fq_avg_read_len.c gzlib.o fqlib.o -lz

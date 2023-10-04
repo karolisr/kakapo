@@ -7,7 +7,6 @@
 import csv
 from collections import OrderedDict
 
-
 GFF3_FIELD_NAMES = ('seqid', 'source', 'type', 'start', 'end', 'score',
                     'strand', 'phase', 'attributes')
 
@@ -165,9 +164,9 @@ def gff_from_json_dict(json_dict, gff_path=None):
 
     # gff = '##gff-version 3\n'
 
-    gff = (gff_blast_hit(json_dict) +
-           gff_orf_good(json_dict) +
-           gff_orf_bad(json_dict))
+    gff = (gff_blast_hit(json_dict)
+           + gff_orf_good(json_dict)
+           + gff_orf_bad(json_dict))
 
     if gff_path is not None:
         with open(gff_path, 'w') as f:

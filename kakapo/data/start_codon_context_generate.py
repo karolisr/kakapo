@@ -2,18 +2,20 @@
 
 """Generate start codon context Python files."""
 
-import autopep8
 import inspect
 import os
 import sys
-
 from csv import reader
 from itertools import starmap
 from operator import truediv
 from pprint import pprint
 
+import autopep8
+
 ##############################################################################
-SCRIPT_FILE_PATH = inspect.getfile(inspect.currentframe())
+_ = inspect.currentframe()
+assert _ is not None
+SCRIPT_FILE_PATH = inspect.getfile(_)
 SCRIPT_DIR_PATH = os.path.dirname(os.path.abspath(SCRIPT_FILE_PATH))
 KAKAPO_DIR_PATH = os.path.sep.join(SCRIPT_DIR_PATH.split(os.path.sep)[0:-2])
 sys.path.insert(0, KAKAPO_DIR_PATH)
@@ -79,8 +81,9 @@ def generate(dir_path, f_out):
     f.close()
 
     txt = autopep8.fix_file(f_out)
+    assert txt is not None
     f = open(f_out, 'w')
-    f.write(txt)
+    f.write(str(txt))
     f.close()
 
 

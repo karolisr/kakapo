@@ -2,12 +2,8 @@
 
 import os
 import sys
-
-from os import popen
-from os import sysconf
-
-from platform import mac_ver
-from platform import machine
+from os import popen, sysconf
+from platform import mac_ver, machine
 
 import distro
 
@@ -49,6 +45,8 @@ def check_os():
                 release_name = 'Monterey'
             elif mv[0] == '13':
                 release_name = 'Ventura'
+            elif mv[0] == '14':
+                release_name = 'Sonoma'
 
     elif sys.platform == 'win32':
         os_id = 'windows'

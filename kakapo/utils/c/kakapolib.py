@@ -13,7 +13,9 @@ from os.path import join as opj
 from kakapo.utils.subp import run
 from kakapo.utils.logging import Log
 
-FILE_SCRIPT = getfile(currentframe())
+_ = currentframe()
+assert _ is not None
+FILE_SCRIPT = getfile(_)
 DIR_SCRIPT = dirname(abspath(FILE_SCRIPT))
 
 DIR_C_SRC = opj(DIR_SCRIPT, 'src')
@@ -26,13 +28,13 @@ def dep_check_kakapolib(force=False, quiet=False):
     kkpl = opj(DIR_C_LIB, so_name)
     if not ope(kkpl):
         if quiet is False:
-            Log.wrn('Compiling kakapolib.')
+            Log.wrn('Compiling kakapolib.', '')
         run(['make', 'install'], cwd=DIR_C_SRC)
     if ope(kkpl):
         if quiet is False:
             Log.msg('kakapolib is available:', kkpl)
     else:
-        Log.err('Compilation of kakapolib failed.')
+        Log.err('Compilation of kakapolib failed.', '')
         return None
     return ctypes.CDLL(kkpl)
 

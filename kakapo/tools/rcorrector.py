@@ -1,7 +1,6 @@
 """Rcorrector."""
 
-from kakapo.utils.misc import grouper
-from kakapo.utils.misc import plain_or_gzip
+from kakapo.utils.misc import grouper, plain_or_gzip
 from kakapo.utils.subp import run
 
 

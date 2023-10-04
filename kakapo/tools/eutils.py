@@ -11,27 +11,22 @@ Valid values of &retmode and &rettype for EFetch (null = empty string):
     https://www.ncbi.nlm.nih.gov/books/NBK25499/table/chapter4.T._valid_values_of__retmode_and/?report=objectonly
 """
 
-from copy import deepcopy
 import os
-
 from collections.abc import Iterable
+from copy import deepcopy
 from functools import wraps
 from io import StringIO
+from sys import exit
 from time import sleep
-from typing import Callable
-from typing import Any
-from typing import Union
+from typing import Any, Callable, Union
 from xml.etree import ElementTree
 
-# from requests.exceptions import HTTPError
 from requests import Response
 
 from kakapo.tools.bioio import read_fasta
-from kakapo.tools.parsers import eutils_loc_str
-from kakapo.tools.parsers import parse_efetch_sra_xml_text
-from kakapo.tools.parsers import parse_esummary_xml_text
-from kakapo.tools.parsers import seq_records_gb
-from kakapo.tools.seq import SEQ_TYPE_NT, SEQ_TYPE_AA, SeqRecord
+from kakapo.tools.parsers import (eutils_loc_str, parse_efetch_sra_xml_text,
+                                  parse_esummary_xml_text, seq_records_gb)
+from kakapo.tools.seq import SEQ_TYPE_AA, SEQ_TYPE_NT, SeqRecord
 from kakapo.utils.http import post
 from kakapo.utils.logging import Log
 
@@ -41,15 +36,25 @@ ENTREZ_BASE_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/'
 
 def find_api_key() -> Union[str, None]:
     api_key: Union[str, None] = None
-    global_variables: dict[str, Any] = globals()
+    global_variables: dict[str, str] = globals()
+
     if 'ENTREZ_KEY' in global_variables:
         api_key = global_variables['ENTREZ_KEY']
-        Log.msg('ENTREZ_KEY found in global_variables', api_key)  # type: ignore
+        # if api_key != '':
+        #     Log.msg('ENTREZ_KEY found in global_variables', api_key)
+
     elif 'ENTREZ_KEY' in os.environ:
         api_key = os.environ['ENTREZ_KEY']
-        Log.msg('ENTREZ_KEY found in os.environ', api_key)  # type: ignore
+        # if api_key != '':
+        #     Log.msg('ENTREZ_KEY found in os.environ', api_key)
+
+    # ToDo: make this an exception?
+    if api_key == '' or api_key is None:
+        api_key = None
+        Log.err('Warning:', 'ENTREZ_KEY is not defined.')
     else:
-        Log.wrn('Warning:', 'ENTREZ_KEY is not defined.')  # type: ignore
+        global_variables['ENTREZ_KEY'] = api_key
+
     return api_key
 
 
@@ -58,6 +63,8 @@ def ncbi_api_key(f: Callable) -> Callable:
     def wrapper(api_key: Union[str, None] = None, *args, **kwargs) -> Callable:
         if api_key is None:
             api_key = find_api_key()
+        if api_key == '':
+            api_key = None
         return f(api_key=api_key, *args, **kwargs)
     return wrapper
 
@@ -65,7 +72,8 @@ def ncbi_api_key(f: Callable) -> Callable:
 def history(f: Callable) -> Callable:
     @wraps(f)
     def wrapper(usehistory: bool = False, web_env: Union[str, None] = None,
-                query_key: Union[str, None] = None, *args, **kwargs) -> Callable:
+                query_key: Union[str, None] = None, *args, **kwargs
+                ) -> Callable:
         uh: Union[str, None] = None
         if usehistory is True or web_env is not None:
             uh = 'y'
@@ -76,7 +84,7 @@ def history(f: Callable) -> Callable:
 
 def with_history(f: Callable) -> Callable:
     @wraps(f)
-    def wrapper(data: dict) -> Any:
+    def wrapper(data: dict, *args, **kwargs) -> Any:
 
         db: str = data['db']
         query_keys: list = data['query_keys']
@@ -86,17 +94,17 @@ def with_history(f: Callable) -> Callable:
             'db': db, 'query_key': None, 'web_env': web_env}
 
         if len(query_keys) == 0:
-            return f(new_data)
+            return f(new_data, *args, **kwargs)
 
         elif len(query_keys) == 1:
             new_data['query_key'] = query_keys[0]
-            return f(new_data)
+            return f(new_data, *args, **kwargs)
 
         elif len(query_keys) > 1:
             ret_list = list()
             for k in query_keys:
                 new_data['query_key'] = k
-                ret_list += f(new_data)
+                ret_list += f(new_data, *args, **kwargs)
             return ret_list
 
     return wrapper
@@ -111,6 +119,7 @@ def eutil(util, db, api_key=None, bdata=None, cmd=None, complexity=None,
           reldate=None, retmax=None, retmode=None, retstart=None, rettype=None,
           seq_start=None, seq_stop=None, sort=None, strand=None, term=None,
           tool=None, usehistory=None, version=None, web_env=None) -> Response:
+
     url: str = ENTREZ_BASE_URL + util
 
     ids_joined: Union[str, None] = None
@@ -139,7 +148,8 @@ def eutil(util, db, api_key=None, bdata=None, cmd=None, complexity=None,
 
 # E-utilities ----------------------------------------------------------------
 def einfo(db: str) -> Union[dict, None]:
-    r: Response = eutil(util='einfo.fcgi', db=db, version='2.0', retmode='json')
+    r: Response = eutil(util='einfo.fcgi', db=db, version='2.0',
+                        retmode='json')
     if r is not None:
         return r.json()
 
@@ -191,12 +201,6 @@ def efetch(db: str, ids: Union[Iterable[str], None] = None,
            retmode: Union[str, None] = None, **kwargs) -> Union[str, None]:
     r: Response = eutil(util='efetch.fcgi', db=db, ids=ids, rettype=rettype,
                         retmode=retmode, **kwargs)
-    # try:
-    #     r.raise_for_status()
-    # except HTTPError as e:
-    #     print(e)
-    #     raise
-    # print(r.text)
     if r is not None:
         return r.text
 
@@ -324,11 +328,20 @@ def summary_with_data(data: dict) -> list:
     if ok is False:
         return list()
     txt = esummary(**data)
+    if txt is None:
+        Log.err('kakapo experienced a problem downloading data from NCBI.', '')
+        exit(0)
     return parse_esummary_xml_text(txt)
 
 
 def summary(db: str, ids: Iterable[Union[str, int]]) -> list:
     txt = esummary(db=db, ids=ids)
+    if txt is None:
+        ids = [str(id) for id in ids]
+        Log.err(f'kakapo experienced a problem downloading data from an NCBI'
+                f' database {db}:',
+                f' {",".join(ids)}')
+        exit(0)
     return parse_esummary_xml_text(txt)
 
 
@@ -377,7 +390,6 @@ def taxids(db: str, ids: Iterable[str]) -> dict:
     dbfrom = db
     db = 'taxonomy'
     ids_from, ids_to = _elink_runner(db=db, dbfrom=dbfrom, ids=ids)
-    # ToDo: check if this works everywhere, changed from int(x) -> x
     ids_to = [x for x in ids_to]
     return dict(zip(ids_from, ids_to))
 
@@ -389,7 +401,7 @@ def taxids_with_data(data: dict) -> dict:
 
 def _process_downloaded_seq_data(efetch_txt: str, db: str, rettype: str,
                                  retmode: str):
-    rec_list = list()
+    rec_list: list[SeqRecord] = list()
     if rettype == 'gb' and retmode == 'xml':
         rec_list = seq_records_gb(efetch_txt)
     elif rettype == 'fasta' and retmode == 'text':
@@ -398,23 +410,24 @@ def _process_downloaded_seq_data(efetch_txt: str, db: str, rettype: str,
             seq_type = SEQ_TYPE_NT
         elif db == 'protein':
             seq_type = SEQ_TYPE_AA
-        rec_list = read_fasta(StringIO(efetch_txt), seq_type,
-                              parse_def=True)
+        _ = read_fasta(StringIO(efetch_txt), seq_type, parse_def=True)
+        for r in _:
+            assert type(r) == SeqRecord
+            rec_list.append(r)
     return rec_list
 
 
 @with_history
 def seqs_with_data(data: dict, rettype: str = 'gb', retmode: str = 'xml'
                    ) -> list[SeqRecord]:
-    ret_list = []
+    ret_list: list[SeqRecord] = []
     ok = _history_server_data_ok(data)
     if ok is False:
         return ret_list
     txt = efetch(rettype=rettype, retmode=retmode, **data)
     db = data['db']
     if txt is not None:
-        ret_list = _process_downloaded_seq_data(txt, db, rettype,
-                                                retmode)
+        ret_list = _process_downloaded_seq_data(txt, db, rettype, retmode)
     return ret_list
 
 
@@ -425,7 +438,7 @@ def seqs(db: str, ids: Iterable[str], rettype: str = 'gb',
         ids_requested = set(ids)
         r_temp = list()
         epost_r = epost(db, ids)
-        r = seqs_with_data(epost_r, rettype=rettype, retmode=retmode)
+        r = seqs_with_data(data=epost_r, rettype=rettype, retmode=retmode)
         r_temp += r
         if len(r) != len(ids_requested):
             # DEBUG

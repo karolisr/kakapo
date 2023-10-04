@@ -1,25 +1,20 @@
 """Kakapo logging class."""
 
-import io
-
 from datetime import datetime
-from io import StringIO
-from os.path import abspath
-from os.path import expanduser
+from io import IOBase, StringIO
+from os.path import abspath, expanduser
+from typing import Union
 
-from multipledispatch import dispatch
-from click import echo
-from click import style
+from click import echo, style
 
-
-LOG_NS = dict()
-HANDLE_TYPES = (io.IOBase, StringIO)
+HANDLE_TYPES = (IOBase, StringIO)
 
 
 class Log:
     _console = True
     _write = False
-    _file = None
+    _file: Union[str, None] = None
+    _handle: Union[IOBase, StringIO, None] = None
     _colors = False
     _time_stamp = True
 
@@ -28,7 +23,7 @@ class Log:
         return cls._colors
 
     @classmethod
-    def set_colors(cls, value):
+    def set_colors(cls, value: bool):
         assert type(value) == bool
         cls._colors = value
 
@@ -37,7 +32,7 @@ class Log:
         return cls._console
 
     @classmethod
-    def set_console(cls, value):
+    def set_console(cls, value: bool):
         assert type(value) == bool
         cls._console = value
 
@@ -46,7 +41,7 @@ class Log:
         return cls._write
 
     @classmethod
-    def set_write(cls, value):
+    def set_write(cls, value: bool):
         assert type(value) == bool
         cls._write = value
 
@@ -55,23 +50,25 @@ class Log:
         return cls._file
 
     @classmethod
-    def set_file(cls, value):
+    def set_file(cls, value: Union[str, IOBase, StringIO]):
         if type(value) == str:
             cls._file = abspath(expanduser(value))
+            cls._handle = None
         elif isinstance(value, HANDLE_TYPES):
-            cls._file = value
+            cls._handle = value
+            cls._file = None
 
     @classmethod
     def time_stamp(cls):
         return cls._time_stamp
 
     @classmethod
-    def set_time_stamp(cls, value):
+    def set_time_stamp(cls, value: bool):
         assert type(value) == bool
         cls._time_stamp = value
 
     @classmethod
-    def ts(cls):
+    def ts(cls) -> str:
         if cls.time_stamp() is True:
             now = datetime.now()
             return now.strftime('%Y-%m-%d %H:%M:%S') + ' '
@@ -79,12 +76,18 @@ class Log:
             return ''
 
     @classmethod
-    def log(cls, inf='', msg='', wrn='', err='', s='', ts=True):
+    def log(cls,
+            inf: str = '',
+            msg: str = '',
+            wrn: str = '',
+            err: str = '',
+            s: str = '',
+            timestamp: bool = True) -> str:
 
         sts = cls.ts()
         lts = len(sts)
 
-        if ts is True:
+        if timestamp is True:
             ts = sts
         else:
             ts = ' ' * lts
@@ -132,13 +135,14 @@ class Log:
 
         msg_f = msg_f.replace('\n', '\n' + ' ' * lts) + '\n'
 
-        if cls._file is not None and cls._write is True:
+        if cls._write is True:
 
             handle = False
-            if isinstance(cls._file, HANDLE_TYPES):
+            if cls._handle is not None:
                 handle = True
-                f = cls._file
-            if handle is False:
+                f = cls._handle
+            else:
+                assert cls._file is not None
                 f = open(cls._file, 'a+')
 
             f.write(msg_f)
@@ -151,139 +155,18 @@ class Log:
 
         return msg_f
 
-    # inf --------------------------------------------------------------------
     @classmethod
-    @dispatch(object, str, namespace=LOG_NS)
-    def inf(cls, i):
-        return cls.log(inf=i, ts=True)
+    def inf(cls, i: str) -> str:
+        return cls.log(inf=i, timestamp=True)
 
     @classmethod
-    @dispatch(object, str, bool, namespace=LOG_NS)
-    def inf(cls, i, ts):
-        return cls.log(inf=i, ts=ts)
+    def msg(cls, m: str, s: str) -> str:
+        return cls.log(msg=m, s=s, timestamp=True)
 
     @classmethod
-    @dispatch(object, str, str, namespace=LOG_NS)
-    def inf(cls, i, s):
-        return cls.log(inf=i, s=s, ts=True)
+    def wrn(cls, w: str, s: str) -> str:
+        return cls.log(wrn=w, s=s, timestamp=True)
 
     @classmethod
-    @dispatch(object, str, str, bool, namespace=LOG_NS)
-    def inf(cls, i, s, ts):
-        return cls.log(inf=i, s=s, ts=ts)
-
-    # msg --------------------------------------------------------------------
-    @classmethod
-    @dispatch(object, str, namespace=LOG_NS)
-    def msg(cls, m):
-        return cls.log(msg=m, ts=True)
-
-    @classmethod
-    @dispatch(object, str, bool, namespace=LOG_NS)
-    def msg(cls, m, ts):
-        return cls.log(msg=m, ts=ts)
-
-    @classmethod
-    @dispatch(object, str, str, namespace=LOG_NS)
-    def msg(cls, m, s):
-        return cls.log(msg=m, s=s, ts=True)
-
-    @classmethod
-    @dispatch(object, str, str, bool, namespace=LOG_NS)
-    def msg(cls, m, s, ts):
-        return cls.log(msg=m, s=s, ts=ts)
-
-    # wrn --------------------------------------------------------------------
-    @classmethod
-    @dispatch(object, str, namespace=LOG_NS)
-    def wrn(cls, w):
-        return cls.log(wrn=w, ts=True)
-
-    @classmethod
-    @dispatch(object, str, bool, namespace=LOG_NS)
-    def wrn(cls, w, ts):
-        return cls.log(wrn=w, ts=ts)
-
-    @classmethod
-    @dispatch(object, str, str, namespace=LOG_NS)
-    def wrn(cls, w, s):
-        return cls.log(wrn=w, s=s, ts=True)
-
-    @classmethod
-    @dispatch(object, str, str, bool, namespace=LOG_NS)
-    def wrn(cls, w, s, ts):
-        return cls.log(wrn=w, s=s, ts=ts)
-
-    # err --------------------------------------------------------------------
-    @classmethod
-    @dispatch(object, str, namespace=LOG_NS)
-    def err(cls, e):
-        return cls.log(err=e, ts=True)
-
-    @classmethod
-    @dispatch(object, str, bool, namespace=LOG_NS)
-    def err(cls, e, ts):
-        return cls.log(err=e, ts=ts)
-
-    @classmethod
-    @dispatch(object, str, str, namespace=LOG_NS)
-    def err(cls, e, s):
-        return cls.log(err=e, s=s, ts=True)
-
-    @classmethod
-    @dispatch(object, str, str, bool, namespace=LOG_NS)
-    def err(cls, e, s, ts):
-        return cls.log(err=e, s=s, ts=ts)
-
-
-# Test Log:
-if __name__ == '__main__':
-    log = Log()
-    log.set_colors(True)
-
-    # Time-stamp will be printed by default:
-    log.inf('inf', 'inf')
-    log.inf('inf')
-    log.msg('msg', 'msg')
-    log.msg('msg')
-    log.wrn('wrn', 'wrn')
-    log.wrn('wrn')
-    log.err('err', 'err')
-    log.err('err')
-
-    # Time-stamp will not be printed:
-    log.inf('inf', 'inf', False)
-    log.inf('inf', False)
-    log.msg('msg', 'msg', False)
-    log.msg('msg', False)
-    log.wrn('wrn', 'wrn', False)
-    log.wrn('wrn', False)
-    log.err('err', 'err', False)
-    log.err('err', False)
-
-    log.msg('msg1', '\nmsg2')
-    log.msg('msg1\nmsg2')
-
-    # Time-stamp will NEVER be printed:
-    log.set_time_stamp(False)
-
-    log.inf('inf', 'inf')
-    log.inf('inf')
-    log.msg('msg', 'msg')
-    log.msg('msg')
-    log.wrn('wrn', 'wrn')
-    log.wrn('wrn')
-    log.err('err', 'err')
-    log.err('err')
-
-    log.inf('inf', 'inf', False)
-    log.inf('inf', False)
-    log.msg('msg', 'msg', False)
-    log.msg('msg', False)
-    log.wrn('wrn', 'wrn', False)
-    log.wrn('wrn', False)
-    log.err('err', 'err', False)
-    log.err('err', False)
-
-    log.msg('msg1', '\nmsg2')
-    log.msg('msg1\nmsg2')
+    def err(cls, e: str, s: str) -> str:
+        return cls.log(err=e, s=s, timestamp=True)

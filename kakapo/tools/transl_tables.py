@@ -2,10 +2,11 @@
 
 from collections import OrderedDict
 from difflib import SequenceMatcher
+from typing import Union
 
-from kakapo.tools.iupac import DNA_UNAMBIGUOUS, DNA_AMBIGUOUS
-from kakapo.tools.iupac import IUPAC_AMBIGUOUS_SECOND_ORDER_DNA_DICT_REVERSE
-from kakapo.tools.iupac import IUPAC_DNA_DICT, IUPAC_DNA_DICT_REVERSE
+from kakapo.tools.iupac import (DNA_AMBIGUOUS, DNA_UNAMBIGUOUS,
+                                IUPAC_AMBIGUOUS_SECOND_ORDER_DNA_DICT_REVERSE,
+                                IUPAC_DNA_DICT, IUPAC_DNA_DICT_REVERSE)
 from kakapo.utils.misc import invert_dict
 
 GC_ID_NAME_MAP = {
@@ -115,29 +116,30 @@ CODONS = [
 ]
 
 
-def validate_gc_id(gc_id):
+def _gc_id_as_str(gc_id: Union[str, int]) -> str:
     gc_id = int(gc_id)
     gc_id = '{:02d}'.format(gc_id)
+    return gc_id
 
+
+def validate_gc_id(gc_id: Union[str, int]) -> int:
+    gc_id = _gc_id_as_str(gc_id)
     if gc_id in GC_ID_NAME_MAP:
-        return gc_id
+        return int(gc_id)
     else:
-        return None
+        raise ValueError(f'{gc_id} is not a valid genetic code ID.')
 
 
-def get_gen_code_name(gc_id):
+def get_gen_code_name(gc_id: Union[str, int]):
     gc_id = validate_gc_id(gc_id)
-    if gc_id is None:
-        return None
+    gc_id = _gc_id_as_str(gc_id)
     gc_name = GC_ID_NAME_MAP[gc_id]
     return gc_name
 
 
-def get_trans_table(gc_id):
+def get_trans_table(gc_id: Union[str, int]):
     gc_id = validate_gc_id(gc_id)
-    if gc_id is None:
-        return None
-
+    gc_id = _gc_id_as_str(gc_id)
     amino_acids = tuple(GC_ID_AA_MAP[gc_id])
     trans_table = OrderedDict(zip(CODONS, amino_acids))
     trans_table = OrderedDict(sorted(trans_table.items(), key=lambda x: x[0]))
@@ -145,22 +147,21 @@ def get_trans_table(gc_id):
     return trans_table
 
 
-def _get_codons(gc_id, char):
+def _get_codons(gc_id: Union[str, int], char):
     gc_id = validate_gc_id(gc_id)
-    if gc_id is None:
-        return None
+    gc_id = _gc_id_as_str(gc_id)
     start_stop = tuple(GC_ID_START_STOP_MAP[gc_id])
     start_idx = [i for i, x in enumerate(start_stop) if x == char]
     codons = tuple(sorted([CODONS[i] for i in start_idx]))
     return codons
 
 
-def get_start_codons(gc_id):
+def get_start_codons(gc_id: Union[str, int]):
     start_codons = _get_codons(gc_id, 'M')
     return start_codons
 
 
-def get_stop_codons(gc_id):
+def get_stop_codons(gc_id: Union[str, int]):
     stop_codons = _get_codons(gc_id, '*')
     return stop_codons
 
@@ -250,13 +251,9 @@ def ambiguous_table(trans_table):
 class TranslationTable(object):
     """Translation Table."""
 
-    def __init__(self, gc_id):
+    def __init__(self, gc_id: Union[str, int]):
 
         gc_id = validate_gc_id(gc_id)
-
-        if gc_id is None:
-            message = 'Invalid genetic code ID.'
-            raise Exception(message)
 
         self._gc_id = int(gc_id)
         self._gc_name = get_gen_code_name(self._gc_id)
@@ -285,6 +282,7 @@ class TranslationTable(object):
 
     @property
     def table(self):
+        assert self._table is not None
         return dict(self._table)
 
     @property

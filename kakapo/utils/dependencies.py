@@ -3,28 +3,21 @@
 import stat
 import tarfile
 import zipfile
-
 from os import chmod
 from os import linesep as lns
 from os import remove
-from os.path import basename
-from os.path import dirname
+from os.path import basename, dirname
 from os.path import exists as ope
 from os.path import join as opj
-from shutil import move
-from shutil import rmtree
+from shutil import move, rmtree
 from tempfile import NamedTemporaryFile
 
 from kakapo.utils.c.kakapolib import dep_check_kakapolib as dckkpl
 from kakapo.utils.homebrew import brew_get
 from kakapo.utils.logging import Log
-from kakapo.utils.misc import download_file
-from kakapo.utils.misc import list_of_dirs_at_path
-from kakapo.utils.misc import replace_line_in_file
-from kakapo.utils.subp import run
-from kakapo.utils.subp import run_then_grep
-from kakapo.utils.subp import which
-
+from kakapo.utils.misc import (download_file, list_of_dirs_at_path,
+                               replace_line_in_file)
+from kakapo.utils.subp import run, run_then_grep, which
 
 PY3 = which('python3')
 
@@ -57,6 +50,8 @@ def get_dep_dir(path, pattern):
             return dd[0]
         else:
             return ''
+    else:
+        raise Exception(e)
 
 
 # gzip
@@ -66,9 +61,9 @@ def dep_check_gzip():
         cmd = [gz, '-V']
         run(cmd, do_not_raise=True)
     except Exception:
-        Log.msg('gzip was not found on this system.')
+        Log.msg('gzip was not found on this system.', '')
         return None
-    v = get_dep_version([gz, '-V'], r'.*')
+    v = get_dep_version([gz, '-V'], r'(?:gzip\s*)*(.*)')
     Log.msg('gzip is available:', v + ' ' + gz)
     return gz
 
@@ -80,11 +75,25 @@ def dep_check_pigz():
         cmd = [gz, '-V']
         run(cmd, do_not_raise=True)
     except Exception:
-        Log.msg('pigz was not found on this system.')
+        Log.msg('pigz was not found on this system.', '')
         return None
-    v = get_dep_version([gz, '-V'], r'.*')
+    v = get_dep_version([gz, '-V'], r'\d.*')
     Log.msg('pigz is available:', v + ' ' + gz)
     return gz
+
+
+# java
+def dep_check_java():
+    try:
+        jv = which('java')
+        cmd = [jv, '--version']
+        run(cmd, do_not_raise=True)
+    except Exception:
+        Log.msg('Java was not found on this system.', '')
+        return None
+    v = get_dep_version([jv, '--version'], r'(?:java\s*)*(.*)')
+    Log.msg('java is available:', v + ' ' + jv)
+    return jv
 
 
 # Seqtk
@@ -112,13 +121,13 @@ def dep_check_seqtk(dir_dep, force):
             cmd[0] = seqtk
             run(cmd, do_not_raise=True)
         except Exception:
-            Log.wrn('Seqtk was not found on this system, trying to download.')
+            Log.wrn('Seqtk was not found on this system, trying to download.', '')
             download_file(url, dnld_path)
             zip_ref = zipfile.ZipFile(dnld_path, 'r')
             zip_ref.extractall(dir_dep)
             zip_ref.close()
             try:
-                Log.wrn('Compiling Seqtk.')
+                Log.wrn('Compiling Seqtk.', '')
                 run('make', cwd=dir_bin)
                 run(cmd, do_not_raise=True)
             except Exception:
@@ -128,10 +137,9 @@ def dep_check_seqtk(dir_dep, force):
                     run('make', cwd=dir_bin)
                     run(cmd, do_not_raise=True)
                 except Exception:
-                    Log.err(
-                        'Something went wrong while trying to compile Seqtk.')
+                    Log.err('Something went wrong while trying to compile Seqtk.', '')
                     Log.msg('Try downloading and installing it manually from: '
-                            'https://github.com/lh3/seqtk')
+                            'https://github.com/lh3/seqtk', '')
                     fp.close()
                     return None
 
@@ -186,7 +194,7 @@ def _write_trimmomatic_adapters_file(dir_dep):
                 'AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC\n')
 
     if not ope(path_adapters):
-        Log.msg('Writing Trimmomatic adapter files: ' + path_adapters)
+        Log.msg('Writing Trimmomatic adapter files:', path_adapters)
         with open(path_adapters, mode='w') as f:
             f.write(adapters)
 
@@ -208,7 +216,7 @@ def dep_check_trimmomatic(dir_dep):
         zip_ref.close()
 
     if not ope(trimmomatic):
-        Log.err('Could not download Trimmomatic.')
+        Log.err('Could not download Trimmomatic.', '')
         return None, None
 
     v = get_dep_version(['java', '-jar', trimmomatic, '-version'],
@@ -233,8 +241,7 @@ def _ensure_vdb_cfg(dir_bin):
 
     """
     vdb_config = opj(dir_bin, 'bin', 'vdb-config')
-    # run([vdb_config, '--interactive'], in_txt='x', do_not_raise=True)
-    run([vdb_config, '--restore-defaults'], do_not_raise=True)
+    run([vdb_config, '--interactive'], in_txt='x', do_not_raise=True)
 
 
 def dep_check_sra_toolkit(dir_dep, os_id, dist_id, debian_dists, redhat_dists,
@@ -252,6 +259,8 @@ def dep_check_sra_toolkit(dir_dep, os_id, dist_id, debian_dists, redhat_dists,
         else:
             url = ('https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.11.3/'
                    'sratoolkit.2.11.3-ubuntu64.tar.gz')
+    else:
+        return None
 
     dnld_path = opj(dir_dep, 'sra-toolkit.tar.gz')
 
@@ -271,7 +280,7 @@ def dep_check_sra_toolkit(dir_dep, os_id, dist_id, debian_dists, redhat_dists,
             run([fasterq_dump, "-V"])
         except Exception:
             Log.wrn('SRA Toolkit was not found on this system, trying to '
-                    'download.')
+                    'download.', '')
             download_file(url, dnld_path)
             tar_ref = tarfile.open(dnld_path, 'r:gz')
             tar_ref.extractall(dir_dep)
@@ -283,7 +292,7 @@ def dep_check_sra_toolkit(dir_dep, os_id, dist_id, debian_dists, redhat_dists,
             _ensure_vdb_cfg(dir_bin)
 
             if not ope(fasterq_dump):
-                Log.err('Could not download SRA Toolkit.')
+                Log.err('Could not download SRA Toolkit.', '')
                 return None
 
     v = get_dep_version([fasterq_dump, '--version'], r':\s([\d\.]*)')
@@ -310,6 +319,8 @@ def dep_check_blast(dir_dep, os_id, dist_id, debian_dists, redhat_dists,
         else:
             url = ('https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/'
                    '2.12.0/ncbi-blast-2.12.0+-x64-linux.tar.gz')
+    else:
+        return None, None, None
 
     dnld_path = opj(dir_dep, 'ncbi-blast.tar.gz')
 
@@ -332,7 +343,8 @@ def dep_check_blast(dir_dep, os_id, dist_id, debian_dists, redhat_dists,
             tblastn = opj(dir_bin, 'bin', 'tblastn')
             run([makeblastdb, '-help'])
         except Exception:
-            Log.wrn('BLAST+ was not found on this system, trying to download.')
+            Log.wrn('BLAST+ was not found on this system, trying to download.',
+                    '')
             download_file(url, dnld_path)
             tar_ref = tarfile.open(dnld_path, 'r:gz')
             tar_ref.extractall(dir_dep)
@@ -346,7 +358,7 @@ def dep_check_blast(dir_dep, os_id, dist_id, debian_dists, redhat_dists,
             if not ope(makeblastdb) or \
                     not ope(blastn) or \
                     not ope(tblastn):
-                Log.err('Could not download BLAST+.')
+                Log.err('Could not download BLAST+.', '')
                 return None, None, None
 
     regexp = r'\sblast\s([\d\.]*)'
@@ -376,6 +388,8 @@ def dep_check_vsearch(dir_dep, os_id, dist_id, debian_dists, redhat_dists,
         else:
             url = ('https://github.com/torognes/vsearch/releases/download/'
                    'v2.21.1/vsearch-2.21.1-linux-x86_64-static.tar.gz')
+    else:
+        return None
 
     dnld_path = opj(dir_dep, 'vsearch.tar.gz')
 
@@ -390,8 +404,8 @@ def dep_check_vsearch(dir_dep, os_id, dist_id, debian_dists, redhat_dists,
             vsearch = opj(dir_bin, 'bin', 'vsearch')
             run(vsearch)
         except Exception:
-            Log.wrn(
-                'Vsearch was not found on this system, trying to download.')
+            Log.wrn('Vsearch was not found on this system, trying to download.',
+                    '')
             download_file(url, dnld_path)
             tar_ref = tarfile.open(dnld_path, 'r:gz')
             tar_ref.extractall(dir_dep)
@@ -400,14 +414,14 @@ def dep_check_vsearch(dir_dep, os_id, dist_id, debian_dists, redhat_dists,
                 dir_bin = opj(dir_dep, get_dep_dir(dir_dep, 'vsearch'))
                 vsearch = opj(dir_bin, 'bin', 'vsearch')
                 if not ope(vsearch):
-                    Log.err('Could not download Vsearch.')
+                    Log.err('Could not download Vsearch.', '')
                     return None
                 else:
                     run(vsearch)
             except Exception:
-                Log.err('Vsearch was downloaded, but does not execute.')
+                Log.err('Vsearch was downloaded, but does not execute.', '')
                 Log.msg('Try downloading and installing it manually from: '
-                        'https://github.com/torognes/vsearch')
+                        'https://github.com/torognes/vsearch', '')
                 return None
 
     v = get_dep_version([vsearch, '-version'], r'vsearch\sv([\d\.]*)')
@@ -422,8 +436,15 @@ def dep_check_spades(dir_dep, os_id, force):
         url = ('https://github.com/ablab/spades/releases/download/v3.15.5/'
                'SPAdes-3.15.5-Darwin.tar.gz')
     elif os_id == 'linux':
+        # Binary distribution does not work on Linux?
+        # url = ('https://github.com/ablab/spades/releases/download/v3.15.5/'
+        #        'SPAdes-3.15.5-Linux.tar.gz')
+
+        # Source code
         url = ('https://github.com/ablab/spades/releases/download/v3.15.5/'
-               'SPAdes-3.15.5-Linux.tar.gz')
+               'SPAdes-3.15.5.tar.gz')
+    else:
+        return None
 
     dnld_path = opj(dir_dep, 'SPAdes.tar.gz')
 
@@ -438,28 +459,32 @@ def dep_check_spades(dir_dep, os_id, force):
             spades = opj(dir_bin, 'bin', 'spades.py')
             run([PY3, spades])
         except Exception:
-            Log.wrn('SPAdes was not found on this system, trying to download.')
+            Log.wrn('SPAdes was not found on this system, trying to download.',
+                    '')
             try:
                 download_file(url, dnld_path)
                 tar_ref = tarfile.open(dnld_path, 'r:gz')
                 tar_ref.extractall(dir_dep)
                 tar_ref.close()
             except Exception:
-                Log.err('Could not download SPAdes.')
+                Log.err('Could not download SPAdes.', '')
                 return None
             try:
                 dir_bin = opj(dir_dep, get_dep_dir(dir_dep, 'SPAdes'))
+                if os_id == 'linux':
+                    spades_compile = opj(dir_bin, 'spades_compile.sh')
+                    if ope(spades_compile):
+                        try:
+                            Log.wrn('Compiling SPAdes.', '')
+                            run('./spades_compile.sh', cwd=dir_bin)
+                        except Exception:
+                            Log.err('Something went wrong while trying to '
+                                    'compile SPAdes.', '')
+                            return None
                 spades = opj(dir_bin, 'bin', 'spades.py')
-                # replace_line_in_file(spades,
-                #                      '#!/usr/bin/env python',
-                #                      '#!/usr/bin/env python3')
-                if ope(spades):
-                    run([PY3, spades])
-                else:
-                    Log.err('Could not download SPAdes.')
-                    return None
+                run([PY3, spades])
             except Exception:
-                Log.err('SPAdes was downloaded, but does not execute.')
+                Log.err('SPAdes was downloaded, but does not execute.', '')
                 return None
 
     v = get_dep_version([PY3, spades, '--version'], r'^.*SPAdes.*v([\d\.]*)')
@@ -476,6 +501,8 @@ def dep_check_bowtie2(dir_dep, os_id, force):
     elif os_id == 'linux':
         url = ('https://sourceforge.net/projects/bowtie-bio/files/bowtie2/'
                '2.4.5/bowtie2-2.4.5-linux-x86_64.zip/download')
+    else:
+        return None, None
 
     dnld_path = opj(dir_dep, 'bowtie2.zip')
 
@@ -495,7 +522,7 @@ def dep_check_bowtie2(dir_dep, os_id, force):
             run([bowtie2_build, '-h'])
         except Exception:
             Log.wrn('Bowtie 2 was not found on this system, trying to '
-                    'download.')
+                    'download.', '')
             download_file(url, dnld_path)
             zip_ref = zipfile.ZipFile(dnld_path, 'r')
             zip_ref.extractall(dir_dep)
@@ -522,11 +549,11 @@ def dep_check_bowtie2(dir_dep, os_id, force):
                              '-inspect-s-debug')
 
             for bt2exe in bowtie2_execs:
-                chmod(bowtie2 + bt2exe, stat.S_IRWXU | stat.S_IRGRP |
-                      stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+                chmod(bowtie2 + bt2exe, stat.S_IRWXU | stat.S_IRGRP
+                      | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
 
             if not ope(bowtie2):
-                Log.err('Could not download Bowtie 2.')
+                Log.err('Could not download Bowtie 2.', '')
                 return None, None
 
     regexp = r'^.*?version\s([\d\.]*)'
@@ -543,9 +570,12 @@ def dep_check_rcorrector(dir_dep, force):
     url = 'https://github.com/karolisr/Rcorrector/archive/master.tar.gz'
     dnld_path = opj(dir_dep, 'rcorrector.tar.gz')
 
+    jellyfish = 'jellyfish'
+    dir_bin = ''
+
     try:
         try:
-            jellyfish = which('jellyfish')
+            jellyfish = which(jellyfish)
             run([jellyfish, '--help'])
         except Exception:
             dir_bin = opj(dir_dep, get_dep_dir(dir_dep, 'Rcorrector'))
@@ -563,7 +593,7 @@ def dep_check_rcorrector(dir_dep, force):
                 run([rcorrector, '-version'])
             except Exception:
                 Log.wrn('Rcorrector was not found on this system, trying to '
-                        'download.')
+                        'download.', '')
                 raise
             try:
                 run([jellyfish, '--version'])
@@ -571,7 +601,7 @@ def dep_check_rcorrector(dir_dep, force):
                 Log.wrn(
                     'jellyfish is required by Rcorrector, but was not found. '
                     'Trying to download and recompile Rcorrector and '
-                    'jellyfish.')
+                    'jellyfish.', '')
                 raise
         except Exception:
             if ope(dnld_path):
@@ -584,21 +614,21 @@ def dep_check_rcorrector(dir_dep, force):
             tar_ref.close()
             dir_bin = opj(dir_dep, get_dep_dir(dir_dep, 'Rcorrector'))
             try:
-                Log.wrn('Compiling Rcorrector.')
+                Log.wrn('Compiling Rcorrector.', '')
                 run('make', cwd=dir_bin)
                 rcorrector = opj(dir_bin, 'run_rcorrector.pl')
                 jellyfish = opj(dir_bin, 'jellyfish', 'bin', 'jellyfish')
-                chmod(rcorrector, stat.S_IRWXU | stat.S_IRGRP |
-                      stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+                chmod(rcorrector, stat.S_IRWXU | stat.S_IRGRP
+                      | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
                 run([rcorrector, '-version'])
                 if not ope(jellyfish):
                     jellyfish = which('jellyfish')
                 run([jellyfish, '--version'])
             except Exception:
                 Log.err('Something went wrong while trying to compile '
-                        'Rcorrector.')
+                        'Rcorrector.', '')
                 Log.msg('Try downloading and installing it manually from: '
-                        'https://github.com/karolisr/Rcorrector')
+                        'https://github.com/karolisr/Rcorrector', '')
                 return None
 
     v = get_dep_version([rcorrector, '-version'], r'^Rcorrector\sv([\d\.]*)')
@@ -612,6 +642,8 @@ def dep_check_kraken2(dir_dep, os_id, release_name, machine_type, force):
     url = 'https://github.com/karolisr/kraken2/archive/master.tar.gz'
 
     dnld_path = opj(dir_dep, 'kraken2.tar.gz')
+
+    cxx_flags = ''
 
     try:
         if force is True:
@@ -642,7 +674,7 @@ def dep_check_kraken2(dir_dep, os_id, release_name, machine_type, force):
             run([kraken2_build, '--help'])
         except Exception:
             Log.wrn('Kraken2 was not found on this system, trying to '
-                    'download.')
+                    'download.', '')
 
             if ope(dnld_path):
                 remove(dnld_path)
@@ -662,7 +694,7 @@ def dep_check_kraken2(dir_dep, os_id, release_name, machine_type, force):
                                  'cp $(PROGS) $(KRAKEN2_DIR)/',
                                  'cp $(PROGS) "$(KRAKEN2_DIR)"/')
             try:
-                Log.wrn('Compiling Kraken2 Attempt 1')
+                Log.wrn('Compiling Kraken2 Attempt 1', '')
                 run(['./install_kraken2.sh', 'bin'], cwd=dir_bin)
 
                 _ = run([classify_bin], do_not_raise=True)
@@ -674,7 +706,7 @@ def dep_check_kraken2(dir_dep, os_id, release_name, machine_type, force):
 
             except Exception:
                 try:
-                    Log.wrn('Compiling Kraken2 Attempt 2')
+                    Log.wrn('Compiling Kraken2 Attempt 2', '')
 
                     dir_libomp = opj(dir_dep, 'libomp')
 
@@ -683,6 +715,9 @@ def dep_check_kraken2(dir_dep, os_id, release_name, machine_type, force):
 
                     libomp_fp, v = brew_get('libomp', os_id, release_name,
                                             machine_type, dir_dep)
+
+                    assert libomp_fp is not None
+                    assert v is not None
 
                     tar_ref = tarfile.open(libomp_fp, 'r:gz')
                     tar_ref.extractall(dir_dep)
@@ -726,7 +761,7 @@ def dep_check_kraken2(dir_dep, os_id, release_name, machine_type, force):
 
                 except Exception:
                     try:
-                        Log.wrn('Compiling Kraken2 Attempt 3')
+                        Log.wrn('Compiling Kraken2 Attempt 3', '')
                         makefile = opj(dir_bin, 'src', 'Makefile')
                         replace_line_in_file(makefile, cxx_flags,
                                              'CXXFLAGS = -Wall -std=c++11 -O3')
@@ -743,9 +778,9 @@ def dep_check_kraken2(dir_dep, os_id, release_name, machine_type, force):
 
             if not ope(kraken2):
                 Log.err('Something went wrong while trying to compile '
-                        'Kraken2.')
+                        'Kraken2.', '')
                 Log.msg('Try downloading and installing it manually from: '
-                        'https://github.com/karolisr/kraken2')
+                        'https://github.com/karolisr/kraken2', '')
                 return None, None
 
     regexp = r'^.*?version\s([\d\.\-A-Za-z]*)'
@@ -795,7 +830,7 @@ def download_kraken2_dbs(dbs_path):
     p_new = opj(dbs_path, db_name)
 
     if not ope(p_new):
-        Log.msg(msg_prefix + db_name)
+        Log.msg(msg_prefix + db_name, '')
         download_file(url=url, local_path=tgz, protocol='ftp')
         tar_ref = tarfile.open(tgz, 'r:gz')
         tar_ref.extractall(dbs_path)
@@ -815,7 +850,7 @@ def download_kraken2_dbs(dbs_path):
     p_new = opj(dbs_path, db_name)
 
     if not ope(p_new):
-        Log.msg(msg_prefix + db_name)
+        Log.msg(msg_prefix + db_name, '')
         download_file(url=url, local_path=tgz, protocol='ftp')
         tar_ref = tarfile.open(tgz, 'r:gz')
         tar_ref.extractall(dbs_path)
@@ -834,7 +869,7 @@ def download_kraken2_dbs(dbs_path):
     p = opj(dbs_path, base)
 
     if not ope(p):
-        Log.msg(msg_prefix + base)
+        Log.msg(msg_prefix + base, '')
         download_file(url=url, local_path=tgz, protocol='http')
         tar_ref = tarfile.open(tgz, 'r:gz')
         tar_ref.extractall(dbs_path)
@@ -852,7 +887,7 @@ def download_kraken2_dbs(dbs_path):
     p = opj(dbs_path, base)
 
     if not ope(p):
-        Log.msg(msg_prefix + base)
+        Log.msg(msg_prefix + base, '')
         download_file(url=url, local_path=tgz, protocol='http')
         tar_ref = tarfile.open(tgz, 'r:gz')
         tar_ref.extractall(dbs_path)
@@ -870,7 +905,7 @@ def download_kraken2_dbs(dbs_path):
     p = opj(dbs_path, base)
 
     if not ope(p):
-        Log.msg(msg_prefix + base)
+        Log.msg(msg_prefix + base, '')
         download_file(url=url, local_path=tgz, protocol='http')
         tar_ref = tarfile.open(tgz, 'r:gz')
         tar_ref.extractall(dbs_path)
@@ -888,7 +923,7 @@ def download_kraken2_dbs(dbs_path):
     p = opj(dbs_path, base)
 
     if not ope(p):
-        Log.msg(msg_prefix + base)
+        Log.msg(msg_prefix + base, '')
         download_file(url=url, local_path=tgz, protocol='http')
         tar_ref = tarfile.open(tgz, 'r:gz')
         tar_ref.extractall(dbs_path)
@@ -898,5 +933,7 @@ def download_kraken2_dbs(dbs_path):
     # ------------------------------------------------------------------------
 
     dbs_available, e = list_of_dirs_at_path(dbs_path)
+    if dbs_available is None:
+        raise Exception(e)
     kraken2_dbs = {basename(p): p for p in dbs_available}
     return kraken2_dbs

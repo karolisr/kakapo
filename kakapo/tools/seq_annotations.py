@@ -1,7 +1,6 @@
 """Sequence annotation parsers."""
 
 import json
-
 from collections import OrderedDict
 from copy import deepcopy
 
@@ -55,13 +54,13 @@ def parse_ips5_json_file(json_path):
                     else:
                         name = ': ' + name
 
-                    attributes += (accession + name + ';' +
-                                   'accession=' + accession + ';')
+                    attributes += (accession + name + ';'
+                                   + 'accession=' + accession + ';')
 
                 if ann_type == 'PFAM':
-                    attributes += (accession + ': ' +
-                                   description + ';' +
-                                   'accession=' + accession + ';')
+                    attributes += (accession + ': '
+                                   + description + ';'
+                                   + 'accession=' + accession + ';')
 
                 if ann_type == 'PHOBIUS':
                     attributes += (name + ';'
@@ -101,7 +100,7 @@ def parse_kakapo_json_file(json_path):
         ann = rec[ann_key]
         all_annotations[transcript] = ann
 
-    return(all_annotations)
+    return all_annotations
 
 
 def merge_kakapo_and_ips_annotations(json_path_kakapo, json_path_ips):

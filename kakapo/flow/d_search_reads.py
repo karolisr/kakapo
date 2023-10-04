@@ -1,26 +1,21 @@
 """Kakapo workflow: Search Reads."""
 
 import pickle
-
 from os import remove as osremove
 from os.path import basename
 from os.path import exists as ope
 from os.path import join as opj
 from shutil import copyfile
 
-from kakapo.tools.bioio import read_fasta
-from kakapo.tools.bioio import seq_records_to_dict
-from kakapo.tools.blast import BLST_RES_COLS_1
-from kakapo.tools.blast import run_blast
+from kakapo.tools.bioio import read_fasta, seq_records_to_dict
+from kakapo.tools.blast import BLST_RES_COLS_1, run_blast
 from kakapo.tools.config import PICKLE_PROTOCOL
 from kakapo.tools.seq import SEQ_TYPE_AA
-from kakapo.tools.seqtk import seqtk_fq_to_fa, seqtk_extract_reads
+from kakapo.tools.seqtk import seqtk_extract_reads, seqtk_fq_to_fa
 from kakapo.tools.vsearch import run_cluster_fast, run_vsearch
 from kakapo.utils.logging import Log
-from kakapo.utils.misc import combine_text_files
-from kakapo.utils.misc import keep_unique_lines_in_file
-from kakapo.utils.misc import make_dirs
-
+from kakapo.utils.misc import (combine_text_files, keep_unique_lines_in_file,
+                               make_dirs)
 
 MT = 'mitochondrion'
 PT = 'plastid'
@@ -38,17 +33,25 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
 
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
         print()
-        Log.inf('Running BLAST on reads:', ss)
+        Log.log(inf='Running BLAST on reads:', s=ss)
+        Log.msg('evalue:', str(blast_1_evalue))
+        Log.msg('max_hsps:', str(blast_1_max_hsps))
+        Log.msg('qcov_hsp_perc:', str(blast_1_qcov_hsp_perc))
+        Log.msg('best_hit_overhang:', str(blast_1_best_hit_overhang))
+        Log.msg('best_hit_score_edge:', str(blast_1_best_hit_score_edge))
+        Log.msg('max_target_seqs:', str(blast_1_max_target_seqs))
+        print()
+
         if tblastn is None:
-            Log.err('tblastn is not available. Cannot continue. Exiting.')
+            Log.err('tblastn is not available. Cannot continue. Exiting.', '')
             exit(0)
 
         if vsearch is None:
-            Log.err('vsearch is not available. Cannot continue. Exiting.')
+            Log.err('vsearch is not available. Cannot continue. Exiting.', '')
             exit(0)
 
         if seqtk is None:
-            Log.err('seqtk is not available. Cannot continue. Exiting.')
+            Log.err('seqtk is not available. Cannot continue. Exiting.', '')
             exit(0)
 
     cache_file = opj(dir_cache_prj, 'blast_1_settings_cache__' + ss)
@@ -62,14 +65,6 @@ def run_tblastn_on_reads(se_fastq_files, pe_fastq_files, aa_queries_file,
                 'blast_1_max_target_seqs': blast_1_max_target_seqs,
                 'queries': seq_records_to_dict(
                     read_fasta(aa_queries_file, SEQ_TYPE_AA))}
-
-    Log.msg('evalue:', str(blast_1_evalue))
-    Log.msg('max_hsps:', str(blast_1_max_hsps))
-    Log.msg('qcov_hsp_perc:', str(blast_1_qcov_hsp_perc))
-    Log.msg('best_hit_overhang:', str(blast_1_best_hit_overhang))
-    Log.msg('best_hit_score_edge:', str(blast_1_best_hit_score_edge))
-    Log.msg('max_target_seqs:', str(blast_1_max_target_seqs))
-    print()
 
     # FixMe: Expose in configuration files?
     ident = 0.85
@@ -220,10 +215,10 @@ def run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
 
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
         if vsearch is None:
-            Log.err('vsearch is not available. Cannot continue. Exiting.')
+            Log.err('vsearch is not available. Cannot continue. Exiting.', '')
             exit(0)
         if seqtk is None:
-            Log.err('seqtk is not available. Cannot continue. Exiting.')
+            Log.err('seqtk is not available. Cannot continue. Exiting.', '')
             exit(0)
 
     # FixMe: Expose in configuration files?

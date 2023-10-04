@@ -2,50 +2,41 @@
 
 import fileinput
 import pickle
-# import random
 import re
-
 from collections import OrderedDict
 from copy import deepcopy
-from os import remove
-from os import stat
-from os.path import basename
-from os.path import commonprefix
+from os import remove, stat
+from os.path import basename, commonprefix
 from os.path import exists as ope
 from os.path import isfile
 from os.path import join as opj
 from os.path import sep as ops
 from os.path import splitext
-from shutil import copyfile
-from shutil import move
-from shutil import rmtree
+from shutil import copyfile, move, rmtree
 from time import sleep
 
-from kakapo.tools.bioio import read_fasta
-from kakapo.tools.bioio import seq_records_to_dict
-from kakapo.tools.bioio import write_fasta
+from ncbi_taxonomy_local import Taxonomy
+
+from kakapo.tools.bioio import read_fasta, seq_records_to_dict, write_fasta
 from kakapo.tools.blast import make_blast_db
-from kakapo.tools.bowtie2 import build_bt2_index, run_bowtie2_se, run_bowtie2_pe
+from kakapo.tools.bowtie2 import (build_bt2_index, run_bowtie2_pe,
+                                  run_bowtie2_se)
 from kakapo.tools.config import PICKLE_PROTOCOL
-from kakapo.tools.eutils import accs as accs_eutil
+from kakapo.tools.eutils import accs_with_data as accs_eutil
 from kakapo.tools.eutils import search as search_eutil
 from kakapo.tools.eutils import seqs as dnld_ncbi_seqs
 from kakapo.tools.eutils import sra_run_info
 from kakapo.tools.kraken import run_kraken_filters
-from kakapo.tools.rcorrector import filter_unc_se, filter_unc_pe
-from kakapo.tools.rcorrector import run_rcorrector_se, run_rcorrector_pe
+from kakapo.tools.rcorrector import (filter_unc_pe, filter_unc_se,
+                                     run_rcorrector_pe, run_rcorrector_se)
 from kakapo.tools.seq import SEQ_TYPE_NT
 from kakapo.tools.seqtk import seqtk_fq_to_fa
 from kakapo.tools.transl_tables import TranslationTable
-from kakapo.tools.trimmomatic import trimmomatic_se, trimmomatic_pe
+from kakapo.tools.trimmomatic import trimmomatic_pe, trimmomatic_se
 from kakapo.utils.logging import Log
-from kakapo.utils.misc import make_dirs
-from kakapo.utils.misc import plain_or_gzip
-from kakapo.utils.misc import rename_fq_seqs
-from kakapo.utils.misc import splitext_gz
-from kakapo.utils.misc import avg_read_len_fq
+from kakapo.utils.misc import (avg_read_len_fq, make_dirs, plain_or_gzip,
+                               rename_fq_seqs, splitext_gz)
 from kakapo.utils.subp import run
-
 
 MT = 'mitochondrion'
 PT = 'plastid'
@@ -96,17 +87,17 @@ def dnld_sra_info(sras, dir_cache_prj):
             sra_spots = int(info['spots'])
             sra_spots_with_mates = int(info['spots_with_mates'])
 
-            sample_base_name = (sra_species.replace(' ', '_') + '_' +
-                                sra_taxid + '_' + sra)
+            sample_base_name = (sra_species.replace(' ', '_') + '_'
+                                + sra_taxid + '_' + sra)
 
             sra_runs_info[sra]['KakapoSampleBaseName'] = sample_base_name
 
             src_check = sra_lib_source.lower()
             strategy_check = sra_lib_strategy.lower()
 
-            if not ('transcript' in src_check or
-                    'rna' in src_check or
-                    'rna' in strategy_check):
+            if not ('transcript' in src_check
+                    or 'rna' in src_check
+                    or 'rna' in strategy_check):
 
                 sra_info_str = ('{sra}: the SRA library source type "{ltype}" '
                                 'or library strategy "{strategy}" '
@@ -125,11 +116,7 @@ def dnld_sra_info(sras, dir_cache_prj):
 
             else:
 
-                Log.msg('{sra}:'.format(sra=sra),
-                        '{strategy} {layout}-end library ({source}).'.format(
-                            strategy=sra_lib_strategy,
-                            layout=sra_lib_layout,
-                            source=sra_lib_source.title()))
+                Log.msg(f'{sra:>14}:', f'{sra_lib_strategy} {sra_lib_layout}-end library ({sra_lib_source.title()}).')
 
                 sra_runs_info[sra]['KakapoLibraryLayout'] = \
                     sra_runs_info[sra]['LibraryLayout']
@@ -140,24 +127,13 @@ def dnld_sra_info(sras, dir_cache_prj):
                             'paired-end reads, but only a single set of reads '
                             'is available. Treating as single-ended.')
 
-                elif (sra_lib_layout == 'paired' and
-                      sra_spots != sra_spots_with_mates):
+                elif (sra_lib_layout == 'paired'
+                      and sra_spots != sra_spots_with_mates):
                     sra_runs_info[sra]['KakapoLibraryLayout'] = 'PAIRED_UNP'
                     Log.wrn('      Note:', 'Listed as containing '
                             'paired-end reads, but not all reads are paired.')
-                # ToDo: Align the colons, example below:
-                # 2023-04-10 17:42:13 Downloading SRA run information.
-                # 2023-04-10 17:42:14 SRR14839289: RNA-Seq paired-end library (Transcriptomic).
-                #                         Source: Chelonia mydas (TaxID: 8469).
-                #                     Technology: Illumina platform / Illumina NovaSeq 6000.
-                Log.msg('    Source:',
-                        '{species} (TaxID: {txid}).'.format(
-                            species=sra_species,
-                            txid=sra_taxid), False)
-                Log.msg('Technology:',
-                        '{platform} platform / {model}.'.format(
-                            platform=sra_seq_platform,
-                            model=sra_seq_platform_model), False)
+                Log.log(msg='        Source:', s='{species} (TaxID: {txid}).'.format(species=sra_species, txid=sra_taxid), timestamp=False)
+                Log.log(msg='    Technology:', s='{platform} platform / {model}.'.format(platform=sra_seq_platform, model=sra_seq_platform_model), timestamp=False)
 
                 sras_acceptable.append(sra)
 
@@ -172,8 +148,8 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
 
     if len(sras) > 0:
         if fasterq_dump is None:
-            Log.err('fasterq-dump from SRA Toolkit is not available. ' +
-                    'Cannot continue. Exiting.')
+            Log.err('fasterq-dump from SRA Toolkit is not available. '
+                    'Cannot continue. Exiting.', '')
             exit(0)
 
         print()
@@ -193,6 +169,7 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
         sra_dnld_needed = False
 
         se_file = None
+        se_file_gz = None
 
         pe_file_1 = None
         pe_file_2 = None
@@ -201,6 +178,10 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
         pe_file_1_renamed = None
         pe_file_2_renamed = None
         pe_file_3_renamed = None
+
+        pe_file_1_renamed_gz = None
+        pe_file_2_renamed_gz = None
+        pe_file_3_renamed_gz = None
 
         if sra_lib_layout == 'single' or sra_lib_layout_k == 'single':
             se_file = opj(dir_fq_data, sra + '.fastq')
@@ -257,12 +238,12 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
         while sra_dnld_needed:
 
             if retry_count > 50:
-                Log.err('Download failed. Exiting.')
+                Log.err('Download failed. Exiting.', '')
                 rmtree(dir_temp)
                 exit(1)
 
             elif retry_count > 0:
-                Log.wrn('Download failed. Retrying.')
+                Log.wrn('Download failed. Retrying.', '')
                 sleep(2)
 
             retry_count += 1
@@ -285,34 +266,43 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
             run(cmd, do_not_raise=True)
 
             if sra_lib_layout == 'single' or sra_lib_layout_k == 'single':
+                assert se_file is not None
                 if not ope(se_file):
                     continue
 
             elif sra_lib_layout == 'paired':
+                assert pe_file_1 is not None
+                assert pe_file_2 is not None
                 if not ope(pe_file_1) or not ope(pe_file_2):
                     continue
                 else:
+                    assert pe_file_1_renamed is not None
+                    assert pe_file_2_renamed is not None
                     move(pe_file_1, pe_file_1_renamed)
                     move(pe_file_2, pe_file_2_renamed)
 
                 if sra_lib_layout_k == 'paired_unp':
+                    assert pe_file_3 is not None
                     if not ope(pe_file_3):
                         continue
                     else:
+                        assert pe_file_3_renamed is not None
                         move(pe_file_3, pe_file_3_renamed)
 
             sra_dnld_needed = False
 
             if sra_lib_layout == 'single' or sra_lib_layout_k == 'single':
+                assert se_file is not None
                 if ope(se_file):
                     Log.msg('Renaming FASTQ reads in:', se_file)
                     read_count = rename_fq_seqs(se_file, sra, '1:N:0')
 
                     if read_count < MIN_READ_COUNT_SRA:
-                        Log.wrn('FASTQ file contains less than ' +
-                                str(MIN_READ_COUNT_SRA) +
-                                ' reads, blacklisting:', sra)
+                        Log.wrn('FASTQ file contains less than '
+                                + str(MIN_READ_COUNT_SRA)
+                                + ' reads, blacklisting:', sra)
                         del se_fastq_files[sample_base_name]
+                        assert se_file_gz is not None
                         move(se_file_gz, se_file_gz.replace(
                             '.fastq',
                             '_blacklisted.fastq'))
@@ -321,6 +311,11 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
 
                 read_1_count = 0
                 read_3_count = 0
+
+                assert pe_file_1_renamed is not None
+                assert pe_file_2_renamed is not None
+                assert pe_file_1_renamed_gz is not None
+                assert pe_file_2_renamed_gz is not None
 
                 if ope(pe_file_1_renamed):
                     Log.msg('Renaming FASTQ reads in:', pe_file_1_renamed)
@@ -334,14 +329,15 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
                     assert read_1_count == read_2_count
 
                 if sra_lib_layout_k == 'paired_unp':
+                    assert pe_file_3_renamed is not None
                     if ope(pe_file_3_renamed):
                         Log.msg('Renaming FASTQ reads in:', pe_file_3_renamed)
-                        read_3_count = rename_fq_seqs(pe_file_3_renamed, sra +
-                                                      '_unpaired', '1:N:0')
+                        read_3_count = rename_fq_seqs(pe_file_3_renamed, sra
+                                                      + '_unpaired', '1:N:0')
 
                 if (read_1_count + read_3_count) < MIN_READ_COUNT_SRA:
-                    Log.wrn('FASTQ files contain less than ' +
-                            str(MIN_READ_COUNT_SRA) + ' reads, blacklisting:',
+                    Log.wrn('FASTQ files contain less than '
+                            + str(MIN_READ_COUNT_SRA) + ' reads, blacklisting:',
                             sra)
 
                     del pe_fastq_files[sample_base_name]
@@ -351,10 +347,12 @@ def dnld_sra_fastq_files(sras, sra_runs_info, dir_fq_data, fasterq_dump,
                     move(pe_file_2_renamed_gz,
                          pe_file_2_renamed_gz.replace('.fastq',
                                                       '_blacklisted.fastq'))
-                    if ope(pe_file_3_renamed_gz):
-                        move(pe_file_3_renamed_gz,
-                             pe_file_3_renamed_gz.replace('.fastq',
-                                                          '_blacklisted.fastq'))
+                    if sra_lib_layout_k == 'paired_unp':
+                        assert pe_file_3_renamed_gz is not None
+                        if ope(pe_file_3_renamed_gz):
+                            move(pe_file_3_renamed_gz,
+                                 pe_file_3_renamed_gz.replace('.fastq',
+                                                              '_blacklisted.fastq'))
 
     return se_fastq_files, pe_fastq_files
 
@@ -404,8 +402,8 @@ def user_fastq_files(fq_se, fq_pe):
         pe_fastq_files[sample_base_name]['avg_len'] = None
         pe_fastq_files[sample_base_name]['tax_id'] = tax_id
         pe_fastq_files[sample_base_name]['organelle'] = None
-        Log.msg(sample_base_name + ':', basename(path[0]) + '\n' +
-                ' ' * (len(sample_base_name) + 2) + basename(path[1]))
+        Log.msg(sample_base_name + ':', basename(path[0]) + '\n'
+                + ' ' * (len(sample_base_name) + 2) + basename(path[1]))
 
     return se_fastq_files, pe_fastq_files
 
@@ -479,8 +477,8 @@ def min_accept_read_len(se_fastq_files, pe_fastq_files, dir_temp,
                 # Log.msg(str(ml) + ' nt:', x[0])
                 pass
             else:
-                Log.wrn('FASTQ file(s) contain reads longer than ' +
-                        str(MAX_READ_LEN_ILLUMINA) + ' bp, blacklisting:',
+                Log.wrn('FASTQ file(s) contain reads longer than '
+                        + str(MAX_READ_LEN_ILLUMINA) + ' bp, blacklisting:',
                         x[0])
                 for f_to_blacklist in x[1]:
                     if ope(f_to_blacklist):
@@ -528,8 +526,7 @@ def file_name_patterns():
     pe_trim_fa_file_patterns = [x.replace('.fastq', '.fasta') for x in
                                 pe_trim_fq_file_patterns]
 
-    pe_blast_db_file_patterns = list(
-        zip([pe_file_pattern] * 4, pe_trim_suffixes))
+    pe_blast_db_file_patterns = list(zip([pe_file_pattern] * 4, pe_trim_suffixes))
     pe_blast_db_file_patterns = [''.join(x) for x in pe_blast_db_file_patterns]
 
     pe_blast_results_file_patterns = [x.replace('.fastq', '__@Q@.txt') for x in
@@ -549,7 +546,7 @@ def run_trimmomatic(se_fastq_files, pe_fastq_files, dir_fq_trim_data,
         print()
         Log.inf('Running Trimmomatic.')
         if trimmomatic is None:
-            Log.err('trimmomatic is not available. Cannot continue. Exiting.')
+            Log.err('trimmomatic is not available. Cannot continue. Exiting.', '')
             exit(0)
     for se in se_fastq_files:
         dir_fq_trim_data_sample = opj(dir_fq_trim_data, se)
@@ -669,13 +666,13 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
     if len(se_fastq_files) > 0 or len(pe_fastq_files) > 0:
         print()
         if should_run is False:
-            Log.wrn('Skipping Rcorrector as requested.')
+            Log.wrn('Skipping Rcorrector as requested.', '')
         else:
             Log.inf('Running Rcorrector.')
 
             if rcorrector is None:
                 Log.err('Rcorrector is not available. Cannot continue. '
-                        'Exiting.')
+                        'Exiting.', '')
                 exit(0)
 
     for se in se_fastq_files:
@@ -809,11 +806,11 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
                     '.cor.fq' + ext_in
 
                 if fq_path_4 is None:
-                    log_f_3 = opj(dir_fq_cor_data_sample, pe +
-                                  '_unpaired.txt')
+                    log_f_3 = opj(dir_fq_cor_data_sample, pe
+                                  + '_unpaired.txt')
                 else:
-                    log_f_3 = opj(dir_fq_cor_data_sample, pe +
-                                  '_unpaired_1.txt')
+                    log_f_3 = opj(dir_fq_cor_data_sample, pe
+                                  + '_unpaired_1.txt')
 
                 filter_unc_se(in_file=fq_cor_path_3, out_file=out_fs[2],
                               log_file=log_f_3)
@@ -851,7 +848,7 @@ def run_rcorrector(se_fastq_files, pe_fastq_files, dir_fq_cor_data, rcorrector,
                         f.write('')
 
 
-def dnld_refseqs_for_taxid(taxid, filter_term, taxonomy, dir_cache_refseqs,
+def dnld_refseqs_for_taxid(taxid, filter_term, taxonomy: Taxonomy, dir_cache_refseqs,
                            query='', db='nuccore'):
 
     if filter_term == 'plastid':
@@ -859,7 +856,7 @@ def dnld_refseqs_for_taxid(taxid, filter_term, taxonomy, dir_cache_refseqs,
     else:
         ft = '("' + filter_term + '"[filter])'
 
-    tax_terms = tuple(reversed(taxonomy.lineage_for_taxid(taxid)['names']))
+    tax_terms = tuple(reversed(taxonomy.lineage_of_names(taxid)))
     tax_term = ''
     accs = set()
     for tax_term in tax_terms:
@@ -886,8 +883,8 @@ def dnld_refseqs_for_taxid(taxid, filter_term, taxonomy, dir_cache_refseqs,
             Log.wrn('No RefSeq {} sequences were found for'.format(
                 filter_term), tax_term)
 
-    cache_path = opj(dir_cache_refseqs, filter_term + '__' +
-                     tax_term.replace(' ', '_') + '.fasta')
+    cache_path = opj(dir_cache_refseqs, filter_term + '__'
+                     + tax_term.replace(' ', '_') + '.fasta')
     parsed_fasta_cache = {}
     if ope(cache_path):
         parsed_fasta_cache = read_fasta(cache_path, seq_type=SEQ_TYPE_NT,
@@ -897,7 +894,7 @@ def dnld_refseqs_for_taxid(taxid, filter_term, taxonomy, dir_cache_refseqs,
             if acc in accs:
                 accs.remove(acc)
     if len(accs) > 0:
-        parsed_fasta = dnld_ncbi_seqs(db, list(accs))
+        parsed_fasta = dnld_ncbi_seqs(db=db, ids=list(accs))
         parsed_fasta = seq_records_to_dict(parsed_fasta, prepend_acc=True)
         parsed_fasta.update(parsed_fasta_cache)
         write_fasta(parsed_fasta, cache_path)
@@ -905,7 +902,7 @@ def dnld_refseqs_for_taxid(taxid, filter_term, taxonomy, dir_cache_refseqs,
     return cache_path
 
 
-def _should_run_bt2(taxid, taxonomy, bt2_order, bowtie2, bowtie2_build):
+def _should_run_bt2(taxid, taxonomy: Taxonomy, bt2_order, bowtie2, bowtie2_build):
 
     dbs = OrderedDict()
 
@@ -936,13 +933,13 @@ def _should_run_bt2(taxid, taxonomy, bt2_order, bowtie2, bowtie2_build):
     if len(dbs) > 0:
 
         if bowtie2 is None:
-            Log.err('bowtie2 is not available. ' +
-                    'Cannot continue. Exiting.')
+            Log.err('bowtie2 is not available. '
+                    'Cannot continue. Exiting.', '')
             exit(0)
 
         if bowtie2_build is None:
-            Log.err('bowtie2-build is not available. ' +
-                    'Cannot continue. Exiting.')
+            Log.err('bowtie2-build is not available. '
+                    'Cannot continue. Exiting.', '')
             exit(0)
 
     return dbs
@@ -950,7 +947,7 @@ def _should_run_bt2(taxid, taxonomy, bt2_order, bowtie2, bowtie2_build):
 
 def run_bt2_fq(se_fastq_files, pe_fastq_files, dir_fq_filter_data,
                bowtie2, bowtie2_build, threads, dir_temp, bt2_order,
-               fpatt, taxonomy, dir_cache_refseqs,
+               fpatt, taxonomy: Taxonomy, dir_cache_refseqs,
                rcorrector_before_trimmomatic, gz_out=True):
 
     new_se_fastq_files = dict()
@@ -1194,9 +1191,9 @@ def run_kraken2(order, dbs, se_fastq_files, pe_fastq_files, dir_fq_filter_data,
 
     if (len(se_fastq_files) > 0 or len(pe_fastq_files) > 0) and len(order) > 0:
         print()
-        Log.inf('Running Kraken2.', 'Confidence: ' + str(confidence))
+        Log.log(inf='Running Kraken2.', s='Confidence: ' + str(confidence))
         if kraken2 is None:
-            Log.err('kraken2 is not available. Cannot continue. Exiting.')
+            Log.err('kraken2 is not available. Cannot continue. Exiting.', '')
             exit(0)
 
     nuclear = None
@@ -1296,7 +1293,7 @@ def filtered_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
         print()
         Log.inf('Converting FASTQ to FASTA using Seqtk.')
         if seqtk is None:
-            Log.err('seqtk is not available. Cannot continue. Exiting.')
+            Log.err('seqtk is not available. Cannot continue. Exiting.', '')
             exit(0)
 
     ext_out = ''
@@ -1313,7 +1310,7 @@ def filtered_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
             Log.msg('Filtered FASTA files already exist:', se)
         else:
             make_dirs(dir_fa_trim_data_sample)
-            Log.msg(basename(fq_path))
+            Log.msg(basename(fq_path), '')
             seqtk_fq_to_fa(seqtk, fq_path, out_f, threads, gzip, pigz,
                            gz_out=gz_out)
 
@@ -1330,7 +1327,7 @@ def filtered_fq_to_fa(se_fastq_files, pe_fastq_files, dir_fa_trim_data, seqtk,
             make_dirs(dir_fa_trim_data_sample)
             pe_trim_files = zip(fq_paths, out_fs)
             for x in pe_trim_files:
-                Log.msg(basename(x[0]))
+                Log.msg(basename(x[0]), '')
                 seqtk_fq_to_fa(seqtk, x[0], x[1], threads, gzip, pigz,
                                gz_out=gz_out)
 
@@ -1347,7 +1344,7 @@ def makeblastdb_fq(se_fastq_files, pe_fastq_files, dir_blast_fa_trim,
             Log.msg('BLAST database already exists:', se)
         else:
             make_dirs(dir_blast_fa_trim_sample)
-            Log.msg(basename(fa_path))
+            Log.msg(basename(fa_path), '')
             make_blast_db(
                 exec_file=makeblastdb,
                 in_file=fa_path,
@@ -1368,7 +1365,7 @@ def makeblastdb_fq(se_fastq_files, pe_fastq_files, dir_blast_fa_trim,
             make_dirs(dir_blast_fa_trim_sample)
             pe_trim_files = zip(fa_paths, out_fs)
             for x in pe_trim_files:
-                Log.msg(basename(x[0]))
+                Log.msg(basename(x[0]), '')
                 make_blast_db(
                     exec_file=makeblastdb,
                     in_file=x[0],

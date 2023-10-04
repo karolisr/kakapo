@@ -28,7 +28,7 @@ setup(name=kakapo_script_name,
       include_package_data=True,
       install_requires=reqs,
       packages=find_packages(),
-      python_requires='>=3.7',
+      python_requires='>=3.9',
       entry_points={'console_scripts': ['kakapo=kakapo.__main__:run_kakapo']},
       classifiers=[
           'Development Status :: 4 - Beta',

@@ -3,25 +3,22 @@
 import io
 import re
 from collections import OrderedDict
+from collections.abc import MutableSequence, Sequence
 from functools import reduce
 from io import StringIO
 from math import ceil
 from operator import add
-from multipledispatch import dispatch
-from kakapo.tools.seq import Seq, SeqRecord, SeqRecordCDS
-from kakapo.tools.seq import SEQ_TYPES
+from typing import List, Union
 
-from typing import List
+from kakapo.tools.seq import (SEQ_TYPES, AASeq, DNASeq, NTSeq, RNASeq, Seq,
+                              SeqRecord, SeqRecordCDS)
 
 BIOIO_NS = dict()
 HANDLE_TYPES = (io.IOBase, StringIO)
 
 
-# Note: incompatible with Python <=3.9
-# TypeError: unsupported operand type(s) for |: '_GenericAlias' and '_GenericAlias'
-# parse_def=False, simple_return=False) -> List[SeqRecord] | List[str]:
-def read_fasta(f, seq_type, upper=True, def_to_first_space=False,
-               parse_def=False, simple_return=False) -> list:
+def read_fasta(f, seq_type: Union[str, None], upper=True, def_to_first_space=False,
+               parse_def=False, simple_return=False) -> Union[list[SeqRecord], list[list[str]]]:
     """Read a FASTA file."""
     assert seq_type.upper() in SEQ_TYPES
 
@@ -42,7 +39,9 @@ def read_fasta(f, seq_type, upper=True, def_to_first_space=False,
     handle = False
     if isinstance(f, HANDLE_TYPES):
         handle = True
+
     if handle is False:
+        assert isinstance(f, str)
         f = open(f)
 
     lines = f.read().splitlines()
@@ -66,9 +65,12 @@ def read_fasta(f, seq_type, upper=True, def_to_first_space=False,
     return_object = list()
     for rec in records:
         if simple_return is True:
-            seq_record = (rec[0], rec[1])
+            seq_record = [rec[0], rec[1]]
         else:
-            seq_record = SeqRecord(rec[0], Seq(rec[1], seq_type))
+            _ = Seq(rec[1], seq_type)
+            # Python 3.9 incompatible
+            # assert isinstance(_, Union[NTSeq, DNASeq, RNASeq, AASeq])
+            seq_record = SeqRecord(rec[0], _)  # type: ignore
             if parse_def is True:
                 defn = seq_record.definition
                 re_loc_pattern = '^(.*)(\\:)(c*\\d+\\-\\d+,*\\S*)(\\s)(.*$)'
@@ -103,10 +105,10 @@ def dict_to_fasta(d, max_line_len=None):
     if max_line_len is not None:
         def split_seq(seq):
             seq = str(seq)
-            l = max_line_len
+            mll = max_line_len
             s = ''
-            for i in range(0, ceil(len(seq) / l)):
-                s += seq[i * l:(i + 1) * l] + '\n'
+            for i in range(0, ceil(len(seq) / mll)):
+                s += seq[i * mll:(i + 1) * mll] + '\n'
             return s.strip()
     else:
         def split_seq(seq):
@@ -147,6 +149,7 @@ def write_fasta(data, f, max_line_len=None, prepend_acc=False, prepend_org=False
     if isinstance(f, HANDLE_TYPES):
         handle = True
     if handle is False:
+        assert isinstance(f, str)
         f = open(f, 'w')
 
     if type(data) in (dict, OrderedDict):
@@ -161,24 +164,36 @@ def write_fasta(data, f, max_line_len=None, prepend_acc=False, prepend_org=False
         f.close()
 
 
-@dispatch(str, str, namespace=BIOIO_NS)
-def _no_spaces(name, sep='_'):
+def _no_spaces_str(name: str, sep='_'):
     return sep.join(re.findall(r'([^\s]+)', name))
 
 
-@dispatch(SeqRecord, namespace=BIOIO_NS)
-def _no_spaces(seq_record, sep='_'):
-    return _no_spaces(seq_record.definition, sep)
+def _no_spaces_sr(seq_record: Union[SeqRecord, Sequence], sep='_'):
+    if type(seq_record) == SeqRecord:
+        return _no_spaces_str(seq_record.definition, sep)
+    elif type(seq_record) == Sequence:
+        return _no_spaces_str(seq_record[0], sep)
 
 
-def standardize_fasta(f, seq_type, pfam=False):
-    parsed_fasta = read_fasta(f, seq_type)
-    names = tuple(map(_no_spaces, parsed_fasta))
+def standardize_parsed_fasta(parsed_fasta: Union[list[SeqRecord], list[list[str]]], pfam: bool = False) -> Union[list[SeqRecord], list[list[str]]]:
+    names = tuple(map(_no_spaces_sr, parsed_fasta))
+
     if pfam is True:
         names = tuple(['|'.join(x.split('|')[1:]) for x in names])
+
+    assert len(names) == len(parsed_fasta)
     for i, rec in enumerate(parsed_fasta):
-        rec.definition = names[i]
+        if type(rec) == SeqRecord:
+            rec.definition = names[i]
+        elif type(rec) == MutableSequence[str]:
+            rec[0] = names[i]
+
     return parsed_fasta
+
+
+def standardize_fasta(f, seq_type: str, pfam: bool = False, simple_return: bool = False):
+    parsed_fasta = read_fasta(f, seq_type, simple_return=simple_return)
+    return standardize_parsed_fasta(parsed_fasta, pfam=pfam)
 
 
 def standardize_fasta_text(text, seq_type, pfam=False):
@@ -190,10 +205,14 @@ def trim_desc_to_first_space_in_fasta_text(text, seq_type):
     return parsed_fasta
 
 
-def filter_fasta_by_length(f, seq_type, min_len, max_len) -> List[SeqRecord]:
+def filter_fasta_by_length(f, seq_type: str, min_len: int, max_len: int) -> list[SeqRecord]:
     parsed_fasta = read_fasta(f, seq_type)
-    recs = filter(lambda y: min_len <= y.length <= max_len, parsed_fasta)
-    return list(recs)
+    recs: list[SeqRecord] = list()
+    for sr in parsed_fasta:
+        assert type(sr) == SeqRecord
+        recs.append(sr)
+    recs = list(filter(lambda y: min_len <= y.length <= max_len, recs))
+    return recs
 
 
 def filter_fasta_text_by_length(text, seq_type, min_len, max_len):

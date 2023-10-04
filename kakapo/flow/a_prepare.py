@@ -1,6 +1,7 @@
 """Kakapo workflow: Prepare."""
 
 from os.path import join as opj
+
 from kakapo.utils.misc import make_dirs
 
 

@@ -2,21 +2,17 @@
 
 import json
 import pickle
-
 from collections import OrderedDict
 from os import remove as osremove
 from os.path import exists as ope
 from os.path import join as opj
 from time import sleep
 
-from kakapo.tools.bioio import read_fasta
-from kakapo.tools.bioio import seq_records_to_dict
+from kakapo.tools.bioio import read_fasta, seq_records_to_dict
 from kakapo.tools.config import PICKLE_PROTOCOL
-from kakapo.tools.ebi_iprscan5 import job_runner
-from kakapo.tools.ebi_iprscan5 import result_json
+from kakapo.tools.ebi_iprscan5 import job_runner, result_json
 from kakapo.tools.seq import SEQ_TYPE_AA
 from kakapo.utils.logging import Log
-
 from kakapo.utils.misc import split_seq_defn_for_printing as split_seq_defn
 
 
@@ -37,16 +33,16 @@ def run_inter_pro_scan(ss, assemblies, email, dir_prj_ips, dir_cache_prj,
 
         assmbl_name = a['name']
 
-        json_dump_file_path = opj(dir_prj_ips, assmbl_name + '_ann_ips__' +
-                                  ss + '.json')
+        json_dump_file_path = opj(dir_prj_ips, assmbl_name + '_ann_ips__'
+                                  + ss + '.json')
 
         if ope(json_dump_file_path):
             Log.inf('InterProScan results for assembly ' + assmbl_name + ', '
                     'search strategy ' + ss + ' have already been downloaded.')
             continue
         else:
-            Log.inf('Running InterProScan on translated ' + ss +
-                    ' from ' + assmbl_name + '.')
+            Log.inf('Running InterProScan on translated ' + ss
+                    + ' from ' + assmbl_name + '.')
 
         seqs = seq_records_to_dict(read_fasta(aa_file, SEQ_TYPE_AA))
 
@@ -78,8 +74,8 @@ def run_inter_pro_scan(ss, assemblies, email, dir_prj_ips, dir_cache_prj,
             with open(_, 'wb') as f:
                 pickle.dump(jobs, f, protocol=PICKLE_PROTOCOL)
 
-        Log.inf('Downloading InterProScan results for ' + ss +
-                ' in ' + assmbl_name + '.')
+        Log.inf('Downloading InterProScan results for ' + ss
+                + ' in ' + assmbl_name + '.')
 
         all_ips_results = {}
 
@@ -88,18 +84,18 @@ def run_inter_pro_scan(ss, assemblies, email, dir_prj_ips, dir_cache_prj,
 
             job_id = jobs['finished'][job]
 
-            titles_ab = split_seq_defn(job)
-            title_a = titles_ab[0]
+            # titles_ab = split_seq_defn(job)
+            # title_a = titles_ab[0]
 
-            progress = round(((i + 1) / len(jobs['finished'])) * 100)
-            progress_str = '{:3d}'.format(progress) + '%'
+            # progress = round(((i + 1) / len(jobs['finished'])) * 100)
+            # progress_str = '{:3d}'.format(progress) + '%'
 
-            msg = (' ' * 12 +
-                   title_a.ljust(max_title_a_len) +
-                   run_id.ljust(max_run_id_len) +
-                   progress_str.rjust(4) + ' ' + job_id)
+            # msg = (' ' * 12
+            #        + title_a.ljust(max_title_a_len)
+            #        + run_id.ljust(max_run_id_len)
+            #        + progress_str.rjust(4) + ' ' + job_id)
 
-            Log.msg(msg)
+            # Log.msg(msg, '')
 
             sleep(delay)
 

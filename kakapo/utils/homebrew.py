@@ -1,11 +1,9 @@
 """Homebrew API."""
 
-from os.path import abspath
-from os.path import expanduser
+from os.path import abspath, expanduser
 from os.path import join as opj
 
-from kakapo.utils.http import get
-from kakapo.utils.http import download_file
+from kakapo.utils.http import download_file, get
 
 
 def brew_get(package, os, platform, machine_type, dnld_dir):
@@ -42,25 +40,26 @@ def brew_get(package, os, platform, machine_type, dnld_dir):
         elif platform == 'Yosemite':
             platform = 'yosemite'
         else:
-            return None
+            return None, None
 
         url = url_mac.format(package)
 
-    if os == 'linux':
+    elif os == 'linux':
         if platform == 'linux':
             platform = 'x86_64_linux'
         else:
-            return None
+            return None, None
 
         url = url_linux.format(package)
 
-    r = get(url)
+    else:
+        return None, None
 
     try:
-        r.raise_for_status()
+        r = get(url)
     except Exception as e:
         print(e)
-        return None
+        return None, None
 
     data = r.json()
 

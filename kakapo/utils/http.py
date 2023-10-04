@@ -2,9 +2,10 @@
 
 """http."""
 
+from sys import exit
 from typing import Union
-from requests import Response
-from requests import Session
+
+from requests import Response, Session
 from requests.adapters import HTTPAdapter
 from requests.exceptions import HTTPError
 from urllib3.util import Retry
@@ -24,7 +25,7 @@ def _valid_response_formats():
 
 
 def retry_session(retries=5, backoff_factor=1,
-                  status_forcelist=(500, 502, 504)):
+                  status_forcelist=(500, 502, 503, 504)):
 
     session = Session()
 
@@ -43,7 +44,8 @@ def retry_session(retries=5, backoff_factor=1,
     return session
 
 
-def get(url, params=None, response_format: Union[str, dict] = 'json') -> Response:
+def get(url, params=None, response_format: Union[str, dict] = 'json'
+        ) -> Response:
     """
     Wrap requests.get.
 
@@ -68,18 +70,15 @@ def get(url, params=None, response_format: Union[str, dict] = 'json') -> Respons
         assert response_format in _valid_response_formats()
         headers = ACC_HEAD[response_format]
 
-    # response = None
-
     with retry_session() as session:
         r: Response = session.get(
             url=url, params=params, headers=headers)
 
     try:
         r.raise_for_status()
-    # except Exception as e:
-    #     print(e)
     except HTTPError as e:
         print(e)
+        exit(1)
 
     return r
 
@@ -89,22 +88,19 @@ def post(url, data, response_format) -> Response:
     assert response_format in _valid_response_formats()
     headers = ACC_HEAD[response_format]
 
-    # response = None
-
     with retry_session() as session:
-        response = session.post(url=url, data=data, headers=headers)
+        r: Response = session.post(url=url, data=data, headers=headers)
 
     try:
-        response.raise_for_status()
-    # except Exception as e:
-    #     print(e)
+        r.raise_for_status()
     except HTTPError as e:
         print(e)
+        exit(1)
 
-    return response
+    return r
 
 
-def download_file(url, local_path, response_format='json'):
+def download_file(url, local_path, response_format: Union[str, dict] = 'json'):
     r: Response = get(url, response_format=response_format)
 
     with open(local_path, 'wb') as f:

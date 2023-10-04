@@ -1,16 +1,13 @@
 """seq."""
+from __future__ import annotations
 
 from copy import deepcopy
-from typing import Union, List, Iterable, Dict
+from typing import Dict, Iterable, List, Union
 
+from kakapo.tools.iupac import (AA_AMBIGUOUS, DNA_AMBIGUOUS,
+                                DNA_COMPLEMENT_TABLE, DNA_ONLY_CHARS,
+                                NT_AMBIGUOUS, RNA_AMBIGUOUS, RNA_ONLY_CHARS)
 from kakapo.tools.transl_tables import TranslationTable
-from kakapo.tools.iupac import AA_AMBIGUOUS
-from kakapo.tools.iupac import DNA_AMBIGUOUS
-from kakapo.tools.iupac import DNA_COMPLEMENT_TABLE
-from kakapo.tools.iupac import DNA_ONLY_CHARS
-from kakapo.tools.iupac import NT_AMBIGUOUS
-from kakapo.tools.iupac import RNA_AMBIGUOUS
-from kakapo.tools.iupac import RNA_ONLY_CHARS
 
 SEQ_TYPE_NT = 'NT'
 SEQ_TYPE_DNA = 'DNA'
@@ -107,7 +104,7 @@ def parse_qualifiers(qualifiers: Iterable[Dict]) -> Dict:
     return return_value
 
 
-class Seq(object):
+class Seq:
     """
     Seq
 
@@ -126,32 +123,35 @@ class Seq(object):
     :type seq_type: str
     """
 
-    def __new__(cls, seq, seq_type, gc_id=None):
+    def __new__(cls, seq, seq_type, gc_id=None) -> Union[NTSeq, DNASeq, RNASeq, AASeq]:
+
+        super().__new__(cls)
 
         seq_type = seq_type.upper()
 
         if seq_type in MOL_TO_SEQ_TYPE_MAP:
             seq_type = MOL_TO_SEQ_TYPE_MAP[seq_type]
 
-        if seq_type in SEQ_TYPES:
+        assert seq_type in SEQ_TYPES
 
-            if seq_type is SEQ_TYPE_NT:
-                return NTSeq(seq=seq, gc_id=gc_id)
-            elif seq_type is SEQ_TYPE_DNA:
-                return DNASeq(seq=seq, gc_id=gc_id)
-            elif seq_type is SEQ_TYPE_RNA:
-                return RNASeq(seq=seq, gc_id=gc_id)
-            elif seq_type is SEQ_TYPE_AA:
-                return AASeq(seq=seq, gc_id=gc_id)
+        if seq_type is SEQ_TYPE_NT:
+            return NTSeq(seq=seq, gc_id=gc_id)
+        elif seq_type is SEQ_TYPE_DNA:
+            return DNASeq(seq=seq, gc_id=gc_id)
+        elif seq_type is SEQ_TYPE_RNA:
+            return RNASeq(seq=seq, gc_id=gc_id)
+        elif seq_type is SEQ_TYPE_AA:
+            return AASeq(seq=seq, gc_id=gc_id)
 
         else:
             message = 'Invalid sequence type: {}'.format(seq_type)
             raise Exception(message)
+            # return cls
 
     # __init__ declaration is exactly the same as __new__ so Sphinx
     # docstring parser picks it up.
-    def __init__(self, seq, seq_type, gc_id):
-        pass
+    def __init__(self, seq, seq_type, gc_id=None):
+        ...
 
 
 class _Seq(object):
@@ -188,7 +188,7 @@ class _Seq(object):
                            'not {}'.format(type(key)))
 
     @property
-    def gc_id(self):
+    def gc_id(self) -> Union[int, None]:
         if self.transl_table is None:
             print('No genetic code ID (gc_id) was set for this '
                   'sequence object.')
@@ -343,7 +343,7 @@ class AASeq(_Seq):
     def __repr__(self):
         return 'AASeq(\'' + self._seq + '\')'
 
-    def translate(self):
+    def translate(self, start_codons=None, strip_stop_codon=False):
         return self
 
     def untranslate(self):
@@ -368,7 +368,7 @@ class SeqRecord(object):
 
     def __init__(self, definition: str,
                  seq: Union[NTSeq, DNASeq, RNASeq, AASeq]):
-        self._definition = definition
+        self._definition: str = definition
         self._seq = seq
         self._accession = None
         self._version = None
@@ -423,7 +423,7 @@ class SeqRecord(object):
         return self._seq.length
 
     @property
-    def definition(self):
+    def definition(self) -> str:
         return self._definition
 
     @definition.setter
@@ -597,6 +597,7 @@ def cds(sr: SeqRecord) -> List[SeqRecordCDS]:
     # print(sr.organism, sr.accession_version)
     return_value: List[SeqRecordCDS] = list()
     fts = deepcopy(sr.features)
+    assert fts is not None
     fts_cds = [x for x in fts if x['key'] == 'CDS']
     for ft_cds in fts_cds:
 
@@ -621,6 +622,7 @@ def cds(sr: SeqRecord) -> List[SeqRecordCDS]:
                 e = interval[0][0]
             cds_seq_temp = sr.seq[b:e]
             if direction == -1:
+                assert not isinstance(cds_seq_temp, AASeq)
                 cds_seq_temp = cds_seq_temp.reversed_complemented
             cds_seq += cds_seq_temp
 

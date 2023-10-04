@@ -19,11 +19,9 @@ from time import sleep
 from xml.etree import ElementTree
 
 from kakapo.tools.config import PICKLE_PROTOCOL
-from kakapo.utils.http import get
-from kakapo.utils.http import post
+from kakapo.utils.http import get, post
 from kakapo.utils.logging import Log
 from kakapo.utils.misc import split_seq_defn_for_printing as split_seq_defn
-
 
 IPS_URL = 'https://www.ebi.ac.uk/Tools/services/rest/iprscan5'
 
@@ -142,7 +140,7 @@ def result_gff(job_id, out_file=None):
     return gff_text
 
 
-def job_runner(email, dir_cache, seqs=None, run_id='', parallel_run_count=1,
+def job_runner(email, dir_cache, seqs: OrderedDict, run_id='', parallel_run_count=1,
                max_title_a_len=0, max_run_id_len=0):
     """Run InterProScan 5."""
     max_retries = 2
@@ -222,12 +220,12 @@ def job_runner(email, dir_cache, seqs=None, run_id='', parallel_run_count=1,
                 titles_ab = split_seq_defn(title)
                 title_a = titles_ab[0]
 
-                msg = (job_status + '  ' +
-                       title_a.ljust(max_title_a_len) +
-                       run_id.ljust(max_run_id_len) +
-                       ' ' * 5 + job_id)
+                msg = (job_status + '  '
+                       + title_a.ljust(max_title_a_len)
+                       + run_id.ljust(max_run_id_len)
+                       + ' ' * 5 + job_id)
 
-                Log.msg(msg)
+                Log.msg(msg, '')
 
         if len(running) < max_jobs and len(queue) > 0:
             submit_message = False
@@ -252,11 +250,12 @@ def job_runner(email, dir_cache, seqs=None, run_id='', parallel_run_count=1,
                 title_a = titles_ab[0]
                 # ToDo: Refactor
                 if job_status == 'RUNNING':
-                    Log.msg(' ' * 10 + '- ' + title_a.ljust(max_title_a_len) +
-                            run_id.ljust(max_run_id_len) + ' ' * 5 + job_id)
+                    # Log.msg(' ' * 10 + '- ' + title_a.ljust(max_title_a_len)
+                    #         + run_id.ljust(max_run_id_len) + ' ' * 5 + job_id, '')
+                    pass
                 else:
-                    Log.msg(' ' * 10 + '+ ' + title_a.ljust(max_title_a_len) +
-                            run_id.ljust(max_run_id_len) + ' ' * 5 + job_id)
+                    # Log.msg(' ' * 10 + '+ ' + title_a.ljust(max_title_a_len)
+                    #         + run_id.ljust(max_run_id_len) + ' ' * 5 + job_id, '')
                     finished_jobs = True
 
             if finished_jobs is True:
@@ -316,12 +315,12 @@ def job_runner(email, dir_cache, seqs=None, run_id='', parallel_run_count=1,
                     titles_ab = split_seq_defn(title)
                     title_a = titles_ab[0]
                     job_status_msg = job_status.ljust(10)
-                    msg = (job_status_msg + '  ' +
-                           title_a.ljust(max_title_a_len) +
-                           run_id.ljust(max_run_id_len) +
-                           progress_str.rjust(4) + ' ' + job_id)
+                    msg = (job_status_msg + '  '
+                           + title_a.ljust(max_title_a_len)
+                           + run_id.ljust(max_run_id_len)
+                           + progress_str.rjust(4) + ' ' + job_id)
 
-                    Log.msg(msg)
+                    Log.msg(msg, '')
 
         if len(running) == 0 and len(queue) == 0:
             busy = False

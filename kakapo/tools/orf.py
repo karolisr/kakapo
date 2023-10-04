@@ -5,8 +5,8 @@ from itertools import accumulate, chain, compress, dropwhile, groupby, starmap
 from operator import add, contains, itemgetter, mul, ne, not_, sub
 from statistics import stdev
 
-from kakapo.utils.misc import overlap
 from kakapo.tools.seq import reverse_complement
+from kakapo.utils.misc import overlap
 
 CONTEXT_NT_CODES = str.maketrans('ACGTUBDHKMNRSVWY', '0123344444444444')
 
@@ -239,16 +239,16 @@ def find_orf_for_blast_hit(seq, frame, hit_start, hit_end, start_codons,
 
         tmp = orf_seq + stop_codon
 
-        log_str += ('{:.4f}'.format(orf_grade) + ' ' +
-                    '{:.4f}'.format(ovrlp) + ' ' +
-                    '{:.4f}'.format(sc_score) + ' ' +
-                    str(len(tmp)).rjust(5) + ' ' +
-                    context.rjust(10) + ' ' +
-                    orf_seq[0:3] + ' ' +
-                    orf_seq[3:13] + ' ' +
-                    '...' + ' ' +
-                    orf_seq[-33:] + ' ' +
-                    stop_codon.ljust(3))
+        log_str += ('{:.4f}'.format(orf_grade) + ' '
+                    + '{:.4f}'.format(ovrlp) + ' '
+                    + '{:.4f}'.format(sc_score) + ' '
+                    + str(len(tmp)).rjust(5) + ' '
+                    + context.rjust(10) + ' '
+                    + orf_seq[0:3] + ' '
+                    + orf_seq[3:13] + ' '
+                    + '...' + ' '
+                    + orf_seq[-33:] + ' '
+                    + stop_codon.ljust(3))
 
         if min_overlap > 1:
             min_overlap = min_overlap / 100

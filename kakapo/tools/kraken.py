@@ -2,14 +2,14 @@
 
 from collections import OrderedDict
 from os import remove, stat
+from os.path import basename
 from os.path import join as opj
-from os.path import splitext, basename
-from shutil import copyfile
-from shutil import move
+from os.path import splitext
+from shutil import copyfile, move
 
 from kakapo.tools.config import RAM
 from kakapo.utils.logging import Log
-from kakapo.utils.misc import splitext_gz, make_dirs
+from kakapo.utils.misc import make_dirs, splitext_gz
 from kakapo.utils.subp import run
 
 
@@ -18,8 +18,8 @@ def _use_memory_mapping(db_path):
     mem_max = RAM / 3
     if mem_max < db_size:
         db_name = splitext(basename(db_path))[0]
-        Log.wrn('Not enough memory for Kraken2 database {}. '
-                'Switching to a slower memory-mapping mode.'.format(db_name))
+        Log.wrn(f'Not enough memory for Kraken2 database {db_name}.'
+                ' Switching to a slower memory-mapping mode.', '')
         return '--memory-mapping'
     else:
         return None
@@ -89,7 +89,7 @@ def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,
 
     # SE
     if isinstance(in_files, (str, bytes)):
-        in_file = in_files
+        in_file: str = str(in_files)
         _, ext_in, _ = splitext_gz(in_file)
         for i, db in enumerate(dbs_ordered):
             Log.msg('Filtering SE reads using Kraken2 database:', db)
@@ -97,8 +97,8 @@ def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,
             make_dirs(dir_out_db)
             report_file = opj(dir_out_db, base_name + '.txt')
             out_class_file = opj(dir_out_db, base_name + ext_in)
-            out_unclass_file = opj(dir_temp, base_name + '_' + db +
-                                   '_kraken2_unclassified' + ext_in)
+            out_unclass_file = opj(dir_temp, base_name + '_' + db
+                                   + '_kraken2_unclassified' + ext_in)
 
             if stat(in_file).st_size > 0:  # Kraken2 freaks out if the file is empty.
                 run_kraken_se(
@@ -211,8 +211,8 @@ def run_kraken_filters(order, dbs, base_name, in_files, dir_out, confidence,
                     remove(in_file)
                 in_file = out_unclass_file + ext_out
 
-            move(in_file, opj(dir_out, base_name + '_unpaired_2' +
-                              ext_in + ext_out))
+            move(in_file, opj(dir_out, base_name + '_unpaired_2'
+                              + ext_in + ext_out))
 
         for i, db in enumerate(dbs_ordered):
             Log.msg('Filtering paired reads using Kraken2 database:', db)

@@ -2,9 +2,7 @@
 
 from os import stat
 
-from kakapo.utils.subp import run
-from kakapo.utils.subp import which
-
+from kakapo.utils.subp import run, which
 
 PY3 = which('python3')
 

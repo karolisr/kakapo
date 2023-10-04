@@ -21,6 +21,7 @@ DEBIAN_DISTS = _['debian_dists']
 REDHAT_DISTS = _['redhat_dists']
 SUPPORTED_DISTS = _['supported_dists']
 OS_INFO = OS_STR
+ENV: dict[str, str] = dict(os.environ)
 
 if OS_ID == 'mac':
     OS_INFO += ' ' + RELEASE_ID
@@ -56,15 +57,6 @@ DIR_KRK = os.path.join(DIR_DAT, 'kraken2_dbs')
 
 # Logo -----------------------------------------------------------------------
 
-# D = f'\033[38;2;{69};{121};{40}m'    # Dark Green
-# G = f'\033[38;2;{127};{183};{70}m'   # Green
-# T = f'\033[38;2;{254};{116};{85}m'   # Red
-# X = f'\033[38;2;{240};{110};{85}m'   # Dark Red
-# W = f'\033[38;2;{254};{129};{111}m'  # Light Red
-# Y = f'\033[38;2;{255};{183};{82}m'   # Yellow
-# B = f'\033[38;2;{0};{0};{0}m'        # Black
-# E = '\033[m'                         # Reset
-
 D = '\033[2;92m'  # Dark Green
 G = '\033[0;92m'  # Green
 T = '\033[0;91m'  # Red
@@ -73,6 +65,18 @@ W = '\033[0;91m'  # Light Red
 Y = '\033[0;93m'  # Yellow
 B = '\033[2;90m'  # Black
 E = '\033[0m'     # Reset
+
+if ((('COLORTERM' in ENV) and (ENV['COLORTERM'] in ('truecolor', 'xterm-truecolor')))
+        or ('TERM' in ENV and ENV['TERM'] in ('alacritty', ))):
+
+    D = f'\033[38;2;{69};{121};{40}m'    # Dark Green
+    G = f'\033[38;2;{127};{183};{70}m'   # Green
+    T = f'\033[38;2;{254};{116};{85}m'   # Red
+    X = f'\033[38;2;{240};{110};{85}m'   # Dark Red
+    W = f'\033[38;2;{254};{129};{111}m'  # Light Red
+    Y = f'\033[38;2;{255};{183};{82}m'   # Yellow
+    B = f'\033[38;2;{0};{0};{0}m'        # Black
+    E = '\033[m'                         # Reset
 
 LOGO = f'''              {D}██████████
             {D}██{G}██████████{D}████
@@ -95,14 +99,13 @@ LOGO = f'''              {D}██████████
     {D}███████████████{Y}█████{D}███{Y}█████{D}███{Y}█████{D}███{Y}█████{D}██{Y}██{D}█ {Y}██ ██  ██
                    {Y}██  ██ ███ ██   ██  ██ ███ ██  ██  ██ ██  ██
                   {Y}████ ███ ██████ ████ ███ ██████ █████   ████
-                                                  ██
-                                                  ██
-                                                 ████{E}'''
+                                                  ██{E}'''
+
+print()
+print(LOGO)
 
 # Script Info ----------------------------------------------------------------
 SCRIPT_INFO = (''
-               # + f'{LOGO}'
-               + '\n'
                + f'{__script_name__.title()} version: {__version__}\n'
                + f'Python version: {PY_V_STR}\n'
                + f'Operating system: {OS_INFO}\n'

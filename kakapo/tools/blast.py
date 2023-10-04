@@ -2,13 +2,10 @@
 
 import csv
 import os.path
-
-from collections import Counter
-from collections import OrderedDict
+from collections import Counter, OrderedDict
 from operator import itemgetter
 
-from kakapo.utils.misc import plain_or_gzip
-from kakapo.utils.misc import gzip_open
+from kakapo.utils.misc import gzip_open, plain_or_gzip
 from kakapo.utils.subp import run
 
 BLST_RES_COLS_1 = ['sseqid']
@@ -43,7 +40,7 @@ def run_blast(exec_file, task, threads, db_path, queries_file, out_file,
     """Wrap blastn and tblastn."""
     exec_name = os.path.basename(exec_file)
     if exec_name in ['tblastn', ]:
-        db_genetic_code = ['-db_gencode', db_genetic_code]
+        db_genetic_code = ['-db_gencode', str(db_genetic_code)]
     else:
         db_genetic_code = []
 

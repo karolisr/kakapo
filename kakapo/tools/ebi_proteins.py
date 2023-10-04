@@ -25,8 +25,9 @@ def fasta_by_accession_list(acc_list):
         acc_param = ','.join(x for x in acc_list[offset:last])
         params = {'accession': acc_param}
         response = get(url=url, params=params, response_format='fasta')
-        if response is None:
-            response = ''
-        data = data + response.text
+        txt = ''
+        if response is not None:
+            txt = response.text
+        data += txt
 
     return data

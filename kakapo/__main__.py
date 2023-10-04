@@ -9,7 +9,9 @@ import os
 ##############################################################################
 # import inspect
 # import sys
-# SCRIPT_FILE_PATH = inspect.getfile(inspect.currentframe())
+# _ = inspect.currentframe()
+# assert _ is not None
+# SCRIPT_FILE_PATH = inspect.getfile(_)
 # SCRIPT_DIR_PATH = os.path.dirname(os.path.abspath(SCRIPT_FILE_PATH))
 # KAKAPO_DIR_PATH = os.path.sep.join(SCRIPT_DIR_PATH.split(os.path.sep)[0:-1])
 # sys.path.insert(0, KAKAPO_DIR_PATH)
@@ -29,77 +31,78 @@ from sys import exit
 
 from joblib import Parallel, delayed
 
-from ncbi_taxonomy_local import Taxonomy
+from ncbi_taxonomy_local import Taxonomy, TaxonomyRAM, TaxonomySQL
 
-from kakapo import __version__, __script_name__
+from . import __version__ as KKPV
+from . import __script_name__ as KKP
 
-from kakapo.utils import dependencies as deps
-from kakapo.utils.logging import Log
-from kakapo.utils.misc import make_dirs
-from kakapo.utils.misc import time_stamp
+from .utils import dependencies as deps
+from .utils.logging import Log
+from .utils.misc import make_dirs
+from .utils.misc import time_stamp
 
-from kakapo.tools.config import CONSRED, CONSDFL, CONBLUE
-from kakapo.tools.config import DIR_DAT, DIR_DEP, DIR_TAX, DIR_KRK
-from kakapo.tools.config import MACHINE_TYPE
-from kakapo.tools.config import OS_ID, DIST_ID, DEBIAN_DISTS, REDHAT_DISTS
-from kakapo.tools.config import RELEASE_NAME
-from kakapo.tools.config import SCRIPT_INFO
-from kakapo.tools.config import NCPU, RAM
-from kakapo.tools.config_file_parse import config_file_parse
-from kakapo.tools.config_file_parse import ss_file_parse
-from kakapo.tools.config_file_parse import use_colors
+from .tools.config import CONSRED, CONSDFL, CONBLUE
+from .tools.config import DIR_DAT, DIR_DEP, DIR_TAX, DIR_KRK
+from .tools.config import MACHINE_TYPE
+from .tools.config import OS_ID, DIST_ID, DEBIAN_DISTS, REDHAT_DISTS
+from .tools.config import RELEASE_NAME
+from .tools.config import SCRIPT_INFO
+from .tools.config import NCPU, RAM
+from .tools.config_file_parse import config_file_parse
+from .tools.config_file_parse import ss_file_parse
+from .tools.config_file_parse import use_colors
 
-from kakapo.tools.seq import SEQ_TYPE_AA
+from .tools.seq import SEQ_TYPE_AA
 
-from kakapo.tools.bioio import read_fasta
-from kakapo.tools.bioio import seq_records_to_dict
-from kakapo.tools.transl_tables import TranslationTable
+from .tools.bioio import read_fasta
+from .tools.bioio import seq_records_to_dict
+from .tools.transl_tables import TranslationTable
 
-from kakapo.flow.a_prepare import prepare_output_directories
+from .flow.a_prepare import prepare_output_directories
 
-from kakapo.flow.b_process_reads import dnld_sra_fastq_files
-from kakapo.flow.b_process_reads import dnld_sra_info
-from kakapo.flow.b_process_reads import file_name_patterns
-from kakapo.flow.b_process_reads import filtered_fq_to_fa
-from kakapo.flow.b_process_reads import makeblastdb_fq
-from kakapo.flow.b_process_reads import min_accept_read_len
-from kakapo.flow.b_process_reads import run_bt2_fq
-from kakapo.flow.b_process_reads import run_kraken2
-from kakapo.flow.b_process_reads import run_rcorrector
-from kakapo.flow.b_process_reads import run_trimmomatic
-from kakapo.flow.b_process_reads import user_fastq_files
+from .flow.b_process_reads import dnld_sra_fastq_files
+from .flow.b_process_reads import dnld_sra_info
+from .flow.b_process_reads import file_name_patterns
+from .flow.b_process_reads import filtered_fq_to_fa
+from .flow.b_process_reads import makeblastdb_fq
+from .flow.b_process_reads import min_accept_read_len
+from .flow.b_process_reads import run_bt2_fq
+from .flow.b_process_reads import run_kraken2
+from .flow.b_process_reads import run_rcorrector
+from .flow.b_process_reads import run_trimmomatic
+from .flow.b_process_reads import user_fastq_files
 
-from kakapo.flow.c_process_queries import combine_aa_fasta
-from kakapo.flow.c_process_queries import dnld_pfam_uniprot_seqs
-from kakapo.flow.c_process_queries import dnld_prot_seqs
-from kakapo.flow.c_process_queries import filter_queries
-from kakapo.flow.c_process_queries import pfam_uniprot_accessions
-from kakapo.flow.c_process_queries import user_aa_fasta
-from kakapo.flow.c_process_queries import user_entrez_search
-from kakapo.flow.c_process_queries import user_protein_accessions
+from .flow.c_process_queries import combine_aa_fasta
+from .flow.c_process_queries import dnld_pfam_uniprot_seqs
+from .flow.c_process_queries import dnld_prot_seqs
+from .flow.c_process_queries import filter_queries
+from .flow.c_process_queries import pfam_uniprot_accessions
+from .flow.c_process_queries import user_aa_fasta
+from .flow.c_process_queries import user_entrez_search
+from .flow.c_process_queries import user_protein_accessions
 
-from kakapo.flow.d_search_reads import run_tblastn_on_reads
-from kakapo.flow.d_search_reads import run_vsearch_on_reads
+from .flow.d_search_reads import run_tblastn_on_reads
+from .flow.d_search_reads import run_vsearch_on_reads
 
-from kakapo.flow.e_process_assmbl import combine_assemblies
-from kakapo.flow.e_process_assmbl import makeblastdb_assemblies
-from kakapo.flow.e_process_assmbl import run_spades
+from .flow.e_process_assmbl import combine_assemblies
+from .flow.e_process_assmbl import makeblastdb_assemblies
+from .flow.e_process_assmbl import run_spades
 
-from kakapo.flow.f_search_assmbl import run_tblastn_on_assemblies
-from kakapo.flow.g_find_orfs import find_orfs_translate
-from kakapo.flow.h_prepare_gff import gff_from_json
-from kakapo.flow.i_inter_pro_scan import run_inter_pro_scan
-from kakapo.flow.j_dnld_aa_query_cds import dnld_cds_for_ncbi_prot_acc
+from .flow.f_search_assmbl import run_tblastn_on_assemblies
+from .flow.g_find_orfs import find_orfs_translate
+from .flow.h_prepare_gff import gff_from_json
+from .flow.i_inter_pro_scan import run_inter_pro_scan
+from .flow.j_dnld_aa_query_cds import dnld_cds_for_ncbi_prot_acc
 
 # Silence urllib3 overly verbose logging.
-logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger('urllib3').setLevel(logging.WARNING)
 
 # Command line arguments -----------------------------------------------------
 USAGE = CONBLUE + '{} --cfg project_configuration_file ' \
-    '--ss search_strategies_file'.format(__script_name__) + CONSDFL
+    '--ss search_strategies_file'.format(KKP) + CONSDFL
 
 PARSER = argparse.ArgumentParser(
-    prog=__script_name__,
+    prog=KKP,
     formatter_class=argparse.RawTextHelpFormatter,
     usage=USAGE,
     description=None,
@@ -113,7 +116,7 @@ PARSER.add_argument(
     required=False,
     metavar='path',
     dest='CONFIG_FILE_PATH',
-    help='Path to a {} project configuration file.'.format(__script_name__))
+    help='Path to a {} project configuration file.'.format(KKP))
 
 PARSER.add_argument(
     '--ss',
@@ -121,7 +124,7 @@ PARSER.add_argument(
     required=False,
     metavar='path',
     dest='SS_FILE_PATH',
-    help='Path to a {} search strategies file.'.format(__script_name__))
+    help='Path to a {} search strategies file.'.format(KKP))
 
 PARSER.add_argument(
     '--ncpu',
@@ -137,7 +140,7 @@ PARSER.add_argument(
     required=False,
     dest='STOP_AFTER_FILTER',
     help='Stop {} after Kraken2/Bowtie2 filtering '
-         'step.'.format(__script_name__))
+         'step.'.format(KKP))
 
 PARSER.add_argument(
     '--force-deps',
@@ -146,7 +149,7 @@ PARSER.add_argument(
     required=False,
     dest='FORCE_DEPS',
     help='Force the use of {}-installed dependencies,\neven if they are '
-         'already available on the system.'.format(__script_name__))
+         'already available on the system.'.format(KKP))
 
 PARSER.add_argument(
     '--install-deps',
@@ -154,7 +157,7 @@ PARSER.add_argument(
     default=False,
     required=False,
     dest='INSTALL_DEPS',
-    help='Install {} dependencies and quit.'.format(__script_name__))
+    help='Install {} dependencies and quit.'.format(KKP))
 
 PARSER.add_argument(
     '--dnld-kraken-dbs',
@@ -170,21 +173,21 @@ PARSER.add_argument(
     required=False,
     dest='CLEAN_DATA_DIR',
     help='Remove cached NCBI taxonomy data and all software\ndependencies '
-         'downloaded by {}.'.format(__script_name__))
+         'downloaded by {}.'.format(KKP))
 
 PARSER.add_argument(
     '-v', '--version',
     action='store_true',
     required=False,
     dest='PRINT_VERSION',
-    help='Print {} version.'.format(__script_name__))
+    help='Print {} version.'.format(KKP))
 
 PARSER.add_argument(
     '-h', '--help',
     action='store_true',
     required=False,
     dest='PRINT_HELP',
-    help='Print {} help information.'.format(__script_name__))
+    help='Print {} help information.'.format(KKP))
 
 ARGS = PARSER.parse_args()
 
@@ -205,13 +208,19 @@ if PRINT_HELP is True:
     exit(0)
 
 if PRINT_VERSION is True:
-    print(__script_name__ + ' v' + __version__)
+    print(KKP + ' v' + KKPV)
     exit(0)
 
 if CLEAN_DATA_DIR is True and ope(DIR_DAT):
-    print(CONSRED + 'Removing ' + __script_name__ + ' data directory: '
+    print(CONSRED + 'Removing ' + KKP + ' data directory: '
           + CONSDFL + DIR_DAT)
-    rmtree(DIR_DAT)
+    try:
+        rmtree(DIR_DAT, ignore_errors=True)
+    except Exception:
+        try:
+            rmtree(DIR_DAT, ignore_errors=True)
+        except Exception:
+            pass
     exit(0)
 elif CLEAN_DATA_DIR is True:
     print(CONSRED + 'The data directory does not exist. Nothing to do.'
@@ -230,10 +239,7 @@ else:
     print(CONSRED + 'Configuration file was not provided. Nothing to do.'
           + CONSDFL)
     print()
-    # print('-' * 78)
     PARSER.print_help()
-    # print('-' * 78)
-    # print()
     exit(0)
 
 if CLEAN_DATA_DIR is False and SS_FILE_PATH is not None:
@@ -262,8 +268,6 @@ COLORS = False
 if CONFIG_FILE_PATH is not None:
     COLORS = use_colors(CONFIG_FILE_PATH)
 
-# ----------------------------------------------------------------------------
-
 
 def main():
     """Run the script."""
@@ -277,7 +281,7 @@ def main():
 
     # Prepare kakapo data directory ----------------------------------------
     if ope(DIR_DAT):
-        Log.inf('Found kakapo data directory:', DIR_DAT)
+        Log.log(inf='Found kakapo data directory:', s=DIR_DAT)
     else:
         Log.wrn('Creating kakapo data directory:', DIR_DAT)
         make_dirs(DIR_DAT)
@@ -292,11 +296,16 @@ def main():
     gzip = deps.dep_check_gzip()
     pigz = deps.dep_check_pigz()
     if (gzip is None) and (pigz is None):
-        Log.err('Could not find either "gzip" or "pigz". Cannot continue.')
+        Log.err('Could not find either "gzip" or "pigz". Cannot continue.', '')
         exit(0)
     if pigz is None:
         Log.wrn('Will be using slower "gzip" program for compression. '
-                'For much faster compression, please install "pigz".')
+                'For much faster compression, please install "pigz".', '')
+
+    java = deps.dep_check_java()
+    if (java is None):
+        Log.err('Could not find "Java". Cannot continue.', '')
+        exit(0)
 
     seqtk = deps.dep_check_seqtk(DIR_DEP, FORCE_DEPS)
     trimmomatic, adapters = deps.dep_check_trimmomatic(DIR_DEP)
@@ -317,7 +326,7 @@ def main():
 
     kakapolib = deps.dep_check_kakapolib(FORCE_DEPS)
     if kakapolib is None:
-        Log.err('Could not compile "kakapolib". Cannot continue.')
+        Log.err('Could not compile "kakapolib". Cannot continue.', '')
         exit(0)
 
     print()
@@ -330,13 +339,11 @@ def main():
     print()
 
     # Initialize NCBI taxonomy database --------------------------------------
-    tax = Taxonomy()
-    if tax.is_initialized() is False:
-        tax.init(data_dir_path=DIR_TAX, logger=Log)
-        print()
+    # tax = TaxonomyRAM(data_dir=DIR_TAX, logger=Log, check_for_updates=True)
+    tax = TaxonomySQL(backend='SQLite', data_dir=DIR_TAX, logger=Log, check_for_updates=True)
 
     # Parse configuration file -----------------------------------------------
-    Log.inf('Reading project configuration file:', CONFIG_FILE_PATH)
+    Log.log(inf='Reading project configuration file:', s=CONFIG_FILE_PATH)
     _ = config_file_parse(CONFIG_FILE_PATH, tax)
 
     allow_no_stop_cod = _['allow_no_stop_cod']
@@ -378,15 +385,17 @@ def main():
 
     os.environ['ENTREZ_KEY'] = _['entrez_api_key']
 
+    taxid_for_queries = tax_group
+
     print()
 
     # Parse search strategies file -------------------------------------------
     if SS_FILE_PATH is not None:
-        Log.inf('Reading search strategies file:', SS_FILE_PATH)
+        Log.log(inf='Reading search strategies file:', s=SS_FILE_PATH)
         sss = ss_file_parse(SS_FILE_PATH)
     else:
         Log.wrn('Search strategies file was not provided.\n'
-                + 'Will process reads, assemblies and then stop.')
+                'Will process reads, assemblies and then stop.', '')
         sss = dict()
 
     print()
@@ -394,7 +403,7 @@ def main():
     # Create output directory ------------------------------------------------
     if dir_out is not None:
         if ope(dir_out):
-            Log.inf('Found output directory:', dir_out)
+            Log.log(inf='Found output directory:', s=dir_out)
         else:
             Log.wrn('Creating output directory:', dir_out)
             make_dirs(dir_out)
@@ -406,17 +415,18 @@ def main():
     if ope(version_file):
         with open(version_file, 'r') as f:
             version_prev = f.read().strip()
-            if __version__ != version_prev:
+            if KKPV != version_prev:
                 Log.wrn('The output directory contains data produced by a '
                         + 'different version of Kakapo: ' + version_prev
-                        + '.\nThe currently running version is: ' + __version__
+                        + '.\nThe currently running version is: ' + KKPV
                         + '.\n'
                         + 'Delete "kakapo_version.txt" file located in the '
-                        + 'output directory if you would like to continue.')
+                        + 'output directory if you would like to continue.',
+                        '')
                 exit(0)
 
     with open(version_file, 'w') as f:
-        f.write(__version__)
+        f.write(KKPV)
 
     # Create subdirectories in the output directory --------------------------
     _ = prepare_output_directories(dir_out, prj_name,
@@ -445,6 +455,8 @@ def main():
     dir_prj_ips = _['dir_prj_ips']
     dir_prj_transcripts_combined = _['dir_prj_transcripts_combined']
 
+    globals()['KKP_DIR_TMP'] = dir_temp
+
     # Archive the configuration and search strategies files used -------------
     run_cfg_file = opj(dir_prj_logs, prj_name + '_' + prj_log_file_suffix
                        + '.cfg.ini')
@@ -470,6 +482,13 @@ def main():
     # Download SRA run metadata if needed ------------------------------------
     sra_runs_info, sras_acceptable = dnld_sra_info(sras, dir_cache_prj)
 
+    # ------------------------------------------------------------------------
+    tax_ids_user |= set([int(sra_runs_info[x]['TaxID']) for x in sras_acceptable])
+    _ = tax.common_taxid(tax_ids_user)
+    _ = tax.higher_rank_for_taxid(_, 'order')
+    if _ != '':
+        taxid_for_queries = tax.taxid_for_name_and_group_taxid(_, tax_group)
+
     # Download SRA run FASTQ files if needed ---------------------------------
     se_fastq_files_sra, pe_fastq_files_sra = dnld_sra_fastq_files(
         sras_acceptable, sra_runs_info, dir_fq_data, fasterq_dump, NCPU,
@@ -484,7 +503,7 @@ def main():
     pe_fastq_files = pe_fastq_files_sra.copy()
     pe_fastq_files.update(pe_fastq_files_usr)
 
-    def gc_tt(k, d_local, tax_local):
+    def gc_tt(k, d_local, tax_local: Taxonomy):
         taxid = d_local[k]['tax_id']
 
         gc = tax_local.genetic_code_for_taxid(taxid)
@@ -500,12 +519,12 @@ def main():
 
         if tax_local.is_eukaryote(taxid) is True:
             gc_mito = tax_local.mito_genetic_code_for_taxid(taxid)
-            if gc_mito != '0':
+            if gc_mito != 0:
                 tt_mito = TranslationTable(gc_mito)
 
             if tax_local.contains_plastid(taxid) is True:
                 gc_plastid = tax_local.plastid_genetic_code_for_taxid(taxid)
-                if gc_plastid != '0':
+                if gc_plastid != 0:
                     tt_plastid = TranslationTable(gc_plastid)
 
         d_local[k]['gc_id_mito'] = gc_mito
@@ -577,7 +596,7 @@ def main():
     # Stop after filter ------------------------------------------------------
     if STOP_AFTER_FILTER is True:
         print()
-        Log.wrn('Stopping after Kraken 2 / Bowtie 2 filtering step as requested.')
+        Log.wrn('Stopping after Kraken 2 / Bowtie 2 filtering step as requested.', '')
         exit(0)
 
     # Convert filtered FASTQ files to FASTA ----------------------------------
@@ -589,7 +608,7 @@ def main():
         print()
         Log.inf('Building BLAST databases for reads.')
         if makeblastdb is None:
-            Log.err('makeblastdb is not available. Cannot continue. Exiting.')
+            Log.err('makeblastdb is not available. Cannot continue. Exiting.', '')
             exit(0)
 
     parallel_run_count = NCPU
@@ -616,17 +635,15 @@ def main():
         Parallel(n_jobs=parallel_run_count, verbose=0, require='sharedmem')(
             delayed(makeblastdb_fq_pe_parallel)({k: pe_fastq_files[k]}) for k in _)
 
-    if len(sss) > 0:
+    if len(sss) > 0 and (len(se_fastq_files) > 0 or len(pe_fastq_files) > 0):
         print()
-
-    # Resolve descending taxonomy nodes --------------------------------------
-    tax_ids = tax.all_descending_taxids_for_taxids([tax_group])
 
     # Pfam uniprot accessions ------------------------------------------------
     pfam_uniprot_acc = OrderedDict()
     for ss in sss:
         pfam_acc = sss[ss]['pfam_families']
-        pfam_uniprot_acc[ss] = pfam_uniprot_accessions(ss, pfam_acc, tax_ids,
+        pfam_uniprot_acc[ss] = pfam_uniprot_accessions(ss, pfam_acc,
+                                                       [taxid_for_queries],
                                                        dir_cache_pfam_acc)
 
     # Download Pfam uniprot sequences if needed ------------------------------
@@ -645,10 +662,11 @@ def main():
                                                           dir_cache_prj,
                                                           requery_after)
 
+    print()
+
     # User provided protein accessions ---------------------------------------
     prot_acc_user = OrderedDict()
     for ss in sss:
-        print()
         prot_acc_all = sorted(set(sss[ss]['ncbi_accessions_aa']
                                   + prot_acc_user_from_query[ss]))
         prot_acc_user[ss] = user_protein_accessions(ss, prot_acc_all,
@@ -660,8 +678,9 @@ def main():
         aa_prot_ncbi_files[ss] = opj(dir_prj_queries, 'aa_prot_ncbi__' + ss
                                      + '.fasta')
         prot_acc_user[ss] = dnld_prot_seqs(ss, prot_acc_user[ss],
-                                           aa_prot_ncbi_files[ss],
-                                           dir_cache_prj)
+                                           aa_prot_ncbi_files[ss])
+
+    print()
 
     # User provided protein sequences ----------------------------------------
     aa_prot_user_files = OrderedDict()
@@ -743,7 +762,7 @@ def main():
         if stat(aa_queries_files[ss]).st_size == 0:
             continue
         print()
-        Log.inf('Checking if Vsearch should be run:', ss)
+        Log.log(inf='Checking if Vsearch should be run:', s=ss)
         run_vsearch_on_reads(se_fastq_files, pe_fastq_files, vsearch,
                              dir_prj_vsearch_results_fa_trim,
                              pe_vsearch_results_file_patterns, ss, seqtk)
@@ -757,7 +776,7 @@ def main():
                 pe_fastq_files[pe]['spades_assembly' + '__' + ss] = None
             continue
         print()
-        Log.inf('Checking if SPAdes should be run:', ss)
+        Log.log(inf='Checking if SPAdes should be run:', s=ss)
         run_spades(se_fastq_files, pe_fastq_files, dir_prj_spades_assemblies,
                    spades, dir_temp, ss, NCPU, RAM)
 
@@ -770,7 +789,7 @@ def main():
 
     if any_queries is False:
         print()
-        Log.wrn('No query sequences were provided.')
+        Log.wrn('No query sequences were provided.', '')
 
     # Run tblastn on assemblies ----------------------------------------------
     for ss in sss:
@@ -792,7 +811,7 @@ def main():
 
         if should_run_tblastn is False:
             print()
-            Log.inf('Will not run BLAST. No transcripts exist:', ss)
+            Log.log(inf='Will not run BLAST. No transcripts exist:', s=ss)
             continue
 
         blast_2_evalue_ss = sss[ss]['blast_2_evalue']
@@ -954,29 +973,34 @@ def main():
         delayed(dnld_cds_for_ncbi_prot_acc_parallel)(ss) for ss in ss_names)
 
     # ------------------------------------------------------------------------
-
     rmtree(dir_temp)
-
     # ------------------------------------------------------------------------
-
-    # rerun = input('\nRepeat ([y]/n)? ').lower().strip()
-    # if rerun.startswith('y') or rerun == '':
-    #     print()
-    #     return False
-    # else:
-    #     print('\nExiting...')
-    #     return True
-
     return True
-
     # ------------------------------------------------------------------------
 
 
 def run_kakapo():
-    while True:
-        stop = main()
-        if stop is True:
-            break
+    try:
+        while True:
+            stop = main()
+            if stop is True:
+                break
+
+    except KeyboardInterrupt:
+        print('\r', end='')
+        print('  ')
+        Log.log(wrn=f'{KKP} was interrupted.', s='Good bye.', timestamp=True)
+
+        # ToDo: cleanup. -----------------------------------------------------
+        if 'KKP_DIR_TMP' in globals():
+            dir_tmp = globals()['KKP_DIR_TMP']
+            rmtree(dir_tmp, ignore_errors=True)
+        # --------------------------------------------------------------------
+
+        try:
+            exit(130)
+        except SystemExit:
+            os._exit(130)
 
 
 if __name__ == '__main__':

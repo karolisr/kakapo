@@ -1,18 +1,17 @@
 """Parsers."""
 
-
 import re
-from xml.etree import ElementTree
 from functools import reduce
 from operator import add
+from typing import Union
+from xml.etree import ElementTree
 
+from kakapo.tools.seq import (MOL_TO_SEQ_TYPE_MAP, AASeq, DNASeq, NTSeq,
+                              RNASeq, Seq, SeqRecord)
 from kakapo.utils.misc import list_of_files_at_path_recursive
-from kakapo.tools.seq import MOL_TO_SEQ_TYPE_MAP
-from kakapo.tools.seq import Seq
-from kakapo.tools.seq import SeqRecord
 
 
-def parse_esummary_xml_text(esummary_xml_text):
+def parse_esummary_xml_text(esummary_xml_text: str):
     root = ElementTree.fromstring(esummary_xml_text)
 
     return_value = list()
@@ -220,10 +219,14 @@ def parse_gbseq_xml_text(gbseq_xml_text: str) -> list:
             seq = seqs('nucleotide', [external_ref_acc])[0].seq
         # --------------------------------------------------------------------
 
-        length = rec.find('GBSeq_length')
+        length: Union[int, None]
         if seq is not None:
             # seq = seq.text
-            length = int(length.text)
+            length_element = rec.find('GBSeq_length')
+            assert length_element is not None
+            length_text = length_element.text
+            assert length_text is not None
+            length = int(length_text)
             if length != len(seq):
                 message = (
                     'Reported sequence length does not match the actual '
@@ -266,8 +269,14 @@ def parse_gbseq_xml_text(gbseq_xml_text: str) -> list:
                 if (n_interval_from is not None) and \
                         (n_interval_to is not None):
 
-                    start = int(n_interval_from.text)
-                    end = int(n_interval_to.text)
+                    n_interval_from_text = n_interval_from.text
+                    n_interval_to_text = n_interval_to.text
+
+                    assert n_interval_from_text is not None
+                    assert n_interval_to_text is not None
+
+                    start = int(n_interval_from_text)
+                    end = int(n_interval_to_text)
 
                     # Make intervals zero-indexed.
                     if start <= end:
@@ -279,8 +288,10 @@ def parse_gbseq_xml_text(gbseq_xml_text: str) -> list:
                     interval = [start, end]
 
                 elif n_interval_point is not None:
+                    n_interval_point_text = n_interval_point.text
+                    assert n_interval_point_text is not None
 
-                    interval = [int(n_interval_point.text) - 1]
+                    interval = [int(n_interval_point_text) - 1]
                     interval_direction = 0
 
                 feature['intervals'].append(interval)
@@ -297,6 +308,7 @@ def parse_gbseq_xml_text(gbseq_xml_text: str) -> list:
                         qualifiers.append({n_qualifier_name.text: True})
                     else:
                         qualifier_value = n_qualifier_value.text
+                        assert qualifier_value is not None
                         qualifier_name = n_qualifier_name.text
 
                         if fk == 'source' and qualifier_name == 'organelle':
@@ -321,6 +333,8 @@ def parse_gbseq_xml_text(gbseq_xml_text: str) -> list:
                         if taxid_temp.startswith('taxon:'):
                             taxid = taxid_temp.split('taxon:')[1]
                             break
+
+        assert taxid is not None
 
         record_dict = dict()
 
@@ -357,7 +371,7 @@ def parse_gbseq_xml_text(gbseq_xml_text: str) -> list:
     return return_value
 
 
-def seq_records_gb(gbseq_xml_text: str) -> list:
+def seq_records_gb(gbseq_xml_text: str) -> list[SeqRecord]:
     parsed = parse_gbseq_xml_text(gbseq_xml_text)
 
     records = list()
@@ -376,7 +390,9 @@ def seq_records_gb(gbseq_xml_text: str) -> list:
         gc_id = r['gc_id']
 
         seq = Seq(seq_str, MOL_TO_SEQ_TYPE_MAP[mol_type], gc_id)
-        seq_record = SeqRecord(definition, seq)
+        # Python 3.9 incompatible
+        # assert isinstance(seq, Union[NTSeq, DNASeq, RNASeq, AASeq])
+        seq_record = SeqRecord(definition, seq)  # type: ignore
         seq_record.accession = accession
         seq_record.version = version
         seq_record.taxid = taxid
@@ -399,14 +415,15 @@ def parse_kraken_output_file(file_path):
     with open(file_path, 'r') as f:
         lines = f.read().splitlines()
     lines = map(lambda l: l.split(field_terminator), lines)
-    ret_iter = map(lambda l: [file_basename] +
-                   list(map(lambda f: f.strip(), l)), lines)
+    ret_iter = map(lambda l: [file_basename]
+                   + list(map(lambda f: f.strip(), l)), lines)
     return list(ret_iter)
 
 
 # ToDo: Review; does this function belong here?
 def parse_kraken_output_dir(path):
     lf = list_of_files_at_path_recursive(path, regexp=r'paired.*\.txt')
+    assert lf is not None
     r = reduce(add, map(parse_kraken_output_file, lf), [])
     r = list(map(lambda x: '\t'.join(x) + '\n', r))
     with open('kraken2_summary.txt', 'w') as f:

@@ -1,16 +1,13 @@
 """Kakapo workflow: Search Assemblies."""
 
 import pickle
-
 from os import remove as osremove
 from os.path import exists as ope
 from os.path import join as opj
 
-from kakapo.tools.bioio import read_fasta
-from kakapo.tools.bioio import seq_records_to_dict
-from kakapo.tools.blast import BLST_RES_COLS_2
-from kakapo.tools.blast import parse_blast_results_file
-from kakapo.tools.blast import run_blast
+from kakapo.tools.bioio import read_fasta, seq_records_to_dict
+from kakapo.tools.blast import (BLST_RES_COLS_2, parse_blast_results_file,
+                                run_blast)
 from kakapo.tools.config import PICKLE_PROTOCOL
 from kakapo.tools.seq import SEQ_TYPE_AA
 from kakapo.utils.logging import Log
@@ -26,12 +23,12 @@ def run_tblastn_on_assemblies(ss, assemblies, aa_queries_file, tblastn,
 
     if len(assemblies) > 0:
         print()
-        Log.inf('Running BLAST on assemblies:', ss)
+        Log.log(inf='Running BLAST on assemblies:', s=ss)
         if tblastn is None:
-            Log.err('tblastn is not available. Cannot continue. Exiting.')
+            Log.err('tblastn is not available. Cannot continue. Exiting.', '')
             exit(0)
     else:
-        Log.wrn('There are no assemblies. Nothing to do, stopping.')
+        Log.wrn('There are no assemblies. Nothing to do, stopping.', '')
         exit(0)
 
     cache_file = opj(dir_cache_prj, 'blast_2_settings_cache__' + ss)
@@ -68,8 +65,8 @@ def run_tblastn_on_assemblies(ss, assemblies, aa_queries_file, tblastn,
         assmbl_blast_db_path = a['blast_db_path']
         assmbl_genetic_code = a['gc_id']
 
-        ips_json_dump_path = opj(dir_prj_ips, assmbl_name + '_ann_ips__' + ss +
-                                 '.json')
+        ips_json_dump_path = opj(dir_prj_ips, assmbl_name + '_ann_ips__' + ss
+                                 + '.json')
 
         _ = opj(dir_prj_assmbl_blast_results, assmbl_name + '__' + ss + '.tsv')
 
