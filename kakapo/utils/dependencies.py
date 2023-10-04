@@ -96,6 +96,7 @@ def dep_check_java():
     v = get_dep_version([jv, '--version'], r'(?:java\s*)*(.*)')
     if v.startswith('Unrecognized option'):
         v = get_dep_version([jv, '-version'], r'(?:java\s*)*(.*)')
+        v = v.replace('version', '').strip().strip('"')
     Log.msg('java is available:', v + ' ' + jv)
     return jv
 
