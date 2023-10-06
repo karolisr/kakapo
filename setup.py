@@ -11,9 +11,9 @@ from kakapo import __url__ as kakapo_url
 from kakapo import __version__ as kakapo_version
 
 with open('requirements.txt', 'r') as f:
-    reqs = f.read()
+    _ = f.read()
 
-reqs = reqs.splitlines()
+reqs = _.splitlines()
 
 setup(name=kakapo_script_name,
       version=kakapo_version,
@@ -31,14 +31,11 @@ setup(name=kakapo_script_name,
       python_requires='>=3.9',
       entry_points={'console_scripts': ['kakapo=kakapo.__main__:run_kakapo']},
       classifiers=[
-          'Development Status :: 4 - Beta',
           'Environment :: Console',
           'Intended Audience :: Science/Research',
           'Natural Language :: English',
           'Operating System :: MacOS :: MacOS X',
           'Operating System :: POSIX :: Linux',
-          'Programming Language :: Python :: 3.7',
-          'Programming Language :: Python :: 3.8',
           'Programming Language :: Python :: 3.9',
           'Programming Language :: Python :: 3.10',
           'Programming Language :: Python :: 3.11',
