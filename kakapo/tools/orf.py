@@ -77,7 +77,7 @@ def get_orf_coords_for_frames(seq, start_codons, stop_codons, min_len=100,
         coords = get_orf_coords_for_forward_frame(s, start_codons, stop_codons,
                                                   min_len, abs(frame))
         if frame < 0:
-            coords = map(lambda x: (sl - x[1], sl - x[0]), coords)
+            coords = tuple(map(lambda x: (sl - x[1], sl - x[0]), coords))
 
         result = dict()
         result['frame'] = frame
