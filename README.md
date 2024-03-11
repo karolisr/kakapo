@@ -1,5 +1,9 @@
 # kakapo [![Build Status](https://app.travis-ci.com/karolisr/kakapo.svg?branch=master)](https://app.travis-ci.com/karolisr/kakapo)
 
+## Publication
+
+Ramanauskas, K. and Igić, B. 2023. [_**kakapo**: easy extraction and annotation of genes from raw RNA-seq reads_](https://peerj.com/articles/16456/) **PeerJ** 15:e16456 (13pp). DOI: 10.7717/peerj.16456
+
 ## Installation
 
 We added a [Wiki](https://github.com/karolisr/kakapo/wiki) with detailed explanations, including step-by-step, multi-platform [installation instructions](https://github.com/karolisr/kakapo/wiki/Installation).
