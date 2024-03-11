@@ -2,7 +2,7 @@
 
 ## Publication
 
-Ramanauskas, K. and Igić, B. 2023. _**kakapo**: easy extraction and annotation of genes from raw RNA-seq reads_ **PeerJ** 15:e16456 (13pp). [DOI: 10.7717/peerj.16456](https://peerj.com/articles/16456/)
+Ramanauskas, K. and Igić, B. 2023. _**kakapo**: easy extraction and annotation of genes from raw RNA-seq reads_. **PeerJ** 15:e16456 (13pp). [DOI: 10.7717/peerj.16456](https://peerj.com/articles/16456/)
 
 ## Installation
 
