@@ -63,21 +63,22 @@ def run_blast(exec_file, task, threads, db_path, queries_file, out_file,
     run(cmd, do_not_raise=True)
 
 
-def _prs_blst_res(blast_results, col_names):
+def parse_blast_results_raw(blast_results, col_names):
     rdr = csv.DictReader(blast_results.splitlines(),
                          fieldnames=col_names, delimiter='\t')
     return list(rdr)
 
 
-def _prs_blst_res_f(blast_results_file, col_names):
+def parse_blast_results_file_raw(blast_results_file, col_names):
     with open(blast_results_file, 'r') as f:
         blast_results = f.read()
-    parsed = _prs_blst_res(blast_results, col_names)
+    parsed = parse_blast_results_raw(blast_results, col_names)
     return parsed
 
 
+# ToDo: This should be generalized.
 def parse_blast_results_file(blast_results_file, col_names=BLST_RES_COLS_2):
-    parsed_raw = _prs_blst_res_f(blast_results_file, col_names)
+    parsed_raw = parse_blast_results_file_raw(blast_results_file, col_names)
     parsed = dict()
 
     for rec in parsed_raw:
