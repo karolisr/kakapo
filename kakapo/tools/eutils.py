@@ -412,7 +412,7 @@ def _process_downloaded_seq_data(efetch_txt: str, db: str, rettype: str,
             seq_type = SEQ_TYPE_AA
         _ = read_fasta(StringIO(efetch_txt), seq_type, parse_def=True)
         for r in _:
-            assert type(r) == SeqRecord
+            assert isinstance(r, SeqRecord)
             rec_list.append(r)
     return rec_list
 
@@ -523,7 +523,7 @@ def cds_with_data(data_protein: dict) -> list:
 
 
 def sra_run_info(srr: Union[Iterable[str], str]) -> list:
-    if type(srr) == str:
+    if isinstance(srr, str):
         srr = [srr]
     # CSV output example: https://trace.ncbi.nlm.nih.gov/Traces/sra-db-be/sra-db-be.cgi?rettype=runinfo&acc=SRR13805638,SRR13805642
     efetch_xml_txt = efetch(db='sra', ids=srr, rettype='runinfo',
