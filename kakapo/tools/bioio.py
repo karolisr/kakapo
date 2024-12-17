@@ -4,14 +4,11 @@ import io
 import re
 from collections import OrderedDict
 from collections.abc import MutableSequence, Sequence
-from functools import reduce
 from io import StringIO
 from math import ceil
-from operator import add
 from typing import List, Union
 
-from kakapo.tools.seq import (SEQ_TYPES, AASeq, DNASeq, NTSeq, RNASeq, Seq,
-                              SeqRecord, SeqRecordCDS)
+from kakapo.tools.seq import (SEQ_TYPES, Seq, SeqRecord, SeqRecordCDS)
 
 BIOIO_NS = dict()
 HANDLE_TYPES = (io.IOBase, StringIO)
@@ -115,9 +112,10 @@ def dict_to_fasta(d, max_line_len=None):
             seq = str(seq)
             return seq
 
-    fasta = reduce(
-        add,
-        ['>' + k + '\n' + split_seq(v) + '\n' for (k, v) in d.items()])
+    fasta = ""
+    for k, v in d.items():
+        fasta += ">" + k + "\n" + split_seq(v) + "\n"
+
     return fasta
 
 
