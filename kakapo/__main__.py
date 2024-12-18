@@ -315,7 +315,7 @@ def main():
     makeblastdb, _, tblastn = deps.dep_check_blast(DIR_DEP, OS_ID, DIST_ID,
                                                    DEBIAN_DISTS, REDHAT_DISTS,
                                                    FORCE_DEPS)
-    vsearch = deps.dep_check_vsearch(DIR_DEP, OS_ID, DIST_ID, DEBIAN_DISTS,
+    vsearch = deps.dep_check_vsearch(DIR_DEP, OS_ID, DIST_ID, MACHINE_TYPE, DEBIAN_DISTS,
                                      REDHAT_DISTS, FORCE_DEPS)
     spades = deps.dep_check_spades(DIR_DEP, OS_ID, FORCE_DEPS)
     bowtie2, bowtie2_build = deps.dep_check_bowtie2(DIR_DEP, OS_ID, FORCE_DEPS)
