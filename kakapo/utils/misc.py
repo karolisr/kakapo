@@ -86,7 +86,7 @@ def list_of_dirs_at_path_recursive(path):
     return ld
 
 
-def list_of_files_at_path(path, regexp: Union[str, bytes, None] = None):
+def list_of_files_at_path(path: str, regexp: Union[str, bytes, None] = None) -> tuple[list[str] | None, str | None]:
     li, e = list_of_items_at_path(path)
     lf = li
     if li is not None:
@@ -195,7 +195,7 @@ def keep_unique_lines_in_file(path):
         f.write(''.join(x))
 
 
-def combine_text_files(paths, out_path):
+def combine_text_files(paths: Iterable[str], out_path: str):
     ret = ''
     for p in paths:
         with open(p, 'r') as f:

@@ -3,10 +3,10 @@
 from kakapo.utils.subp import run
 
 
-def run_cluster_fast(vsearch, ident, in_file, out_file_centroids,
-                     out_file_prefix_clusters=None,
-                     clusterout_id=False,
-                     iddef=None):
+def run_cluster_fast(vsearch: str, ident: float, in_file: str, out_file_centroids: str,
+                     out_file_prefix_clusters: str | None = None,
+                     clusterout_id: bool = False,
+                     iddef: int | None = None):
 
     cmd = [vsearch,
            '--cluster_fast', in_file,
@@ -18,7 +18,11 @@ def run_cluster_fast(vsearch, ident, in_file, out_file_centroids,
         cmd.append('--clusterout_id')
 
     if iddef is not None:
-        cmd += ['--iddef', str(iddef)]
+        if iddef >= 0 and iddef <= 4:
+            cmd += ['--iddef', str(iddef)]
+        else:
+            pass
+            # ToDo: return error: invalid option.
 
     if out_file_prefix_clusters is not None:
         cmd += ['--clusters', out_file_prefix_clusters]
