@@ -495,13 +495,17 @@ def dep_check_spades(dir_dep, os_id, force):
 
 
 # Bowtie 2
-def dep_check_bowtie2(dir_dep, os_id, force):
+def dep_check_bowtie2(dir_dep, os_id, machine_type, force):
     if os_id == 'mac':
-        url = ('https://sourceforge.net/projects/bowtie-bio/files/bowtie2/'
-               '2.4.5/bowtie2-2.4.5-macos-x86_64.zip/download')
+        if machine_type == 'arm64':
+            url = ('https://sourceforge.net/projects/bowtie-bio/files/bowtie2/2.5.4/bowtie2-2.5.4-macos-arm64.zip/download')
+        else:
+            url = ('https://sourceforge.net/projects/bowtie-bio/files/bowtie2/2.5.3/bowtie2-2.5.3-macos-x86_64.zip/download')
     elif os_id == 'linux':
-        url = ('https://sourceforge.net/projects/bowtie-bio/files/bowtie2/'
-               '2.4.5/bowtie2-2.4.5-linux-x86_64.zip/download')
+        if machine_type == 'arm64':
+            url = ('https://sourceforge.net/projects/bowtie-bio/files/bowtie2/2.5.4/bowtie2-2.5.4-linux-aarch64.zip/download')
+        else:
+            url = ('https://sourceforge.net/projects/bowtie-bio/files/bowtie2/2.5.4/bowtie2-2.5.4-linux-x86_64.zip/download')
     else:
         return None, None
 

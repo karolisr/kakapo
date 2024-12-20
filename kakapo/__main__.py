@@ -318,7 +318,7 @@ def main():
     vsearch = deps.dep_check_vsearch(DIR_DEP, OS_ID, DIST_ID, MACHINE_TYPE, DEBIAN_DISTS,
                                      REDHAT_DISTS, FORCE_DEPS)
     spades = deps.dep_check_spades(DIR_DEP, OS_ID, FORCE_DEPS)
-    bowtie2, bowtie2_build = deps.dep_check_bowtie2(DIR_DEP, OS_ID, FORCE_DEPS)
+    bowtie2, bowtie2_build = deps.dep_check_bowtie2(DIR_DEP, OS_ID, MACHINE_TYPE, FORCE_DEPS)
     rcorrector = deps.dep_check_rcorrector(DIR_DEP, FORCE_DEPS)
     kraken2, kraken2_build = deps.dep_check_kraken2(DIR_DEP, OS_ID,
                                                     RELEASE_NAME, MACHINE_TYPE,
