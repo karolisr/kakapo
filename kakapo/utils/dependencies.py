@@ -432,18 +432,17 @@ def dep_check_vsearch(dir_dep, os_id, dist_id, machine_type, debian_dists, redha
 
 
 # SPAdes
-def dep_check_spades(dir_dep, os_id, force):
+def dep_check_spades(dir_dep, os_id, machine_type, force):
     if os_id == 'mac':
-        url = ('https://github.com/ablab/spades/releases/download/v3.15.5/'
-               'SPAdes-3.15.5-Darwin.tar.gz')
+        if machine_type == 'arm64':
+            url = ('https://github.com/ablab/spades/releases/download/v4.0.0/SPAdes-4.0.0-Darwin-arm64.tar.gz')
+        else:
+            url = ('https://github.com/ablab/spades/releases/download/v4.0.0/SPAdes-4.0.0-Darwin-x86_64.tar.gz')
     elif os_id == 'linux':
-        # Binary distribution does not work on Linux?
-        # url = ('https://github.com/ablab/spades/releases/download/v3.15.5/'
-        #        'SPAdes-3.15.5-Linux.tar.gz')
-
+        # Binary
+        # url = ('https://github.com/ablab/spades/releases/download/v4.0.0/SPAdes-4.0.0-Linux.tar.gz')
         # Source code
-        url = ('https://github.com/ablab/spades/releases/download/v3.15.5/'
-               'SPAdes-3.15.5.tar.gz')
+        url = ('https://github.com/ablab/spades/releases/download/v4.0.0/SPAdes-4.0.0.tar.gz')
     else:
         return None
 
