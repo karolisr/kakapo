@@ -382,24 +382,16 @@ def dep_check_vsearch(dir_dep, os_id, dist_id, machine_type, debian_dists, redha
                       force):
     if os_id == 'mac':
         if machine_type == 'arm64':
-            url = ('https://github.com/torognes/vsearch/releases/download/'
-                   'v2.29.1/vsearch-2.29.1-macos-aarch64.tar.gz')
+            url = ('https://github.com/torognes/vsearch/releases/download/v2.29.2/vsearch-2.29.2-macos-aarch64.tar.gz')
         else:
-            url = ('https://github.com/torognes/vsearch/releases/download/'
-                   'v2.29.1/vsearch-2.29.1-macos-x86_64.tar.gz')
+            url = ('https://github.com/torognes/vsearch/releases/download/v2.29.2/vsearch-2.29.2-macos-x86_64.tar.gz')
     elif os_id == 'linux':
-        if dist_id in debian_dists:
-            url = ('https://github.com/torognes/vsearch/releases/download/'
-                   'v2.29.1/vsearch-2.29.1-linux-x86_64-static.tar.gz')
-        elif dist_id in redhat_dists:
-            url = ('https://github.com/torognes/vsearch/releases/download/'
-                   'v2.29.1/vsearch-2.29.1-linux-x86_64-static.tar.gz')
+        if machine_type == 'arm64':
+            url = ('https://github.com/torognes/vsearch/releases/download/v2.29.2/vsearch-2.29.2-linux-aarch64.tar.gz')
         else:
-            url = ('https://github.com/torognes/vsearch/releases/download/'
-                   'v2.29.1/vsearch-2.29.1-linux-x86_64-static.tar.gz')
+            url = ('https://github.com/torognes/vsearch/releases/download/v2.29.2/vsearch-2.29.2-linux-x86_64.tar.gz')
     else:
         return None
-
     dnld_path = opj(dir_dep, 'vsearch.tar.gz')
 
     try:
